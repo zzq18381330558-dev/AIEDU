@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Download, FileUp, Plus } from "lucide-react";
 import {
   attendanceStatusOptions,
   sessionTypeOptions,
+  studentImportHeaders,
+  studentImportRequiredHeaders,
   studyStatusOptions
 } from "@/lib/student-service";
 import { examTrackOptions } from "@/lib/crm";
@@ -36,24 +38,78 @@ export function StudentCreateForm({
     router.refresh();
   }
   return (
-    <FormShell title="新建学员">
-      <form action={submit} className="grid gap-3">
-        <Input name="name" placeholder="姓名" required />
-        <Input name="phone" placeholder="手机号" required />
-        <Input name="school" placeholder="学校" />
-        <Input name="grade" placeholder="年级" />
-        <Input name="major" placeholder="专业" />
-        <Input name="classType" placeholder="报名班型" />
-        <Select name="campusId" options={campuses} />
-        <Select name="classId" options={[{ id: "", name: "暂不分班" }, ...classes]} />
-        <Select name="academicOwnerId" options={[{ id: "", name: "暂不分配教务" }, ...academicUsers]} />
-        <Select name="salesOwnerId" options={[{ id: "", name: "无招生老师" }, ...salesUsers]} />
-        <NativeSelect name="examTrack" options={examTrackOptions} />
-        <NativeSelect name="studyStatus" options={studyStatusOptions} />
-        <textarea name="serviceNote" placeholder="服务备注" className="rounded-md border border-line px-3 py-2 text-sm" />
-        <Submit />
-      </form>
-    </FormShell>
+    <div className="space-y-4">
+      <FormShell title="新建学员">
+        <form action={submit} className="grid gap-3">
+          <Input name="name" placeholder="姓名" required />
+          <Input name="phone" placeholder="手机号" required />
+          <Input name="school" placeholder="学校" />
+          <Input name="grade" placeholder="年级" />
+          <Input name="major" placeholder="专业" />
+          <Input name="classType" placeholder="报名班型" />
+          <Select name="campusId" options={campuses} />
+          <Select name="classId" options={[{ id: "", name: "暂不分班" }, ...classes]} />
+          <Select name="academicOwnerId" options={[{ id: "", name: "暂不分配教务" }, ...academicUsers]} />
+          <Select name="salesOwnerId" options={[{ id: "", name: "无招生老师" }, ...salesUsers]} />
+          <NativeSelect name="examTrack" options={examTrackOptions} />
+          <NativeSelect name="studyStatus" options={studyStatusOptions} />
+          <textarea name="serviceNote" placeholder="服务备注" className="rounded-md border border-line px-3 py-2 text-sm" />
+          <Submit />
+        </form>
+      </FormShell>
+      <StudentImportForm />
+    </div>
+  );
+}
+
+function StudentImportForm() {
+  const router = useRouter();
+
+  async function importFile(formData: FormData) {
+    const file = formData.get("file");
+    if (!(file instanceof File)) {
+      alert("请选择要导入的文件");
+      return;
+    }
+    const headers = await readImportHeaders(file);
+    const missingHeaders = studentImportRequiredHeaders.filter((header) => !headers.includes(header));
+    if (missingHeaders.length) {
+      alert(`导入文件缺少关键列：${missingHeaders.join("、")}。请下载模板后按表头填写。`);
+      return;
+    }
+
+    const response = await fetch("/api/student-service/import", {
+      method: "POST",
+      body: formData
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      alert(data.error || "导入失败");
+      return;
+    }
+    const firstErrors = Array.isArray(data.errors) && data.errors.length
+      ? `\n失败明细：${data.errors.slice(0, 3).map((item: { row: number; message: string }) => `第 ${item.row} 行 ${item.message}`).join("；")}`
+      : "";
+    alert(`导入完成：成功 ${data.success} 条，失败 ${data.failed} 条${firstErrors}`);
+    router.refresh();
+  }
+
+  return (
+    <form action={importFile} className="rounded-lg border border-line bg-white p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 font-semibold text-ink">
+          <FileUp className="h-4 w-4 text-brand-600" />
+          Excel 导入
+        </div>
+        <a href="/api/student-service/import/template" className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs text-ink">
+          <Download className="h-3.5 w-3.5" />
+          下载模板
+        </a>
+      </div>
+      <p className="mt-2 text-xs leading-5 text-muted">按模板填写，必填列：姓名、手机号。支持表头：{studentImportHeaders.join("、")}。</p>
+      <input name="file" type="file" accept=".xlsx" required className="mt-3 w-full text-sm" />
+      <button type="submit" className="mt-4 h-10 w-full rounded-md bg-brand-600 text-sm font-semibold text-white">上传导入</button>
+    </form>
   );
 }
 
@@ -231,4 +287,12 @@ function Submit({ label = "新建" }: { label?: string }) {
       {label}
     </button>
   );
+}
+
+async function readImportHeaders(file: File) {
+  const xlsx = await import("xlsx");
+  const workbook = xlsx.read(await file.arrayBuffer(), { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = xlsx.utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: false });
+  return (rows[0] || []).map((item) => String(item).trim()).filter(Boolean);
 }

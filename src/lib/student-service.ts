@@ -78,6 +78,24 @@ export const studentServiceLabels = {
   } satisfies Record<LeadExamTrack, string>
 };
 
+export const studentImportHeaders = [
+  "姓名",
+  "手机号",
+  "学校",
+  "年级",
+  "专业",
+  "报名班型",
+  "校区",
+  "班级",
+  "教务老师",
+  "招生老师",
+  "教资方向",
+  "学习状态",
+  "服务备注"
+] as const;
+
+export const studentImportRequiredHeaders = ["姓名", "手机号"] as const;
+
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -183,6 +201,46 @@ export function normalizeStudentInput(input: Record<string, unknown>, defaults: 
     ),
     serviceNote: nullableText(input.serviceNote)
   } satisfies Prisma.StudentUncheckedCreateInput;
+}
+
+const studentImportHeaderMap: Record<(typeof studentImportHeaders)[number], string> = {
+  姓名: "name",
+  手机号: "phone",
+  学校: "school",
+  年级: "grade",
+  专业: "major",
+  报名班型: "classType",
+  校区: "campusName",
+  班级: "className",
+  教务老师: "academicOwnerName",
+  招生老师: "salesOwnerName",
+  教资方向: "examTrack",
+  学习状态: "studyStatus",
+  服务备注: "serviceNote"
+};
+
+const studentImportValueAliases: Record<string, string> = {
+  幼儿: "INFANT",
+  小学: "PRIMARY",
+  中学: "MIDDLE",
+  未开学: "NOT_STARTED",
+  学习中: "STUDYING",
+  低活跃: "LOW_ACTIVE",
+  冲刺期: "SPRINT",
+  面试阶段: "INTERVIEW_STAGE",
+  暂停: "PAUSED",
+  已结课: "COMPLETED",
+  已退费: "REFUNDED"
+};
+
+export function normalizeStudentImportRow(row: Record<string, unknown>) {
+  const input: Record<string, unknown> = {};
+  for (const [header, key] of Object.entries(studentImportHeaderMap)) {
+    const raw = row[header];
+    const value = typeof raw === "string" ? raw.trim() : raw;
+    input[key] = typeof value === "string" && studentImportValueAliases[value] ? studentImportValueAliases[value] : value;
+  }
+  return input;
 }
 
 export function normalizeClassInput(input: Record<string, unknown>, defaults: { campusId: string }) {

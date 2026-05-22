@@ -5,6 +5,7 @@ import {
   buildReservedPushPayload,
   buildServiceScript,
   normalizeAttendanceInput,
+  normalizeStudentImportRow,
   normalizeServiceRecordInput,
   normalizeStudentInput,
   normalizeStudentStatusInput,
@@ -127,4 +128,28 @@ test("normalizeAttendanceInput keeps attendance statuses distinct", () => {
   assert.equal(leave.note, "请假");
   assert.equal(late.status, "LATE");
   assert.ok(late.checkInAt);
+});
+
+test("normalizeStudentImportRow maps Chinese headers and labels", () => {
+  const result = normalizeStudentImportRow({
+    姓名: " 陈同学 ",
+    手机号: " 138 0000 0001 ",
+    校区: "总部校区",
+    班级: "周末班",
+    教务老师: "王老师",
+    招生老师: "张顾问",
+    教资方向: "小学",
+    学习状态: "学习中",
+    服务备注: "重点跟进"
+  });
+
+  assert.equal(result.name, "陈同学");
+  assert.equal(result.phone, "138 0000 0001");
+  assert.equal(result.campusName, "总部校区");
+  assert.equal(result.className, "周末班");
+  assert.equal(result.academicOwnerName, "王老师");
+  assert.equal(result.salesOwnerName, "张顾问");
+  assert.equal(result.examTrack, "PRIMARY");
+  assert.equal(result.studyStatus, "STUDYING");
+  assert.equal(result.serviceNote, "重点跟进");
 });
