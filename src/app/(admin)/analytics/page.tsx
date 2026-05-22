@@ -1,6 +1,6 @@
 import { BarChart3 } from "lucide-react";
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
-import { buildAnalyticsWhere, buildClassWhere, buildTrendRows, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
+import { buildAnalyticsWhere, buildCourseSessionWhere, buildTrendRows, buildWrongQuestionWhere, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -17,6 +17,8 @@ export default async function AnalyticsPage({
   }
   const filters = parseAnalyticsFilters(urlParams);
   const { leadWhere, studentWhere, attendanceWhere } = buildAnalyticsWhere(user, filters);
+  const courseSessionWhere = buildCourseSessionWhere(user, filters);
+  const wrongQuestionWhere = buildWrongQuestionWhere(user, filters);
   const campusWhere =
     user.role === "ADMIN" || user.role === "HQ_OPERATIONS"
       ? { organizationId: user.organizationId }
@@ -24,17 +26,21 @@ export default async function AnalyticsPage({
         ? { id: user.campusId }
         : { id: "__none__" };
 
-  const [leads, students, attendance, classCount, campuses, counselors, reports] = await Promise.all([
+  const [leads, students, attendance, courseSessions, wrongQuestionRecords, campuses, counselors, reports] = await Promise.all([
     prisma.lead.findMany({ where: leadWhere, include: { campus: { select: { name: true } }, assignee: { select: { name: true } } } }),
     prisma.student.findMany({ where: studentWhere, include: { campus: { select: { name: true } }, class: { select: { name: true } }, salesOwner: { select: { name: true } } } }),
     prisma.attendanceRecord.findMany({ where: attendanceWhere, include: { courseSession: { select: { homework: true, class: { select: { id: true, name: true } } } } } }),
-    prisma.studentClass.count({ where: buildClassWhere(user, filters) }),
+    prisma.courseSession.findMany({ where: courseSessionWhere, select: { startsAt: true, endsAt: true } }),
+    prisma.wrongQuestionRecord.findMany({
+      where: wrongQuestionWhere,
+      include: { question: { select: { subject: true, chapter: true, knowledgePoint: true, difficulty: true } } }
+    }),
     prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { role: "ADMISSIONS_COUNSELOR", status: "ACTIVE", ...(filters.campusId ? { campusId: filters.campusId } : {}) }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.analyticsDailyReport.findMany({ orderBy: { reportDate: "desc" }, take: 5 })
   ]);
 
-  const computed = computeAnalytics({ leads, students, attendance, classCount });
+  const computed = computeAnalytics({ leads, students, attendance, courseSessions, wrongQuestionRecords });
   const summary = { ...computed, trends: buildTrendRows(leads, students, filters.from, filters.to) };
 
   return (

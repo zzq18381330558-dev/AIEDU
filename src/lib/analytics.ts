@@ -3,9 +3,11 @@ import type {
   LeadSourceChannel,
   LeadStatus,
   Prisma,
+  QuestionSubject,
   UserRole
 } from "@prisma/client";
 import { crmLabels } from "@/lib/crm";
+import { buildWeaknessRows } from "@/lib/question-bank";
 
 export type AnalyticsFilters = {
   from: Date;
@@ -31,6 +33,7 @@ export type AnalyticsInput = {
     classId: string | null;
     salesOwnerId: string | null;
     studyStatus: string;
+    enrolledAt: Date;
     campus?: { name: string } | null;
     class?: { name: string } | null;
     salesOwner?: { name: string } | null;
@@ -38,9 +41,22 @@ export type AnalyticsInput = {
   attendance: Array<{
     status: AttendanceStatus;
     studentId: string;
+    checkInAt: Date | null;
     courseSession?: { homework: string | null; class?: { id: string; name: string } | null } | null;
   }>;
-  classCount: number;
+  courseSessions: Array<{
+    startsAt: Date;
+    endsAt: Date;
+  }>;
+  wrongQuestionRecords: Array<{
+    mastered: boolean;
+    question: {
+      subject: QuestionSubject;
+      chapter: string;
+      knowledgePoint: string;
+      difficulty: number;
+    };
+  }>;
 };
 
 export const financeDefaults = {
@@ -86,7 +102,9 @@ export function buildAnalyticsWhere(
 ) {
   const leadWhere: Prisma.LeadWhereInput = { createdAt: { gte: filters.from, lte: filters.to } };
   const studentWhere: Prisma.StudentWhereInput = { enrolledAt: { gte: filters.from, lte: filters.to } };
-  const attendanceWhere: Prisma.AttendanceRecordWhereInput = { createdAt: { gte: filters.from, lte: filters.to } };
+  const attendanceWhere: Prisma.AttendanceRecordWhereInput = {
+    courseSession: { startsAt: { gte: filters.from, lte: filters.to } }
+  };
 
   if (user.role === "CAMPUS_MANAGER" && user.campusId) {
     leadWhere.campusId = user.campusId;
@@ -96,7 +114,7 @@ export function buildAnalyticsWhere(
   if (filters.campusId) {
     leadWhere.campusId = filters.campusId;
     studentWhere.campusId = filters.campusId;
-    attendanceWhere.student = { campusId: filters.campusId };
+    attendanceWhere.student = { ...(attendanceWhere.student as object), campusId: filters.campusId };
   }
   if (filters.assigneeId) {
     leadWhere.assigneeId = filters.assigneeId;
@@ -106,15 +124,41 @@ export function buildAnalyticsWhere(
   return { leadWhere, studentWhere, attendanceWhere };
 }
 
-export function buildClassWhere(
+export function buildCourseSessionWhere(
   user: { role: UserRole; campusId: string | null; organizationId: string },
   filters: AnalyticsFilters
-): Prisma.StudentClassWhereInput {
-  if (filters.campusId) return { campusId: filters.campusId };
-  if (user.role === "ADMIN" || user.role === "HQ_OPERATIONS") {
-    return { campus: { organizationId: user.organizationId } };
+): Prisma.CourseSessionWhereInput {
+  const where: Prisma.CourseSessionWhereInput = { startsAt: { gte: filters.from, lte: filters.to } };
+  if (filters.campusId) {
+    where.campusId = filters.campusId;
+  } else if (user.role === "ADMIN" || user.role === "HQ_OPERATIONS") {
+    where.campus = { organizationId: user.organizationId };
+  } else if (user.campusId) {
+    where.campusId = user.campusId;
+  } else {
+    where.id = "__none__";
   }
-  return user.campusId ? { campusId: user.campusId } : { id: "__none__" };
+  if (filters.assigneeId) {
+    where.class = { students: { some: { salesOwnerId: filters.assigneeId } } };
+  }
+  return where;
+}
+
+export function buildWrongQuestionWhere(
+  user: { role: UserRole; campusId: string | null },
+  filters: AnalyticsFilters
+): Prisma.WrongQuestionRecordWhereInput {
+  const where: Prisma.WrongQuestionRecordWhereInput = { wrongAt: { gte: filters.from, lte: filters.to } };
+  if (user.role === "CAMPUS_MANAGER" && user.campusId) {
+    where.student = { campusId: user.campusId };
+  }
+  if (filters.campusId) {
+    where.student = { ...(where.student as object), campusId: filters.campusId };
+  }
+  if (filters.assigneeId) {
+    where.student = { ...(where.student as object), salesOwnerId: filters.assigneeId };
+  }
+  return where;
 }
 
 export function computeAnalytics(input: AnalyticsInput) {
@@ -124,18 +168,24 @@ export function computeAnalytics(input: AnalyticsInput) {
 
   const newLeadCount = leads.length;
   const effectiveConsultCount = leads.filter((lead) => lead.status !== "UNCONTACTED").length;
-  const wonLeadCount = leads.filter((lead) => lead.status === "WON").length || students.length;
+  const wonLeadCount = leads.filter((lead) => lead.status === "WON").length;
   const refundCount = students.filter((student) => student.studyStatus === "REFUNDED").length;
   const conversionRate = pct(wonLeadCount, newLeadCount);
   const attendanceCount = attendance.length;
   const presentCount = attendance.filter((item) => item.status === "PRESENT" || item.status === "LATE").length;
-  const checkInCount = attendance.filter((item) => item.status !== "ABSENT").length;
+  const checkInCount = attendance.filter((item) => Boolean(item.checkInAt)).length;
+  const absentCount = attendance.filter((item) => item.status === "ABSENT").length;
   const homeworkSessions = attendance.filter((item) => Boolean(item.courseSession?.homework)).length;
   const homeworkCompleted = attendance.filter((item) => Boolean(item.courseSession?.homework) && item.status !== "ABSENT").length;
+  const classHourCount = input.courseSessions.reduce((sum, session) => {
+    const hours = (session.endsAt.getTime() - session.startsAt.getTime()) / 1000 / 60 / 60;
+    return sum + Math.max(0, hours);
+  }, 0);
+  const weakKnowledgeRows = buildWeaknessRows(input.wrongQuestionRecords).slice(0, 8);
 
   const revenue = wonLeadCount * financeDefaults.tuitionPerStudent;
   const universityShare = revenue * financeDefaults.universityShareRate;
-  const teacherFee = input.classCount * financeDefaults.hoursPerClass * financeDefaults.teacherFeePerClassHour;
+  const teacherFee = classHourCount * financeDefaults.teacherFeePerClassHour;
   const refundAmount = revenue * (refundCount ? refundCount / Math.max(1, students.length) : financeDefaults.refundRateFallback);
   const campusFixedCost = revenue * financeDefaults.campusFixedCostRate;
   const profit = revenue - universityShare - teacherFee - refundAmount - campusFixedCost;
@@ -147,9 +197,13 @@ export function computeAnalytics(input: AnalyticsInput) {
       wonLeadCount,
       revenue: money(revenue),
       conversionRate,
+      attendanceRecordCount: attendanceCount,
       attendanceRate: pct(presentCount, attendanceCount),
       checkInRate: pct(checkInCount, attendanceCount),
+      absenceRate: pct(absentCount, attendanceCount),
       homeworkCompletionRate: pct(homeworkCompleted, homeworkSessions),
+      wrongQuestionCount: input.wrongQuestionRecords.length,
+      weakKnowledgePointCount: weakKnowledgeRows.length,
       refundRate: pct(refundCount, students.length),
       universityShare: money(universityShare),
       teacherFee: money(teacherFee),
@@ -169,8 +223,13 @@ export function computeAnalytics(input: AnalyticsInput) {
     }),
     classRows: groupRows(students, (student) => student.class?.name || "未分班", (items) => {
       const classAttendance = attendance.filter((record) => items.some((student) => student.id === record.studentId));
-      return { studentCount: items.length, attendanceRate: pct(classAttendance.filter((record) => record.status !== "ABSENT").length, classAttendance.length) };
-    })
+      return {
+        studentCount: items.length,
+        attendanceRate: pct(classAttendance.filter((record) => record.status === "PRESENT" || record.status === "LATE").length, classAttendance.length),
+        absenceRate: pct(classAttendance.filter((record) => record.status === "ABSENT").length, classAttendance.length)
+      };
+    }),
+    weakKnowledgeRows
   };
 }
 
@@ -193,7 +252,7 @@ export function buildTrendRows(leads: AnalyticsInput["leads"], students: Analyti
       date: dayStart.toISOString().slice(0, 10),
       leads: leads.filter((lead) => lead.createdAt >= dayStart && lead.createdAt < dayEnd).length,
       won: leads.filter((lead) => lead.status === "WON" && lead.createdAt >= dayStart && lead.createdAt < dayEnd).length,
-      students: students.filter((student) => student.id && dayStart <= to && dayEnd >= from).length
+      students: students.filter((student) => student.enrolledAt >= dayStart && student.enrolledAt < dayEnd).length
     });
   }
   return rows;
@@ -207,7 +266,8 @@ export function buildDailyReport(summary: ReturnType<typeof computeAnalytics>, d
     summary: [
       `新增线索 ${o.newLeadCount} 条，有效咨询 ${o.effectiveConsultCount} 条，成交 ${o.wonLeadCount} 人，转化率 ${o.conversionRate}%。`,
       `预估成交金额 ${o.revenue} 元，校区利润估算 ${o.profit} 元。`,
-      `到课率 ${o.attendanceRate}%，打卡率 ${o.checkInRate}%，作业完成率 ${o.homeworkCompletionRate}%。`
+      `到课率 ${o.attendanceRate}%，打卡率 ${o.checkInRate}%，缺课率 ${o.absenceRate}%。`,
+      `错题 ${o.wrongQuestionCount} 道，薄弱知识点 ${o.weakKnowledgePointCount} 个。`
     ].join("\n"),
     metrics: summary as unknown as Prisma.InputJsonValue
   };

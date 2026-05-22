@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/api";
-import { buildAnalyticsWhere, buildClassWhere, buildTrendRows, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
+import { buildAnalyticsWhere, buildCourseSessionWhere, buildTrendRows, buildWrongQuestionWhere, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   const filters = parseAnalyticsFilters(new URL(request.url).searchParams);
   const { leadWhere, studentWhere, attendanceWhere } = buildAnalyticsWhere(auth.user, filters);
-  const [leads, students, attendance, classCount] = await Promise.all([
+  const [leads, students, attendance, courseSessions, wrongQuestionRecords] = await Promise.all([
     prisma.lead.findMany({
       where: leadWhere,
       include: {
@@ -31,12 +31,17 @@ export async function GET(request: NextRequest) {
         courseSession: { select: { homework: true, class: { select: { id: true, name: true } } } }
       }
     }),
-    prisma.studentClass.count({
-      where: buildClassWhere(auth.user, filters)
+    prisma.courseSession.findMany({
+      where: buildCourseSessionWhere(auth.user, filters),
+      select: { startsAt: true, endsAt: true }
+    }),
+    prisma.wrongQuestionRecord.findMany({
+      where: buildWrongQuestionWhere(auth.user, filters),
+      include: { question: { select: { subject: true, chapter: true, knowledgePoint: true, difficulty: true } } }
     })
   ]);
 
-  const summary = computeAnalytics({ leads, students, attendance, classCount });
+  const summary = computeAnalytics({ leads, students, attendance, courseSessions, wrongQuestionRecords });
   const trends = buildTrendRows(leads, students, filters.from, filters.to);
   return NextResponse.json({ filters, ...summary, trends });
 }

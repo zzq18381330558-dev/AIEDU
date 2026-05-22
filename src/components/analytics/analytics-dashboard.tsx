@@ -10,6 +10,7 @@ type Summary = {
   campusRows: Row[];
   counselorRows: Row[];
   classRows: Row[];
+  weakKnowledgeRows: Row[];
   trends: Array<{ date: string; leads: number; won: number; students: number }>;
 };
 
@@ -44,6 +45,7 @@ export function AnalyticsDashboard({
   }
 
   const p = summary.overview;
+  const hasAnyData = p.newLeadCount + p.wonLeadCount + p.attendanceRecordCount + p.wrongQuestionCount + summary.classRows.length > 0;
   return (
     <div className="space-y-6">
       <form action={apply} className="grid gap-3 rounded-lg border border-line bg-white p-4 md:grid-cols-5">
@@ -70,6 +72,12 @@ export function AnalyticsDashboard({
           生成每日经营日报
         </button>
       </div>
+
+      {!hasAnyData ? (
+        <div className="rounded-lg border border-dashed border-line bg-white p-6 text-center text-sm text-muted">
+          当前筛选条件下暂无经营数据，请调整日期、校区或招生老师后再查看。
+        </div>
+      ) : null}
 
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <Metric label="新增线索" value={p.newLeadCount} />
@@ -98,12 +106,16 @@ export function AnalyticsDashboard({
         <Table title="各渠道转化率" rows={summary.channelRows} columns={["name", "leadCount", "wonCount", "conversionRate"]} />
         <Table title="各校区业绩" rows={summary.campusRows} columns={["name", "leadCount", "wonCount", "revenue", "conversionRate"]} />
         <Table title="招生老师业绩" rows={summary.counselorRows} columns={["name", "leadCount", "consultCount", "wonCount", "conversionRate"]} />
-        <Table title="教务服务看板" rows={summary.classRows} columns={["name", "studentCount", "attendanceRate"]} />
+        <Table title="教务服务看板" rows={summary.classRows} columns={["name", "studentCount", "attendanceRate", "absenceRate"]} />
+        <Table title="薄弱知识点" rows={summary.weakKnowledgeRows} columns={["subject", "chapter", "knowledgePoint", "wrong", "unmastered", "avgDifficulty"]} />
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
         <Metric label="学员到课率" value={`${p.attendanceRate}%`} />
         <Metric label="学员打卡率" value={`${p.checkInRate}%`} />
+        <Metric label="学员缺课率" value={`${p.absenceRate}%`} />
+        <Metric label="错题数" value={p.wrongQuestionCount} />
+        <Metric label="薄弱知识点" value={p.weakKnowledgePointCount} />
         <Metric label="作业完成率" value={`${p.homeworkCompletionRate}%`} />
       </section>
     </div>
