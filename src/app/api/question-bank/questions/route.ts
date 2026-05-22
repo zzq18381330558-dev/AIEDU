@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { canManageQuestionBank, normalizeQuestionInput } from "@/lib/question-bank";
+import {
+  canManageQuestionBank,
+  normalizeQuestionInput,
+  questionSourceOptions,
+  questionTypeOptions,
+  subjectOptions
+} from "@/lib/question-bank";
 import { prisma } from "@/lib/prisma";
 
 const include = {
   bank: { select: { id: true, name: true } },
   _count: { select: { wrongRecords: true, paperItems: true } }
 } satisfies Prisma.QuestionInclude;
+
+function isOptionValue<T extends string>(value: string | null, options: Array<{ value: T }>) {
+  return value ? options.some((option) => option.value === value) : false;
+}
 
 export async function GET(request: NextRequest) {
   const auth = await requireApiUser("/question-bank");
@@ -30,6 +40,12 @@ export async function GET(request: NextRequest) {
   const knowledgePoint = searchParams.get("knowledgePoint")?.trim();
   const tag = searchParams.get("tag")?.trim();
   const difficulty = Number(searchParams.get("difficulty") || "");
+  if (subject && !isOptionValue(subject, subjectOptions)) return NextResponse.json({ error: "科目筛选条件无效" }, { status: 400 });
+  if (type && !isOptionValue(type, questionTypeOptions)) return NextResponse.json({ error: "题型筛选条件无效" }, { status: 400 });
+  if (source && !isOptionValue(source, questionSourceOptions)) return NextResponse.json({ error: "来源筛选条件无效" }, { status: 400 });
+  if (searchParams.get("difficulty") && (!Number.isFinite(difficulty) || difficulty < 1 || difficulty > 5)) {
+    return NextResponse.json({ error: "难度筛选需为 1-5" }, { status: 400 });
+  }
   if (subject) where.subject = subject as Prisma.EnumQuestionSubjectFilter["equals"];
   if (type) where.type = type as Prisma.EnumQuestionTypeFilter["equals"];
   if (source) where.source = source as Prisma.EnumQuestionSourceFilter["equals"];

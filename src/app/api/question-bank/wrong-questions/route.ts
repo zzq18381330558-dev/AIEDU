@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         questionId,
         answer: body.answer ? String(body.answer) : null,
         reason: body.reason ? String(body.reason) : null,
-        mastered: Boolean(body.mastered)
+        mastered: body.mastered === true || body.mastered === "true" || body.mastered === "on"
       }
     });
     return NextResponse.json({ item }, { status: 201 });
