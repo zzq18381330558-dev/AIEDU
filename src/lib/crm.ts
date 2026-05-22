@@ -215,7 +215,24 @@ export function buildPerformanceRows(
   });
 }
 
-const importHeaderMap: Record<string, keyof LeadFormInput> = {
+export const leadImportHeaders = [
+  "姓名",
+  "手机号",
+  "微信号",
+  "学校",
+  "年级",
+  "专业",
+  "教资方向",
+  "来源渠道",
+  "意向等级",
+  "跟进状态",
+  "下次跟进时间",
+  "备注"
+] as const;
+
+export const leadImportRequiredHeaders = ["姓名", "手机号"] as const;
+
+const importHeaderMap: Record<(typeof leadImportHeaders)[number], keyof LeadFormInput> = {
   姓名: "name",
   手机号: "phone",
   微信号: "wechat",

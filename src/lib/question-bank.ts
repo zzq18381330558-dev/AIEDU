@@ -152,8 +152,25 @@ export function buildAiAnalysis(question: {
   ].join("\n");
 }
 
+export const questionImportHeaders = [
+  "科目",
+  "章节",
+  "知识点",
+  "题型",
+  "题干",
+  "选项",
+  "正确答案",
+  "解析",
+  "难度",
+  "高频标签",
+  "来源",
+  "年份"
+] as const;
+
+export const questionImportRequiredHeaders = ["题干", "正确答案"] as const;
+
 export function normalizeImportQuestionRow(row: Record<string, unknown>) {
-  const map: Record<string, string> = {
+  const map: Record<(typeof questionImportHeaders)[number], string> = {
     科目: "subject",
     章节: "chapter",
     知识点: "knowledgePoint",

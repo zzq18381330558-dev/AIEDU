@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Bell, FileUp, Pencil, Plus, RefreshCw, Search, TrendingUp } from "lucide-react";
+import { Bell, Download, FileUp, Pencil, Plus, RefreshCw, Search, TrendingUp } from "lucide-react";
 import {
   crmLabels,
+  leadImportHeaders,
+  leadImportRequiredHeaders,
   leadStatusOptions,
   sourceChannelOptions
 } from "@/lib/crm";
@@ -77,6 +79,18 @@ export function CrmDashboard({
   }
 
   async function importFile(formData: FormData) {
+    const file = formData.get("file");
+    if (!(file instanceof File)) {
+      alert("请选择要导入的文件");
+      return;
+    }
+    const headers = await readImportHeaders(file);
+    const missingHeaders = leadImportRequiredHeaders.filter((header) => !headers.includes(header));
+    if (missingHeaders.length) {
+      alert(`导入文件缺少关键列：${missingHeaders.join("、")}。请下载模板后按表头填写。`);
+      return;
+    }
+
     const response = await fetch("/api/crm/import", {
       method: "POST",
       body: formData
@@ -220,11 +234,17 @@ export function CrmDashboard({
 
         <div className="space-y-4">
           <form action={importFile} className="rounded-lg border border-line bg-white p-4">
-            <div className="flex items-center gap-2 font-semibold text-ink">
-              <FileUp className="h-4 w-4 text-brand-600" />
-              Excel 导入
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 font-semibold text-ink">
+                <FileUp className="h-4 w-4 text-brand-600" />
+                Excel 导入
+              </div>
+              <a href="/api/crm/import/template" className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs text-ink">
+                <Download className="h-3.5 w-3.5" />
+                下载模板
+              </a>
             </div>
-            <p className="mt-2 text-xs leading-5 text-muted">支持表头：姓名、手机号、微信号、学校、年级、专业、教资方向、来源渠道、意向等级、跟进状态、下次跟进时间、备注。</p>
+            <p className="mt-2 text-xs leading-5 text-muted">按模板填写，必填列：姓名、手机号。支持表头：{leadImportHeaders.join("、")}。</p>
             <select name="campusId" className="mt-4 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
               {campuses.map((campus) => (
                 <option key={campus.id} value={campus.id}>{campus.name}</option>
@@ -275,4 +295,18 @@ function Th({ children }: { children: React.ReactNode }) {
 
 function Td({ children }: { children: React.ReactNode }) {
   return <td className="whitespace-nowrap px-4 py-3 align-top text-ink">{children}</td>;
+}
+
+async function readImportHeaders(file: File) {
+  if (file.name.toLowerCase().endsWith(".csv")) {
+    const text = await file.text();
+    const [headerLine = ""] = text.split(/\r?\n/);
+    return headerLine.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+
+  const xlsx = await import("xlsx");
+  const workbook = xlsx.read(await file.arrayBuffer(), { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = xlsx.utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: false });
+  return (rows[0] || []).map((item) => String(item).trim()).filter(Boolean);
 }

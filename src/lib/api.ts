@@ -15,7 +15,14 @@ export async function requireApiUser(pathname: string) {
 
 export function jsonError(error: unknown, status = 400) {
   return NextResponse.json(
-    { error: error instanceof Error ? error.message : "请求处理失败" },
+    { error: getFriendlyErrorMessage(error) },
     { status }
   );
+}
+
+function getFriendlyErrorMessage(error: unknown) {
+  if (error instanceof Error && /[\u4e00-\u9fa5]/.test(error.message)) {
+    return error.message;
+  }
+  return "请求处理失败，请稍后重试";
 }

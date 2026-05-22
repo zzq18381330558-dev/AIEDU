@@ -2,9 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bot, Eye, FileUp, Pencil, Plus, RefreshCw, Search } from "lucide-react";
+import { Bot, Download, Eye, FileUp, Pencil, Plus, RefreshCw, Search } from "lucide-react";
 import { QuestionModal, type QuestionValue } from "@/components/question-bank/question-modal";
-import { questionBankLabels, questionSourceOptions, questionTypeOptions, subjectOptions } from "@/lib/question-bank";
+import {
+  questionBankLabels,
+  questionImportHeaders,
+  questionImportRequiredHeaders,
+  questionSourceOptions,
+  questionTypeOptions,
+  subjectOptions
+} from "@/lib/question-bank";
 
 type QuestionItem = QuestionValue & {
   id: string;
@@ -61,6 +68,18 @@ export function QuestionDashboard({ initialQuestions, canManage }: { initialQues
   }
 
   async function importFile(formData: FormData) {
+    const file = formData.get("file");
+    if (!(file instanceof File)) {
+      alert("请选择要导入的文件");
+      return;
+    }
+    const headers = await readImportHeaders(file);
+    const missingHeaders = questionImportRequiredHeaders.filter((header) => !headers.includes(header));
+    if (missingHeaders.length) {
+      alert(`导入文件缺少关键列：${missingHeaders.join("、")}。请下载模板后按表头填写。`);
+      return;
+    }
+
     const response = await fetch("/api/question-bank/import", { method: "POST", body: formData });
     const data = await response.json();
     if (!response.ok) {
@@ -116,7 +135,11 @@ export function QuestionDashboard({ initialQuestions, canManage }: { initialQues
             <FileUp className="h-4 w-4 text-brand-600" />
             批量导入
           </div>
-          <p className="flex-1 text-xs text-muted">表头：科目、章节、知识点、题型、题干、选项、正确答案、解析、难度、高频标签、来源、年份</p>
+          <p className="flex-1 text-xs leading-5 text-muted">按模板填写，必填列：题干、正确答案。表头：{questionImportHeaders.join("、")}</p>
+          <a href="/api/question-bank/import/template" className="inline-flex h-9 items-center gap-1 rounded-md border border-line px-3 text-sm text-ink">
+            <Download className="h-4 w-4" />
+            下载模板
+          </a>
           <input name="file" type="file" accept=".xlsx,.xls,.csv" required className="text-sm" />
           <button type="submit" className="h-9 rounded-md border border-line px-3 text-sm">上传</button>
         </form>
@@ -198,4 +221,18 @@ function Th({ children }: { children: React.ReactNode }) {
 
 function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <td className={`whitespace-nowrap px-4 py-3 text-ink ${className}`}>{children}</td>;
+}
+
+async function readImportHeaders(file: File) {
+  if (file.name.toLowerCase().endsWith(".csv")) {
+    const text = await file.text();
+    const [headerLine = ""] = text.split(/\r?\n/);
+    return headerLine.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+
+  const xlsx = await import("xlsx");
+  const workbook = xlsx.read(await file.arrayBuffer(), { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = xlsx.utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: false });
+  return (rows[0] || []).map((item) => String(item).trim()).filter(Boolean);
 }
