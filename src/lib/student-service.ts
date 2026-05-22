@@ -143,9 +143,10 @@ function enumOr<T extends string>(value: unknown, values: readonly T[], fallback
 
 export function studentScopeWhere(user: { id: string; role: UserRole; campusId: string | null }) {
   if (user.role === "ADMIN" || user.role === "HQ_OPERATIONS") return {};
-  if (user.role === "CAMPUS_MANAGER" || user.role === "ACADEMIC_TEACHER") {
+  if (user.role === "CAMPUS_MANAGER") {
     return user.campusId ? { campusId: user.campusId } : { id: "__none__" };
   }
+  if (user.role === "ACADEMIC_TEACHER") return { academicOwnerId: user.id };
   if (user.role === "ADMISSIONS_COUNSELOR") return { salesOwnerId: user.id };
   return { id: "__none__" };
 }

@@ -37,6 +37,13 @@ test("studentScopeWhere restricts admissions counselor to owned students", () =>
   );
 });
 
+test("studentScopeWhere restricts academic teacher to owned students", () => {
+  assert.deepEqual(
+    studentScopeWhere({ id: "u2", role: "ACADEMIC_TEACHER", campusId: "c1" }),
+    { academicOwnerId: "u2" }
+  );
+});
+
 test("buildAiStudyPlan includes exam track and service actions", () => {
   const plan = buildAiStudyPlan({
     name: "林小雅",

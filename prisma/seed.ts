@@ -17,12 +17,17 @@ async function main() {
 
   const campus = await prisma.campus.upsert({
     where: { code: "HQ" },
-    update: {},
+    update: {
+      city: "上海",
+      contactPhone: "021-00000000",
+      status: "ACTIVE"
+    },
     create: {
       organizationId: org.id,
       name: "总部校区",
       code: "HQ",
       city: "上海",
+      contactPhone: "021-00000000",
       address: "总部运营中心"
     }
   });
@@ -63,6 +68,49 @@ async function main() {
   const sales = await prisma.user.findUniqueOrThrow({
     where: { email: "sales@aiedu.local" }
   });
+
+  await prisma.campus.update({
+    where: { id: campus.id },
+    data: { managerId: admin.id }
+  });
+
+  const dictionaries = [
+    ["SCHOOL", "上海师范大学", "SHNU", 1],
+    ["SCHOOL", "华东师范大学", "ECNU", 2],
+    ["MAJOR", "汉语言文学", "CHINESE_LANGUAGE", 1],
+    ["MAJOR", "小学教育", "PRIMARY_EDUCATION", 2],
+    ["EXAM_TRACK", "幼儿", "INFANT", 1],
+    ["EXAM_TRACK", "小学", "PRIMARY", 2],
+    ["EXAM_TRACK", "中学", "MIDDLE", 3],
+    ["LEAD_SOURCE", "高校合作", "UNIVERSITY_PARTNERSHIP", 1],
+    ["LEAD_SOURCE", "地推", "GROUND_PROMOTION", 2],
+    ["QUESTION_TYPE", "单选题", "SINGLE_CHOICE", 1],
+    ["QUESTION_TYPE", "材料分析题", "MATERIAL_ANALYSIS", 2],
+    ["DIFFICULTY", "基础", "1", 1],
+    ["DIFFICULTY", "中等", "3", 2],
+    ["CLASS_TYPE", "周末班", "WEEKEND", 1],
+    ["CLASS_TYPE", "冲刺班", "SPRINT", 2]
+  ] as const;
+
+  for (const [category, name, value, sortOrder] of dictionaries) {
+    await prisma.businessDictionary.upsert({
+      where: {
+        organizationId_category_name: {
+          organizationId: org.id,
+          category,
+          name
+        }
+      },
+      update: { value, sortOrder, enabled: true },
+      create: {
+        organizationId: org.id,
+        category,
+        name,
+        value,
+        sortOrder
+      }
+    });
+  }
 
   const questionBank = await prisma.questionBank.upsert({
     where: { id: "seed-question-bank" },
