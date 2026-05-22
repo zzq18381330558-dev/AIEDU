@@ -31,7 +31,7 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
           major: lead.major,
           examTrack: lead.examTrack,
           studyStatus: "NOT_STARTED",
-          serviceNote: lead.note || "由招生 CRM 成交线索转入。"
+          serviceNote: lead.note || "由招生中心成交线索转入。"
         },
         include: {
           campus: { select: { id: true, name: true } },

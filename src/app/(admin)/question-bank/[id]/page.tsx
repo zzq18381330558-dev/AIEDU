@@ -38,11 +38,11 @@ export default async function QuestionDetailPage({ params }: { params: Promise<{
       <section className="rounded-lg border border-line bg-white p-5 shadow-soft">
         <Link href="/question-bank" className="inline-flex items-center gap-2 text-sm text-muted hover:text-brand-700">
           <ArrowLeft className="h-4 w-4" />
-          返回题目列表
+          返回题库中心
         </Link>
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-ink">题目详情</h1>
+            <h1 className="text-2xl font-semibold text-ink">题库中心 · 题目详情</h1>
             <p className="mt-2 text-sm text-muted">{questionBankLabels.subject[question.subject]} · {question.chapter} · {question.knowledgePoint}</p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-center text-sm">

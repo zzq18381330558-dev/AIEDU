@@ -62,7 +62,7 @@ export function FollowUpPanel({
       <form action={submit} className="rounded-lg border border-line bg-white p-5" key={items[0]?.id || "empty"}>
         <div className="flex items-center gap-2 font-semibold text-ink">
           <Plus className="h-4 w-4 text-brand-600" />
-          新增跟进记录
+          新建跟进记录
         </div>
         <label className="mt-4 block">
           <span className="text-sm font-medium text-ink">跟进内容</span>

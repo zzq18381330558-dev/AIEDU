@@ -30,13 +30,13 @@ export function StudentCreateForm({
       body: JSON.stringify(Object.fromEntries(formData.entries()))
     });
     if (!response.ok) {
-      alert((await response.json()).error || "创建失败");
+      alert((await response.json()).error || "新建失败");
       return;
     }
     router.refresh();
   }
   return (
-    <FormShell title="新增学员">
+    <FormShell title="新建学员">
       <form action={submit} className="grid gap-3">
         <Input name="name" placeholder="姓名" required />
         <Input name="phone" placeholder="手机号" required />
@@ -74,13 +74,13 @@ export function ClassCreateForm({
       body: JSON.stringify(Object.fromEntries(formData.entries()))
     });
     if (!response.ok) {
-      alert((await response.json()).error || "创建失败");
+      alert((await response.json()).error || "新建失败");
       return;
     }
     router.refresh();
   }
   return (
-    <FormShell title="新增班级">
+    <FormShell title="新建班级">
       <form action={submit} className="grid gap-3">
         <Input name="name" placeholder="班级名称" required />
         <Input name="startAt" type="datetime-local" required />
@@ -112,13 +112,13 @@ export function SessionCreateForm({
       body: JSON.stringify(Object.fromEntries(formData.entries()))
     });
     if (!response.ok) {
-      alert((await response.json()).error || "创建失败");
+      alert((await response.json()).error || "新建失败");
       return;
     }
     router.refresh();
   }
   return (
-    <FormShell title="新增课程">
+    <FormShell title="新建课程">
       <form action={submit} className="grid gap-3">
         <Input name="title" placeholder="课程标题" required />
         <Select name="campusId" options={campuses} />
@@ -224,7 +224,7 @@ function NativeSelect({ name, options }: { name: string; options: Array<{ value:
   );
 }
 
-function Submit({ label = "创建" }: { label?: string }) {
+function Submit({ label = "新建" }: { label?: string }) {
   return (
     <button type="submit" className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-brand-600 px-3 text-sm font-semibold text-white">
       <Plus className="h-4 w-4" />

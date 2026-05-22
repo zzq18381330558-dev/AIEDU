@@ -16,7 +16,7 @@ export function SopTemplateForm() {
     });
     const data = await response.json();
     if (!response.ok) {
-      alert(data.error || "创建失败");
+      alert(data.error || "新建失败");
       return;
     }
     router.push(`/sop/${data.item.id}`);
@@ -24,7 +24,7 @@ export function SopTemplateForm() {
 
   return (
     <form action={submit} className="rounded-lg border border-line bg-white p-4">
-      <FormTitle icon={FilePlus2} title="新增 SOP 文档" />
+      <FormTitle icon={FilePlus2} title="新建 SOP 文档" />
       <Field name="title" label="SOP 标题" required placeholder="如：招生地推标准动作 SOP" />
       <Select name="category" label="分类" options={sopCategoryOptions.map((item) => ({ value: item.value, label: item.label }))} />
       <Select name="status" label="状态" options={sopStatusOptions.map((item) => ({ value: item.value, label: item.label }))} />
@@ -37,7 +37,7 @@ export function SopTemplateForm() {
         rows={6}
         placeholder={"每行一个步骤，可用“步骤标题 | 验收标准”格式\n例：确认地推点位 | 点位、时间、负责人清晰"}
       />
-      <button className="mt-4 h-10 w-full rounded-md bg-brand-600 text-sm font-semibold text-white">创建 SOP</button>
+      <button className="mt-4 h-10 w-full rounded-md bg-brand-600 text-sm font-semibold text-white">新建 SOP</button>
     </form>
   );
 }
@@ -93,16 +93,16 @@ export function SopTaskForm({
     });
     const data = await response.json();
     if (!response.ok) {
-      alert(data.error || "创建失败");
+      alert(data.error || "新建失败");
       return;
     }
-    alert("任务已创建");
+    alert("任务已新建");
     router.refresh();
   }
 
   return (
     <form action={submit} className="rounded-lg border border-line bg-white p-4">
-      <FormTitle icon={ListChecks} title="新增每日任务" />
+      <FormTitle icon={ListChecks} title="新建每日任务" />
       <Field name="title" label="任务标题" required />
       <Select name="campusId" label="校区" options={campuses.map((item) => ({ value: item.id, label: item.name }))} />
       <Select
@@ -115,7 +115,7 @@ export function SopTaskForm({
       />
       <Field name="dueDate" label="截止时间" type="datetime-local" />
       <TextArea name="description" label="任务说明" rows={3} />
-      <button className="mt-4 h-10 w-full rounded-md bg-brand-600 text-sm font-semibold text-white">添加任务</button>
+      <button className="mt-4 h-10 w-full rounded-md bg-brand-600 text-sm font-semibold text-white">新建任务</button>
     </form>
   );
 }
@@ -233,7 +233,7 @@ export function SopWeeklyReportForm({
       <TextArea name="blockers" label="阻塞问题" rows={3} />
       <TextArea name="nextPlan" label="下周计划" rows={3} />
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field name="leadCount" label="新增线索" type="number" defaultValue="0" />
+        <Field name="leadCount" label="新建线索" type="number" defaultValue="0" />
         <Field name="consultCount" label="有效咨询" type="number" defaultValue="0" />
         <Field name="classCount" label="开班/课程" type="number" defaultValue="0" />
         <Field name="riskCount" label="风险事项" type="number" defaultValue="0" />

@@ -51,6 +51,6 @@ test("buildDailyReport writes readable summary", () => {
   const summary = computeAnalytics({ leads: [], students: [], attendance: [], courseSessions: [], wrongQuestionRecords: [] });
   const report = buildDailyReport(summary, new Date("2026-05-23T08:00:00+08:00"));
   assert.match(report.title, /每日经营日报/);
-  assert.match(report.summary, /新增线索/);
+  assert.match(report.summary, /新建线索/);
   assert.match(report.summary, /错题/);
 });

@@ -28,7 +28,7 @@ export default async function CheckInsPage() {
 
   return (
     <div className="space-y-6">
-      <Header title="打卡记录" description="记录学员到课、迟到、请假和缺课，为缺课提醒与学习进度分析提供依据。" />
+      <Header title="学员中心 · 打卡记录" description="记录学员到课、迟到、请假和缺课，为缺课提醒与学习进度分析提供依据。" />
       <ServiceTabs />
       <section className="grid gap-4 xl:grid-cols-[1fr_340px]">
         <div className="rounded-lg border border-line bg-white">
@@ -45,7 +45,7 @@ export default async function CheckInsPage() {
                 <div className="text-sm text-muted">{item.recorder?.name || "-"}</div>
               </div>
             ))}
-            {records.length === 0 ? <div className="p-12 text-center text-sm text-muted">暂无打卡记录。创建课程并登记学员到课、迟到、请假或缺课后会显示在这里。</div> : null}
+            {records.length === 0 ? <div className="p-12 text-center text-sm text-muted">暂无打卡记录。新建课程并登记学员到课、迟到、请假或缺课后会显示在这里。</div> : null}
           </div>
         </div>
         {user.role !== "ADMISSIONS_COUNSELOR" ? (

@@ -264,7 +264,7 @@ export function buildDailyReport(summary: ReturnType<typeof computeAnalytics>, d
     reportDate: startOfDay(date),
     title: `${date.toISOString().slice(0, 10)} 每日经营日报`,
     summary: [
-      `新增线索 ${o.newLeadCount} 条，有效咨询 ${o.effectiveConsultCount} 条，成交 ${o.wonLeadCount} 人，转化率 ${o.conversionRate}%。`,
+      `新建线索 ${o.newLeadCount} 条，有效咨询 ${o.effectiveConsultCount} 条，成交 ${o.wonLeadCount} 人，转化率 ${o.conversionRate}%。`,
       `预估成交金额 ${o.revenue} 元，校区利润估算 ${o.profit} 元。`,
       `到课率 ${o.attendanceRate}%，打卡率 ${o.checkInRate}%，缺课率 ${o.absenceRate}%。`,
       `错题 ${o.wrongQuestionCount} 道，薄弱知识点 ${o.weakKnowledgePointCount} 个。`

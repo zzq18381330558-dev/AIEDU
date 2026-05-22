@@ -35,8 +35,8 @@ export default async function ContentPage() {
               <GraduationCap className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-ink">教研内容生产系统</h1>
-              <p className="mt-2 text-sm text-muted">统一生产讲义、PPT、真题解析、模板、短视频和招生内容，支持审核、版本、发布与导出。</p>
+              <h1 className="text-2xl font-semibold text-ink">教研中心</h1>
+              <p className="mt-2 text-sm text-muted">统一管理讲义、PPT、真题解析、模板、短视频和招生内容，支持审核、版本、发布与导出。</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center text-sm">

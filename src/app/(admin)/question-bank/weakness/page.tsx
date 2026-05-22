@@ -22,7 +22,7 @@ export default async function WeaknessPage() {
 
   return (
     <div className="space-y-6">
-      <Header title="知识点薄弱分析" description="按错题记录聚合薄弱知识点，优先暴露未掌握多、难度高的考点。" />
+      <Header title="题库中心 · 知识点薄弱分析" description="按错题记录聚合薄弱知识点，优先暴露未掌握多、难度高的考点。" />
       <QuestionTabs />
       <section className="grid gap-4 md:grid-cols-3">
         <Metric label="错题记录" value={String(records.length)} />

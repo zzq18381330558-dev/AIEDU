@@ -30,7 +30,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     <div className="space-y-6">
       <Link href="/crm" className="inline-flex items-center gap-2 text-sm text-muted hover:text-brand-700">
         <ArrowLeft className="h-4 w-4" />
-        返回 CRM
+        返回招生中心
       </Link>
 
       <section className="rounded-lg border border-line bg-white p-5 shadow-soft">

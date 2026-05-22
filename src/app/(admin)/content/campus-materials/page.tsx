@@ -24,7 +24,7 @@ export default async function CampusMaterialsPage() {
   return (
     <div className="space-y-6">
       <section className="rounded-lg border border-line bg-white p-5 shadow-soft">
-        <h1 className="text-2xl font-semibold text-ink">校区资料中心</h1>
+        <h1 className="text-2xl font-semibold text-ink">教研中心 · 校区资料</h1>
         <p className="mt-2 text-sm text-muted">按校区查看总部已发布可用资料。</p>
       </section>
       <ContentTabs />

@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await requireApiUser("/content");
   if ("response" in auth) return auth.response;
-  if (!canManageTeachingContent(auth.user.role)) return NextResponse.json({ error: "无权创建内容" }, { status: 403 });
+  if (!canManageTeachingContent(auth.user.role)) return NextResponse.json({ error: "无权新建内容" }, { status: 403 });
 
   try {
     const body = await request.json();
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
           version: 1,
           title: content.title,
           body: content.body || "",
-          changeNote: "创建内容"
+          changeNote: "新建内容"
         }
       });
       return tx.teachingContent.findUniqueOrThrow({ where: { id: content.id }, include });

@@ -67,7 +67,7 @@ export default async function DashboardPage() {
 
   const overview = [
     {
-      label: "今日新增线索",
+      label: "今日新建线索",
       value: String(newLeadCount),
       hint: `今日待跟进 ${todayFollowUpCount} 条`,
       href: "/crm",
@@ -111,9 +111,9 @@ export default async function DashboardPage() {
             <BarChart3 className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-ink">运营工作台</h1>
+            <h1 className="text-2xl font-semibold text-ink">工作台</h1>
             <p className="mt-2 text-sm text-muted">
-              汇总招生、教学服务、教研内容和校区复制的核心指标。
+              汇总招生、学员服务、教研内容和运营SOP的核心指标。
             </p>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default async function DashboardPage() {
               <div className="text-sm font-semibold text-ink">{latestReport.title}</div>
               <pre className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted">{latestReport.summary}</pre>
               <Link href="/analytics" className="mt-4 inline-flex h-9 items-center rounded-md border border-line px-3 text-sm text-ink">
-                查看数据分析
+                查看数据中心
               </Link>
             </div>
           ) : (

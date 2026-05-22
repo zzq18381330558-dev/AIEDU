@@ -31,7 +31,7 @@ export default async function ClassesPage() {
 
   return (
     <div className="space-y-6">
-      <Shell title="班级管理" description="管理班级名称、校区、开课时间、班主任/教务、授课老师和学员人数。" />
+      <Shell title="学员中心 · 班级管理" description="管理班级名称、校区、开课时间、班主任/教务、授课老师和学员人数。" />
       <ServiceTabs />
       <section className="grid gap-4 xl:grid-cols-[1fr_340px]">
         <div className="overflow-hidden rounded-lg border border-line bg-white">
@@ -63,7 +63,7 @@ export default async function ClassesPage() {
               ))}
               {classes.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-muted">暂无班级。创建班级后可关联学员并排课。</td>
+                  <td colSpan={8} className="px-4 py-12 text-center text-muted">暂无班级。新建班级后可关联学员并排课。</td>
                 </tr>
               ) : null}
             </tbody>

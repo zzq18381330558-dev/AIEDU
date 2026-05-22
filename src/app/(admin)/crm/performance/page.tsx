@@ -39,8 +39,8 @@ export default async function PerformancePage() {
             <TrendingUp className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-ink">招生老师业绩统计</h1>
-            <p className="mt-1 text-sm text-muted">统计线索分配、有效联系、成交数量和成交率。</p>
+            <h1 className="text-2xl font-semibold text-ink">招生中心 · 业绩统计</h1>
+            <p className="mt-1 text-sm text-muted">统计线索分配、有效联系、成交数量和转化表现。</p>
           </div>
         </div>
       </section>

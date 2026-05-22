@@ -123,7 +123,7 @@ export function QuestionDashboard({ initialQuestions, canManage }: { initialQues
           {canManage ? (
             <button onClick={() => { setEditing(null); setOpen(true); }} className="inline-flex h-10 items-center gap-2 rounded-md bg-brand-600 px-3 text-sm font-semibold text-white">
               <Plus className="h-4 w-4" />
-              新增题目
+              新建题目
             </button>
           ) : null}
         </div>
@@ -204,7 +204,7 @@ export function QuestionDashboard({ initialQuestions, canManage }: { initialQues
           </table>
           {questions.length === 0 ? (
             <div className="border-t border-line p-12 text-center text-sm text-muted">
-              暂无符合条件的题目，请调整筛选条件或新增题目。
+              暂无题目，请调整筛选条件或新建题目。
             </div>
           ) : null}
         </div>

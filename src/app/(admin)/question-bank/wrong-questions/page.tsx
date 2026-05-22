@@ -16,7 +16,7 @@ export default async function WrongQuestionsPage() {
 
   return (
     <div className="space-y-6">
-      <Header title="错题本" description="沉淀学员错题、错误原因和掌握状态，供教务和教研复盘。" />
+      <Header title="题库中心 · 错题本" description="沉淀学员错题、错误原因和掌握状态，供教务和教研复盘。" />
       <QuestionTabs />
       <div className="rounded-lg border border-line bg-white">
         <div className="divide-y divide-line">

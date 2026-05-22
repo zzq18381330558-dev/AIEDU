@@ -30,8 +30,8 @@ export default async function QuestionBankPage() {
               <BookOpenCheck className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-ink">AI 题库系统</h1>
-              <p className="mt-2 text-sm text-muted">沉淀真题、模拟题、高频考点和错题数据，支持 AI 生成解析与自动组卷。</p>
+              <h1 className="text-2xl font-semibold text-ink">题库中心</h1>
+              <p className="mt-2 text-sm text-muted">统一沉淀真题、模拟题、高频考点和错题数据，支持解析生成与自动组卷。</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center text-sm">

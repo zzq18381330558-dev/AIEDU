@@ -96,7 +96,7 @@ export function ServiceRecordForm({ studentId, canManage }: { studentId: string;
     <form action={submit} className="rounded-lg border border-line bg-white p-4">
       <div className="mb-4 flex items-center gap-2 font-semibold text-ink">
         <MessageSquarePlus className="h-4 w-4 text-brand-600" />
-        新增服务记录
+        新建服务记录
       </div>
       <input name="title" required disabled={!canManage} placeholder="记录标题" className="h-10 w-full rounded-md border border-line px-3 text-sm disabled:bg-[#F8FAFB]" />
       <select name="status" disabled={!canManage} className="mt-3 h-10 w-full rounded-md border border-line bg-white px-3 text-sm disabled:bg-[#F8FAFB]">

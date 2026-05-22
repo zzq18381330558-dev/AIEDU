@@ -78,7 +78,7 @@ export function LeadModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-4">
       <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white shadow-soft">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="text-lg font-semibold text-ink">{editing ? "编辑线索" : "新增线索"}</h2>
+          <h2 className="text-lg font-semibold text-ink">{editing ? "编辑线索" : "新建线索"}</h2>
           <button onClick={onClose} className="rounded-md p-2 text-muted hover:bg-[#F2F4F7]">
             <X className="h-5 w-5" />
           </button>

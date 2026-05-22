@@ -80,7 +80,7 @@ export function AnalyticsDashboard({
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <Metric label="新增线索" value={p.newLeadCount} />
+        <Metric label="新建线索" value={p.newLeadCount} />
         <Metric label="有效咨询" value={p.effectiveConsultCount} />
         <Metric label="成交人数" value={p.wonLeadCount} />
         <Metric label="成交金额" value={`¥${p.revenue}`} />

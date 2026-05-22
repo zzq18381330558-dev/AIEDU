@@ -28,7 +28,7 @@ export default async function RemindersPage() {
             <Bell className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-ink">今日待跟进</h1>
+            <h1 className="text-2xl font-semibold text-ink">招生中心 · 今日待跟进</h1>
             <p className="mt-1 text-sm text-muted">按下次跟进时间汇总今天需要联系的线索。</p>
           </div>
           </div>

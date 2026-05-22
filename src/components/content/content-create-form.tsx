@@ -14,7 +14,7 @@ export function ContentCreateForm() {
     });
     const data = await response.json();
     if (!response.ok) {
-      alert(data.error || "创建失败");
+      alert(data.error || "新建失败");
       return;
     }
     router.push("/content");
@@ -53,7 +53,7 @@ export function ContentCreateForm() {
       </label>
       <button type="submit" className="inline-flex h-10 w-fit items-center gap-2 rounded-md bg-brand-600 px-4 text-sm font-semibold text-white">
         <Save className="h-4 w-4" />
-        保存内容
+        新建内容
       </button>
     </form>
   );

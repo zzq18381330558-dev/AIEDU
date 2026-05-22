@@ -51,8 +51,8 @@ export default async function AnalyticsPage({
             <BarChart3 className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-ink">数据分析系统</h1>
-            <p className="mt-2 text-sm text-muted">总部、校区、招生、教务、财务和趋势分析一屏总览。</p>
+            <h1 className="text-2xl font-semibold text-ink">数据中心</h1>
+            <p className="mt-2 text-sm text-muted">汇总总部、校区、招生、教务、财务和趋势分析数据。</p>
           </div>
         </div>
       </section>

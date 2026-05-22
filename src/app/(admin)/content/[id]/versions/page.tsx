@@ -20,7 +20,8 @@ export default async function ContentVersionsPage({ params }: { params: Promise<
   return (
     <div className="space-y-6">
       <section className="rounded-lg border border-line bg-white p-5 shadow-soft">
-        <h1 className="text-2xl font-semibold text-ink">{content.title}</h1>
+        <h1 className="text-2xl font-semibold text-ink">教研中心 · 版本记录</h1>
+        <div className="mt-2 font-semibold text-ink">{content.title}</div>
         <p className="mt-2 text-sm text-muted">{teachingContentLabels.type[content.type]} · {teachingContentLabels.status[content.status]} · 当前 v{content.currentVersion}</p>
       </section>
       <ContentTabs />

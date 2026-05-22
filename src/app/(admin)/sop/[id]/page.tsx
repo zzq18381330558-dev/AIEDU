@@ -104,7 +104,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
     <div className="space-y-6">
       <Link href="/sop" className="inline-flex items-center gap-2 text-sm text-muted hover:text-brand-700">
         <ArrowLeft className="h-4 w-4" />
-        返回 SOP
+        返回运营SOP
       </Link>
 
       <section className="rounded-lg border border-line bg-white p-5 shadow-soft">
@@ -180,7 +180,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
                   ) : null}
                 </div>
               ))}
-              {tasks.length === 0 ? <Empty>暂无任务，请先启动校区执行或手动新增任务</Empty> : null}
+              {tasks.length === 0 ? <Empty>暂无任务，请先启动校区执行或手动新建任务</Empty> : null}
             </div>
           </Panel>
         </div>

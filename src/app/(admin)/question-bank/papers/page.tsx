@@ -17,7 +17,7 @@ export default async function PapersPage() {
 
   return (
     <div className="space-y-6">
-      <Header title="自动组卷" description="按科目、章节、知识点、难度范围和题目数量自动生成练习卷。" />
+      <Header title="题库中心 · 自动组卷" description="按科目、章节、知识点、难度范围和题目数量自动生成练习卷。" />
       <QuestionTabs />
       <section className="grid gap-4 xl:grid-cols-[1fr_340px]">
         <div className="rounded-lg border border-line bg-white">

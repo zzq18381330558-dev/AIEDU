@@ -70,7 +70,7 @@ export default async function AbsencesPage() {
             <Bell className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-ink">缺课提醒</h1>
+            <h1 className="text-2xl font-semibold text-ink">学员中心 · 缺课提醒</h1>
             <p className="mt-1 text-sm text-muted">汇总缺课记录，后续可通过企业微信/OpenClaw 自动推送关怀话术。</p>
           </div>
         </div>

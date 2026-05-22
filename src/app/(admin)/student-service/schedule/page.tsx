@@ -32,7 +32,7 @@ export default async function SchedulePage() {
 
   return (
     <div className="space-y-6">
-      <Header title="课程表" description="维护班级课程、授课老师、教室/链接、作业内容，并为上课提醒和作业提醒提供数据。" />
+      <Header title="学员中心 · 课程表" description="维护班级课程、授课老师、教室/链接、作业内容，并为上课提醒和作业提醒提供数据。" />
       <ServiceTabs />
       <section className="grid gap-4 xl:grid-cols-[1fr_340px]">
         <div className="rounded-lg border border-line bg-white">
@@ -49,7 +49,7 @@ export default async function SchedulePage() {
                 <div className="text-sm text-brand-700">打卡 {item._count.attendanceRecords}</div>
               </div>
             ))}
-            {sessions.length === 0 ? <div className="p-12 text-center text-sm text-muted">暂无课程。先创建班级，再为班级添加课程安排。</div> : null}
+            {sessions.length === 0 ? <div className="p-12 text-center text-sm text-muted">暂无课程。先新建班级，再为班级新建课程安排。</div> : null}
           </div>
         </div>
         {user.role !== "ADMISSIONS_COUNSELOR" ? (

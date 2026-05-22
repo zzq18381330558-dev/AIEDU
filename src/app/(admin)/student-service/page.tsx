@@ -57,8 +57,8 @@ export default async function StudentServicePage() {
               <BrainCircuit className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-ink">AI 学员服务系统</h1>
-              <p className="mt-2 text-sm text-muted">管理学员档案、提醒、打卡、缺课预警，并生成学习计划和服务话术。</p>
+              <h1 className="text-2xl font-semibold text-ink">学员中心</h1>
+              <p className="mt-2 text-sm text-muted">统一管理学员档案、服务提醒、课程打卡、缺课预警和学习计划。</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center text-sm">
@@ -110,7 +110,7 @@ export default async function StudentServicePage() {
                 ))}
                 {students.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-12 text-center text-muted">暂无学员。可从 CRM 成交线索转入，或由教务在右侧新增学员档案。</td>
+                    <td colSpan={9} className="px-4 py-12 text-center text-muted">暂无学员。可从成交线索转入，或由教务在右侧新建学员档案。</td>
                   </tr>
                 ) : null}
               </tbody>

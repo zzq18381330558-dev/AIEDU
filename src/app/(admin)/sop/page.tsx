@@ -89,8 +89,8 @@ export default async function SopPage({
               <ClipboardList className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-ink">校区复制 SOP 系统</h1>
-              <p className="mt-2 text-sm text-muted">总部统一沉淀招生、教务、校园代理、开班和退费处理流程，校区按任务清单执行并留痕。</p>
+              <h1 className="text-2xl font-semibold text-ink">运营SOP</h1>
+              <p className="mt-2 text-sm text-muted">统一沉淀招生、教务、校园代理、开班和退费处理流程，校区按任务清单执行并留痕。</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center text-sm">

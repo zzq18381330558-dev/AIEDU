@@ -7,7 +7,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   const auth = await requireApiUser("/student-service");
   if ("response" in auth) return auth.response;
   if (auth.user.role === "ADMISSIONS_COUNSELOR") {
-    return NextResponse.json({ error: "招生老师无权新增服务记录" }, { status: 403 });
+    return NextResponse.json({ error: "招生老师无权新建服务记录" }, { status: 403 });
   }
   const { id } = await context.params;
 

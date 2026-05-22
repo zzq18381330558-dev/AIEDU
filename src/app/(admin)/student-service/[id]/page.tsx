@@ -85,7 +85,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
     <div className="space-y-6">
       <Link href="/student-service" className="inline-flex items-center gap-2 text-sm text-muted hover:text-brand-700">
         <ArrowLeft className="h-4 w-4" />
-        返回学员服务
+        返回学员中心
       </Link>
 
       <section className="rounded-lg border border-line bg-white p-5 shadow-soft">
@@ -121,12 +121,12 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
 
       {student.lead ? (
         <section className="rounded-lg border border-line bg-white p-5">
-          <div className="font-semibold text-ink">CRM 来源信息</div>
+          <div className="font-semibold text-ink">招生来源信息</div>
           <div className="mt-3 grid gap-2 text-sm text-muted md:grid-cols-4">
             <div>来源：{crmLabels.sourceChannel[student.lead.sourceChannel]}</div>
             <div>成交状态：{crmLabels.status[student.lead.status]}</div>
             <div>意向：{crmLabels.intentLevel[student.lead.intentLevel]}</div>
-            <div>线索创建：{student.lead.createdAt.toLocaleDateString("zh-CN")}</div>
+            <div>线索建档：{student.lead.createdAt.toLocaleDateString("zh-CN")}</div>
           </div>
           {student.lead.note ? <p className="mt-3 text-sm leading-6 text-muted">线索备注：{student.lead.note}</p> : null}
         </section>

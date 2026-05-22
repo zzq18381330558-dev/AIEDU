@@ -114,7 +114,7 @@ export function SettingsDashboard({
 
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-lg border border-line bg-white">
-          <PanelHeader icon={UserCog} title="用户管理" action="创建用户" onAction={() => setUserModal("new")} />
+          <PanelHeader icon={UserCog} title="用户管理" action="新建用户" onAction={() => setUserModal("new")} />
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
               <thead className="bg-[#F8FAFB] text-muted">
@@ -139,7 +139,7 @@ export function SettingsDashboard({
                   </tr>
                 ))}
                 {users.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-10 text-center text-muted">暂无用户，可点击创建用户添加账号</td></tr>
+                  <tr><td colSpan={6} className="px-4 py-10 text-center text-muted">暂无用户，可点击新建用户开通账号</td></tr>
                 ) : null}
               </tbody>
             </table>
@@ -160,7 +160,7 @@ export function SettingsDashboard({
       </section>
 
       <section className="rounded-lg border border-line bg-white">
-        <PanelHeader icon={Building2} title="校区管理" action="新增校区" onAction={() => setCampusModal("new")} />
+        <PanelHeader icon={Building2} title="校区管理" action="新建校区" onAction={() => setCampusModal("new")} />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px] text-left text-sm">
             <thead className="bg-[#F8FAFB] text-muted">
@@ -187,7 +187,7 @@ export function SettingsDashboard({
                 </tr>
               ))}
               {campuses.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-muted">暂无校区，可点击新增校区添加基础信息</td></tr>
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-muted">暂无校区，可点击新建校区完善基础信息</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -195,7 +195,7 @@ export function SettingsDashboard({
       </section>
 
       <section className="rounded-lg border border-line bg-white">
-        <PanelHeader icon={LibraryBig} title="业务字典" action="新增字典项" onAction={() => setDictionaryModal("new")} />
+        <PanelHeader icon={LibraryBig} title="业务字典" action="新建字典项" onAction={() => setDictionaryModal("new")} />
         <div className="border-b border-line p-4">
           <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-10 rounded-md border border-line bg-white px-3 text-sm">
             <option value="">全部分类</option>
@@ -324,7 +324,7 @@ function UserModal({ open, value, campuses, onClose, onSaved }: { open: boolean;
   }
 
   return (
-    <BaseModal open={open} title={value ? "编辑用户" : "创建用户"} onClose={onClose}>
+    <BaseModal open={open} title={value ? "编辑用户" : "新建用户"} onClose={onClose}>
       <EntityForm endpoint={value ? `/api/settings/users/${value.id}` : "/api/settings/users"} method={value ? "PUT" : "POST"} onClose={onClose} onSaved={onSaved}>
         <Field label="姓名" name="name" required defaultValue={value?.name} />
         <Field label="登录邮箱" name="email" type="email" required defaultValue={value?.email} />
@@ -340,7 +340,7 @@ function UserModal({ open, value, campuses, onClose, onSaved }: { open: boolean;
 
 function CampusModal({ open, value, managers, onClose, onSaved }: { open: boolean; value: CampusItem | null; managers: Option[]; onClose: () => void; onSaved: () => Promise<void> }) {
   return (
-    <BaseModal open={open} title={value ? "编辑校区" : "新增校区"} onClose={onClose}>
+    <BaseModal open={open} title={value ? "编辑校区" : "新建校区"} onClose={onClose}>
       <EntityForm endpoint={value ? `/api/settings/campuses/${value.id}` : "/api/settings/campuses"} method={value ? "PUT" : "POST"} onClose={onClose} onSaved={onSaved}>
         <Field label="校区名称" name="name" required defaultValue={value?.name} />
         <Field label="校区编码" name="code" required defaultValue={value?.code} />
@@ -359,7 +359,7 @@ function CampusModal({ open, value, managers, onClose, onSaved }: { open: boolea
 
 function DictionaryModal({ open, value, onClose, onSaved }: { open: boolean; value: DictionaryItem | null; onClose: () => void; onSaved: () => Promise<void> }) {
   return (
-    <BaseModal open={open} title={value ? "编辑字典项" : "新增字典项"} onClose={onClose}>
+    <BaseModal open={open} title={value ? "编辑字典项" : "新建字典项"} onClose={onClose}>
       <EntityForm endpoint={value ? `/api/settings/dictionaries/${value.id}` : "/api/settings/dictionaries"} method={value ? "PUT" : "POST"} onClose={onClose} onSaved={onSaved}>
         <Select label="分类" name="category" options={dictionaryCategoryOptions} defaultValue={value?.category || "SCHOOL"} />
         <Field label="名称" name="name" required defaultValue={value?.name} />

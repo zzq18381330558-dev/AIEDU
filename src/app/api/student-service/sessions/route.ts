@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   const auth = await requireApiUser("/student-service");
   if ("response" in auth) return auth.response;
   if (auth.user.role === "ADMISSIONS_COUNSELOR") {
-    return NextResponse.json({ error: "招生老师无权创建课程" }, { status: 403 });
+    return NextResponse.json({ error: "招生老师无权新建课程" }, { status: 403 });
   }
 
   try {

@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await requireApiUser("/sop");
   if ("response" in auth) return auth.response;
-  if (!canManageSop(auth.user.role)) return NextResponse.json({ error: "无权创建 SOP" }, { status: 403 });
+  if (!canManageSop(auth.user.role)) return NextResponse.json({ error: "无权新建 SOP" }, { status: 403 });
 
   try {
     const body = await request.json();

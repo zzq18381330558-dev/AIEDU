@@ -109,8 +109,8 @@ export function CrmDashboard({
       <section className="rounded-lg border border-line bg-white p-5 shadow-soft">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-ink">招生 CRM</h1>
-            <p className="mt-2 text-sm text-muted">管理线索录入、分配、跟进提醒、渠道统计和招生老师业绩。</p>
+            <h1 className="text-2xl font-semibold text-ink">招生中心</h1>
+            <p className="mt-2 text-sm text-muted">统一管理招生线索、分配跟进、渠道统计和顾问业绩。</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link href="/crm/reminders" className="inline-flex h-10 items-center gap-2 rounded-md border border-line px-3 text-sm text-ink">
@@ -129,7 +129,7 @@ export function CrmDashboard({
               className="inline-flex h-10 items-center gap-2 rounded-md bg-brand-600 px-3 text-sm font-semibold text-white"
             >
               <Plus className="h-4 w-4" />
-              新增线索
+              新建线索
             </button>
           </div>
         </div>
