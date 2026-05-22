@@ -1,0 +1,70 @@
+import { BarChart3 } from "lucide-react";
+import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
+import { buildAnalyticsWhere, buildClassWhere, buildTrendRows, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/session";
+
+export default async function AnalyticsPage({
+  searchParams
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const user = await requireUser("/analytics");
+  const params = await searchParams;
+  const urlParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string") urlParams.set(key, value);
+  }
+  const filters = parseAnalyticsFilters(urlParams);
+  const { leadWhere, studentWhere, attendanceWhere } = buildAnalyticsWhere(user, filters);
+  const campusWhere =
+    user.role === "ADMIN" || user.role === "HQ_OPERATIONS"
+      ? { organizationId: user.organizationId }
+      : user.campusId
+        ? { id: user.campusId }
+        : { id: "__none__" };
+
+  const [leads, students, attendance, classCount, campuses, counselors, reports] = await Promise.all([
+    prisma.lead.findMany({ where: leadWhere, include: { campus: { select: { name: true } }, assignee: { select: { name: true } } } }),
+    prisma.student.findMany({ where: studentWhere, include: { campus: { select: { name: true } }, class: { select: { name: true } }, salesOwner: { select: { name: true } } } }),
+    prisma.attendanceRecord.findMany({ where: attendanceWhere, include: { courseSession: { select: { homework: true, class: { select: { id: true, name: true } } } } } }),
+    prisma.studentClass.count({ where: buildClassWhere(user, filters) }),
+    prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { role: "ADMISSIONS_COUNSELOR", status: "ACTIVE", ...(filters.campusId ? { campusId: filters.campusId } : {}) }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.analyticsDailyReport.findMany({ orderBy: { reportDate: "desc" }, take: 5 })
+  ]);
+
+  const computed = computeAnalytics({ leads, students, attendance, classCount });
+  const summary = { ...computed, trends: buildTrendRows(leads, students, filters.from, filters.to) };
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-lg border border-line bg-white p-5 shadow-soft">
+        <div className="flex gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-brand-50 text-brand-700">
+            <BarChart3 className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold text-ink">数据分析系统</h1>
+            <p className="mt-2 text-sm text-muted">总部、校区、招生、教务、财务和趋势分析一屏总览。</p>
+          </div>
+        </div>
+      </section>
+
+      <AnalyticsDashboard summary={JSON.parse(JSON.stringify(summary))} campuses={campuses} counselors={counselors} />
+
+      <section className="rounded-lg border border-line bg-white">
+        <div className="border-b border-line px-5 py-4 font-semibold text-ink">最近经营日报</div>
+        <div className="divide-y divide-line">
+          {reports.map((report) => (
+            <div key={report.id} className="p-5">
+              <div className="font-semibold text-ink">{report.title}</div>
+              <pre className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{report.summary}</pre>
+            </div>
+          ))}
+          {reports.length === 0 ? <div className="p-8 text-center text-sm text-muted">暂无日报</div> : null}
+        </div>
+      </section>
+    </div>
+  );
+}

@@ -1,0 +1,808 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  HQ_OPERATIONS
+  CAMPUS_MANAGER
+  ADMISSIONS_COUNSELOR
+  ACADEMIC_TEACHER
+  LECTURER
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum LeadStatus {
+  UNCONTACTED
+  CONTACTED
+  TRIAL
+  CONSIDERING
+  WON
+  LOST
+}
+
+enum LeadIntentLevel {
+  LOW
+  MEDIUM
+  HIGH
+  STRONG
+}
+
+enum LeadExamTrack {
+  INFANT
+  PRIMARY
+  MIDDLE
+}
+
+enum LeadSourceChannel {
+  UNIVERSITY_PARTNERSHIP
+  CAMPUS_PROMOTION
+  WECHAT_MOMENTS
+  SHORT_VIDEO
+  GROUND_PROMOTION
+  ENTERPRISE_WECHAT
+  REFERRAL
+  OTHER
+}
+
+enum ServiceTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MATERIAL_ANALYSIS
+  WRITING
+  SHORT_ANSWER
+  DISCRIMINATION
+  CASE_ANALYSIS
+}
+
+enum QuestionSubject {
+  COMPREHENSIVE_QUALITY
+  EDUCATION_KNOWLEDGE
+  SUBJECT_KNOWLEDGE
+  INTERVIEW_STRUCTURED
+  TRIAL_LECTURE
+  DEFENSE
+}
+
+enum QuestionSource {
+  REAL_EXAM
+  MOCK
+  ORIGINAL
+}
+
+enum PaperStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ContentStatus {
+  DRAFT
+  REVIEWING
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum TeachingContentType {
+  COURSE_HANDOUT
+  PPT_OUTLINE
+  REAL_EXAM_ANALYSIS
+  MOCK_PAPER
+  WRITING_TEMPLATE
+  INTERVIEW_STRUCTURED_TEMPLATE
+  SHORT_VIDEO_SCRIPT
+  SALES_MOMENTS_COPY
+  SALES_POSTER_COPY
+}
+
+enum ContentReviewAction {
+  SUBMIT
+  APPROVE
+  REJECT
+  ARCHIVE
+}
+
+enum ContentExportFormat {
+  WORD
+  PDF
+}
+
+enum SopStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
+}
+
+enum SopCategory {
+  NEW_CAMPUS_LAUNCH
+  UNIVERSITY_COOPERATION
+  GROUND_PROMOTION
+  MOMENTS_OPERATION
+  CONSULTATION_CONVERSION
+  STUDENT_ONBOARDING
+  CLASS_SERVICE
+  CHECK_IN_SUPERVISION
+  EXAM_SPRINT
+  INTERVIEW_SERVICE
+  REFUND_COMPLAINT
+}
+
+enum SopTaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  BLOCKED
+}
+
+enum StudentStudyStatus {
+  NOT_STARTED
+  STUDYING
+  LOW_ACTIVE
+  SPRINT
+  INTERVIEW_STAGE
+  PAUSED
+  COMPLETED
+  REFUNDED
+}
+
+enum CourseSessionType {
+  LIVE
+  RECORDED
+  PRACTICE
+  MOCK_EXAM
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  LEAVE
+}
+
+enum ReminderType {
+  CLASS
+  HOMEWORK
+  CHECK_IN
+  ABSENCE
+  EXAM
+  STUDY_PLAN
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  campuses  Campus[]
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Campus {
+  id             String          @id @default(cuid())
+  organizationId String
+  name           String
+  code           String          @unique
+  city           String
+  address        String?
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  users          User[]
+  leads          Lead[]
+  students       Student[]
+  classes        StudentClass[]
+  courseSessions CourseSession[]
+  contentPublications TeachingContentPublication[]
+  sopExecutions  SopExecution[]
+  sopTasks       SopTask[]
+  sopWeeklyReports SopWeeklyReport[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([organizationId])
+}
+
+model User {
+  id             String       @id @default(cuid())
+  organizationId String
+  campusId       String?
+  name           String
+  email          String       @unique
+  phone          String?
+  passwordHash   String
+  role           UserRole
+  status         UserStatus   @default(ACTIVE)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  campus         Campus?      @relation(fields: [campusId], references: [id])
+  assignedLeads  Lead[]       @relation("LeadAssignee")
+  createdLeads   Lead[]       @relation("LeadCreator")
+  leadFollowUps   LeadFollowUp[]
+  academicStudents Student[]     @relation("StudentAcademicOwner")
+  salesStudents    Student[]     @relation("StudentSalesOwner")
+  managedClasses   StudentClass[] @relation("ClassAcademicOwner")
+  taughtClasses    StudentClass[] @relation("ClassLecturer")
+  courseSessions   CourseSession[] @relation("CourseLecturer")
+  attendanceRecords AttendanceRecord[] @relation("AttendanceRecorder")
+  reminders        StudentReminder[] @relation("ReminderCreator")
+  tickets        ServiceTicket[]
+  contents       TeachingContent[]
+  contentReviews TeachingContentReview[]
+  sopCheckIns    SopTaskCheckIn[]
+  sopInspections SopInspection[]
+  sopWeeklyReports SopWeeklyReport[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([campusId])
+  @@index([role])
+}
+
+model Lead {
+  id              String            @id @default(cuid())
+  campusId        String
+  creatorId       String
+  assigneeId      String?
+  name            String
+  phone           String
+  wechat          String?
+  school          String?
+  grade           String?
+  major           String?
+  examTrack       LeadExamTrack     @default(PRIMARY)
+  sourceChannel   LeadSourceChannel
+  status          LeadStatus        @default(UNCONTACTED)
+  intentLevel     LeadIntentLevel   @default(MEDIUM)
+  lastFollowedAt  DateTime?
+  nextFollowUpAt  DateTime?
+  note            String?
+  campus          Campus            @relation(fields: [campusId], references: [id])
+  creator         User              @relation("LeadCreator", fields: [creatorId], references: [id])
+  assignee        User?             @relation("LeadAssignee", fields: [assigneeId], references: [id])
+  followUps       LeadFollowUp[]
+  student         Student?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([campusId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([sourceChannel])
+  @@index([intentLevel])
+  @@index([nextFollowUpAt])
+  @@index([phone])
+}
+
+model LeadFollowUp {
+  id          String          @id @default(cuid())
+  leadId      String
+  creatorId   String
+  content     String
+  status      LeadStatus
+  intentLevel LeadIntentLevel
+  followAt    DateTime        @default(now())
+  nextAt      DateTime?
+  lead        Lead            @relation(fields: [leadId], references: [id])
+  creator     User            @relation(fields: [creatorId], references: [id])
+  createdAt   DateTime        @default(now())
+
+  @@index([leadId])
+  @@index([creatorId])
+  @@index([followAt])
+  @@index([nextAt])
+}
+
+model Student {
+  id              String             @id @default(cuid())
+  campusId        String
+  leadId          String?            @unique
+  classId         String?
+  academicOwnerId String?
+  salesOwnerId    String?
+  name            String
+  phone           String
+  school          String?
+  grade           String?
+  major           String?
+  classType       String?
+  examTrack       LeadExamTrack      @default(PRIMARY)
+  studyStatus     StudentStudyStatus @default(NOT_STARTED)
+  serviceNote     String?
+  enrolledAt      DateTime           @default(now())
+  campus          Campus             @relation(fields: [campusId], references: [id])
+  lead            Lead?              @relation(fields: [leadId], references: [id])
+  class           StudentClass?      @relation(fields: [classId], references: [id])
+  academicOwner   User?              @relation("StudentAcademicOwner", fields: [academicOwnerId], references: [id])
+  salesOwner      User?              @relation("StudentSalesOwner", fields: [salesOwnerId], references: [id])
+  tickets         ServiceTicket[]
+  studyPlans      StudyPlan[]
+  attendanceRecords AttendanceRecord[]
+  reminders       StudentReminder[]
+  wrongQuestions  WrongQuestionRecord[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([campusId])
+  @@index([classId])
+  @@index([academicOwnerId])
+  @@index([salesOwnerId])
+  @@index([studyStatus])
+}
+
+model StudyPlan {
+  id          String   @id @default(cuid())
+  studentId   String
+  title       String
+  aiSummary   String?
+  planText    String?
+  serviceScript String?
+  progress    Int      @default(0)
+  student     Student  @relation(fields: [studentId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([studentId])
+}
+
+model StudentClass {
+  id              String          @id @default(cuid())
+  campusId        String
+  name            String
+  startAt         DateTime
+  academicOwnerId String?
+  lecturerId      String?
+  classType       String?
+  examTrack       LeadExamTrack   @default(PRIMARY)
+  campus          Campus          @relation(fields: [campusId], references: [id])
+  academicOwner   User?           @relation("ClassAcademicOwner", fields: [academicOwnerId], references: [id])
+  lecturer        User?           @relation("ClassLecturer", fields: [lecturerId], references: [id])
+  students        Student[]
+  sessions        CourseSession[]
+  reminders       StudentReminder[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([campusId])
+  @@index([academicOwnerId])
+  @@index([lecturerId])
+}
+
+model CourseSession {
+  id          String            @id @default(cuid())
+  campusId    String
+  classId     String
+  lecturerId  String?
+  title       String
+  type        CourseSessionType @default(LIVE)
+  startsAt    DateTime
+  endsAt      DateTime
+  room        String?
+  homework    String?
+  campus      Campus            @relation(fields: [campusId], references: [id])
+  class       StudentClass      @relation(fields: [classId], references: [id])
+  lecturer    User?             @relation("CourseLecturer", fields: [lecturerId], references: [id])
+  attendanceRecords AttendanceRecord[]
+  reminders   StudentReminder[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([campusId])
+  @@index([classId])
+  @@index([lecturerId])
+  @@index([startsAt])
+}
+
+model AttendanceRecord {
+  id              String           @id @default(cuid())
+  studentId       String
+  courseSessionId String
+  recorderId      String?
+  status          AttendanceStatus @default(PRESENT)
+  checkInAt       DateTime?
+  note            String?
+  student         Student          @relation(fields: [studentId], references: [id])
+  courseSession   CourseSession    @relation(fields: [courseSessionId], references: [id])
+  recorder        User?            @relation("AttendanceRecorder", fields: [recorderId], references: [id])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([studentId, courseSessionId])
+  @@index([courseSessionId])
+  @@index([status])
+}
+
+model StudentReminder {
+  id              String         @id @default(cuid())
+  studentId       String?
+  classId         String?
+  courseSessionId String?
+  creatorId       String?
+  type            ReminderType
+  status          ReminderStatus @default(PENDING)
+  title           String
+  content         String
+  scheduledAt     DateTime
+  pushedAt        DateTime?
+  channel         String         @default("WECHAT_RESERVED")
+  provider        String         @default("OPENCLAW_RESERVED")
+  providerPayload Json?
+  student         Student?       @relation(fields: [studentId], references: [id])
+  class           StudentClass?  @relation(fields: [classId], references: [id])
+  courseSession   CourseSession? @relation(fields: [courseSessionId], references: [id])
+  creator         User?          @relation("ReminderCreator", fields: [creatorId], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([studentId])
+  @@index([classId])
+  @@index([courseSessionId])
+  @@index([type])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model ServiceTicket {
+  id          String              @id @default(cuid())
+  studentId   String
+  ownerId     String?
+  title       String
+  status      ServiceTicketStatus @default(OPEN)
+  aiSuggestion String?
+  student     Student             @relation(fields: [studentId], references: [id])
+  owner       User?               @relation(fields: [ownerId], references: [id])
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([studentId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+model QuestionBank {
+  id          String     @id @default(cuid())
+  name        String
+  subject     QuestionSubject @default(COMPREHENSIVE_QUALITY)
+  examTrack   LeadExamTrack   @default(PRIMARY)
+  questions   Question[]
+  papers      ExamPaper[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([subject])
+  @@index([examTrack])
+}
+
+model Question {
+  id             String          @id @default(cuid())
+  questionBankId String?
+  subject        QuestionSubject
+  chapter        String
+  knowledgePoint String
+  type           QuestionType
+  stem           String
+  options        Json?
+  answer         String
+  analysis       String?
+  difficulty     Int             @default(1)
+  highFrequencyTags String[]
+  source         QuestionSource  @default(ORIGINAL)
+  year           Int?
+  bank           QuestionBank?   @relation(fields: [questionBankId], references: [id])
+  paperItems     ExamPaperQuestion[]
+  wrongRecords   WrongQuestionRecord[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([questionBankId])
+  @@index([subject])
+  @@index([chapter])
+  @@index([knowledgePoint])
+  @@index([type])
+  @@index([difficulty])
+  @@index([source])
+  @@index([year])
+}
+
+model ExamPaper {
+  id             String        @id @default(cuid())
+  questionBankId String?
+  title          String
+  subject        QuestionSubject
+  totalScore     Int           @default(100)
+  durationMinutes Int          @default(120)
+  status         PaperStatus   @default(DRAFT)
+  strategy       Json?
+  bank           QuestionBank? @relation(fields: [questionBankId], references: [id])
+  questions      ExamPaperQuestion[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([questionBankId])
+  @@index([subject])
+  @@index([status])
+}
+
+model ExamPaperQuestion {
+  id          String    @id @default(cuid())
+  paperId     String
+  questionId  String
+  sortOrder   Int
+  score       Int       @default(2)
+  paper       ExamPaper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  question    Question  @relation(fields: [questionId], references: [id])
+
+  @@unique([paperId, questionId])
+  @@index([questionId])
+}
+
+model WrongQuestionRecord {
+  id          String    @id @default(cuid())
+  studentId   String
+  questionId  String
+  answer      String?
+  reason      String?
+  mastered    Boolean   @default(false)
+  wrongAt     DateTime  @default(now())
+  student     Student   @relation(fields: [studentId], references: [id])
+  question    Question  @relation(fields: [questionId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([studentId])
+  @@index([questionId])
+  @@index([mastered])
+  @@index([wrongAt])
+}
+
+model TeachingContent {
+  id             String              @id @default(cuid())
+  authorId       String
+  title          String
+  type           TeachingContentType
+  category       String
+  status         ContentStatus       @default(DRAFT)
+  aiPrompt       String?
+  summary        String?
+  body           String?
+  currentVersion Int                 @default(1)
+  author         User                @relation(fields: [authorId], references: [id])
+  versions       TeachingContentVersion[]
+  reviews        TeachingContentReview[]
+  publications   TeachingContentPublication[]
+  exports        TeachingContentExport[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([authorId])
+  @@index([type])
+  @@index([category])
+  @@index([status])
+}
+
+model TeachingContentVersion {
+  id         String          @id @default(cuid())
+  contentId  String
+  version    Int
+  title      String
+  body       String
+  changeNote String?
+  content    TeachingContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime        @default(now())
+
+  @@unique([contentId, version])
+  @@index([contentId])
+}
+
+model TeachingContentReview {
+  id         String              @id @default(cuid())
+  contentId  String
+  reviewerId String
+  action     ContentReviewAction
+  comment    String?
+  content    TeachingContent     @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  reviewer   User                @relation(fields: [reviewerId], references: [id])
+  createdAt  DateTime            @default(now())
+
+  @@index([contentId])
+  @@index([reviewerId])
+  @@index([action])
+}
+
+model TeachingContentPublication {
+  id          String          @id @default(cuid())
+  contentId   String
+  campusId    String
+  publishedAt DateTime        @default(now())
+  content     TeachingContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  campus      Campus          @relation(fields: [campusId], references: [id])
+
+  @@unique([contentId, campusId])
+  @@index([campusId])
+}
+
+model TeachingContentExport {
+  id        String              @id @default(cuid())
+  contentId String
+  format    ContentExportFormat
+  fileName  String
+  content   TeachingContent     @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  createdAt DateTime            @default(now())
+
+  @@index([contentId])
+  @@index([format])
+}
+
+model AnalyticsMetric {
+  id          String   @id @default(cuid())
+  scope       String
+  metricKey   String
+  metricValue Decimal  @db.Decimal(12, 2)
+  measuredAt  DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([scope, metricKey, measuredAt])
+}
+
+model AnalyticsDailyReport {
+  id          String   @id @default(cuid())
+  reportDate  DateTime @unique
+  title       String
+  summary     String
+  metrics     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SopTemplate {
+  id          String         @id @default(cuid())
+  title       String
+  module      String
+  category    SopCategory    @default(NEW_CAMPUS_LAUNCH)
+  status      SopStatus      @default(DRAFT)
+  version     Int            @default(1)
+  summary     String?
+  document    String?
+  steps       SopStep[]
+  executions  SopExecution[]
+  tasks       SopTask[]
+  inspections SopInspection[]
+  weeklyReports SopWeeklyReport[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([category])
+  @@index([status])
+}
+
+model SopStep {
+  id            String      @id @default(cuid())
+  sopTemplateId String
+  title         String
+  description   String?
+  standard      String?
+  ownerRole     String?
+  sortOrder     Int
+  template      SopTemplate @relation(fields: [sopTemplateId], references: [id])
+
+  @@index([sopTemplateId])
+}
+
+model SopExecution {
+  id            String      @id @default(cuid())
+  sopTemplateId String
+  campusId      String
+  owner         String
+  progress      Int         @default(0)
+  template      SopTemplate @relation(fields: [sopTemplateId], references: [id])
+  campus        Campus      @relation(fields: [campusId], references: [id])
+  tasks         SopTask[]
+  inspections   SopInspection[]
+  weeklyReports SopWeeklyReport[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([sopTemplateId])
+  @@index([campusId])
+}
+
+model SopTask {
+  id             String        @id @default(cuid())
+  sopTemplateId  String
+  sopExecutionId String?
+  campusId       String
+  title          String
+  description    String?
+  status         SopTaskStatus @default(TODO)
+  dueDate        DateTime?
+  completedAt    DateTime?
+  template       SopTemplate   @relation(fields: [sopTemplateId], references: [id])
+  execution      SopExecution? @relation(fields: [sopExecutionId], references: [id], onDelete: SetNull)
+  campus         Campus        @relation(fields: [campusId], references: [id])
+  checkIns       SopTaskCheckIn[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([sopTemplateId])
+  @@index([sopExecutionId])
+  @@index([campusId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model SopTaskCheckIn {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  note      String
+  evidence  String?
+  task      SopTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+model SopInspection {
+  id             String       @id @default(cuid())
+  sopTemplateId  String
+  sopExecutionId String?
+  inspectorId    String
+  score          Int
+  checklist      Json
+  comment        String?
+  template       SopTemplate  @relation(fields: [sopTemplateId], references: [id])
+  execution      SopExecution? @relation(fields: [sopExecutionId], references: [id], onDelete: SetNull)
+  inspector      User         @relation(fields: [inspectorId], references: [id])
+  createdAt      DateTime     @default(now())
+
+  @@index([sopTemplateId])
+  @@index([sopExecutionId])
+  @@index([inspectorId])
+}
+
+model SopWeeklyReport {
+  id             String       @id @default(cuid())
+  sopTemplateId  String
+  sopExecutionId String?
+  campusId       String
+  reporterId     String
+  weekStart      DateTime
+  summary        String
+  blockers       String?
+  nextPlan       String?
+  metrics        Json?
+  template       SopTemplate  @relation(fields: [sopTemplateId], references: [id])
+  execution      SopExecution? @relation(fields: [sopExecutionId], references: [id], onDelete: SetNull)
+  campus         Campus       @relation(fields: [campusId], references: [id])
+  reporter       User         @relation(fields: [reporterId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([sopTemplateId])
+  @@index([sopExecutionId])
+  @@index([campusId])
+  @@index([weekStart])
+}

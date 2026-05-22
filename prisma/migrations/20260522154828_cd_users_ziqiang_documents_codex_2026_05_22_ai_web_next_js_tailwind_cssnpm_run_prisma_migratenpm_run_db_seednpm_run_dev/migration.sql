@@ -1,0 +1,4 @@
+-- No-op migration.
+-- This file was generated from an accidentally pasted shell command as the migration name.
+-- Keeping the directory avoids changing migration history, but the CRM default cleanup now
+-- lives in 20260522162000_crm_leads where the sourceChannel column is actually created.
