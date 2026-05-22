@@ -5,6 +5,7 @@ import { SopTemplateForm } from "@/components/sop/sop-forms";
 import {
   canManageSop,
   computeCompletionRate,
+  isSopCategory,
   sopCategoryOptions,
   sopLabels,
   sopTaskScopeWhere
@@ -19,7 +20,7 @@ export default async function SopPage({
 }) {
   const user = await requireUser("/sop");
   const params = await searchParams;
-  const category = typeof params.category === "string" ? params.category : "";
+  const category = typeof params.category === "string" && isSopCategory(params.category) ? params.category : "";
   const search = typeof params.search === "string" ? params.search.trim() : "";
   const templateWhere: Prisma.SopTemplateWhereInput = {};
   if (category) templateWhere.category = category as Prisma.EnumSopCategoryFilter["equals"];

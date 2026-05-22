@@ -47,6 +47,14 @@ const categoryValues = sopCategoryOptions.map((item) => item.value);
 const statusValues = sopStatusOptions.map((item) => item.value);
 const taskStatusValues = sopTaskStatusOptions.map((item) => item.value);
 
+export function isSopCategory(value: unknown): value is SopCategory {
+  return typeof value === "string" && categoryValues.includes(value as SopCategory);
+}
+
+export function isSopStatus(value: unknown): value is SopStatus {
+  return typeof value === "string" && statusValues.includes(value as SopStatus);
+}
+
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -158,6 +166,18 @@ export function normalizeSopTaskInput(input: Record<string, unknown>, defaults: 
     status: enumOr(input.status, taskStatusValues, "TODO"),
     dueDate: nullableDate(input.dueDate)
   } satisfies Prisma.SopTaskUncheckedCreateInput;
+}
+
+export function normalizeSopTaskUpdateInput(input: Record<string, unknown>) {
+  const title = text(input.title);
+  if (!title) throw new Error("请输入任务标题");
+  return {
+    title,
+    description: nullableText(input.description),
+    status: enumOr(input.status, taskStatusValues, "TODO"),
+    dueDate: nullableDate(input.dueDate),
+    completedAt: enumOr(input.status, taskStatusValues, "TODO") === "DONE" ? new Date() : null
+  } satisfies Prisma.SopTaskUncheckedUpdateInput;
 }
 
 export function normalizeSopCheckInInput(input: Record<string, unknown>) {

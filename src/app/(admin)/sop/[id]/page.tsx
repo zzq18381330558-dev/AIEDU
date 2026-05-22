@@ -5,6 +5,7 @@ import {
   SopExecutionForm,
   SopInspectionForm,
   SopTaskCheckInForm,
+  SopTaskEditForm,
   SopTaskForm,
   SopWeeklyReportForm
 } from "@/components/sop/sop-forms";
@@ -167,6 +168,15 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                     {task.status === "DONE" ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <Clock className="h-5 w-5 text-muted" />}
                   </div>
+                  <SopTaskEditForm
+                    task={{
+                      id: task.id,
+                      title: task.title,
+                      description: task.description,
+                      status: task.status,
+                      dueDate: toDateTimeLocal(task.dueDate)
+                    }}
+                  />
                   <SopTaskCheckInForm taskId={task.id} />
                   {task.checkIns.length ? (
                     <div className="mt-3 space-y-2">
@@ -180,7 +190,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
                   ) : null}
                 </div>
               ))}
-              {tasks.length === 0 ? <Empty>暂无任务，请先启动校区执行或手动新建任务</Empty> : null}
+              {tasks.length === 0 ? <Empty>暂无运营SOP任务，请先启动校区执行或手动新建任务。</Empty> : null}
             </div>
           </Panel>
         </div>
@@ -210,7 +220,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
                 </div>
               </div>
             ))}
-            {executions.length === 0 ? <Empty>暂无执行看板数据</Empty> : null}
+            {executions.length === 0 ? <Empty>暂无运营SOP执行看板数据。</Empty> : null}
           </div>
         </Panel>
 
@@ -229,7 +239,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
                 <p className="mt-2 text-sm leading-6 text-muted">{item.comment || "无检查意见"}</p>
               </div>
             ))}
-            {inspections.length === 0 ? <Empty>暂无检查评分</Empty> : null}
+            {inspections.length === 0 ? <Empty>暂无总部检查评分。</Empty> : null}
           </div>
         </Panel>
       </section>
@@ -249,7 +259,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
               {item.nextPlan ? <p className="mt-2 text-sm leading-6 text-muted">下周计划：{item.nextPlan}</p> : null}
             </div>
           ))}
-          {weeklyReports.length === 0 ? <Empty>暂无周报</Empty> : null}
+          {weeklyReports.length === 0 ? <Empty>暂无校区周报。</Empty> : null}
         </div>
       </Panel>
     </div>
@@ -280,4 +290,10 @@ function Status({ status }: { status: keyof typeof sopLabels.taskStatus }) {
     BLOCKED: "bg-red-50 text-red-700"
   }[status];
   return <span className={`rounded-md px-2 py-1 text-xs ${tone}`}>{sopLabels.taskStatus[status]}</span>;
+}
+
+function toDateTimeLocal(date: Date | null) {
+  if (!date) return "";
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { canManageSop, normalizeSopTemplateInput, parseStepLines } from "@/lib/sop";
+import { canManageSop, isSopCategory, isSopStatus, normalizeSopTemplateInput, parseStepLines } from "@/lib/sop";
 import { prisma } from "@/lib/prisma";
 
 const include = {
@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get("category");
   const status = searchParams.get("status");
   const search = searchParams.get("search")?.trim();
-  if (category) where.category = category as Prisma.EnumSopCategoryFilter["equals"];
-  if (status) where.status = status as Prisma.EnumSopStatusFilter["equals"];
+  if (isSopCategory(category)) where.category = category;
+  if (isSopStatus(status)) where.status = status;
   if (search) {
     where.OR = [
       { title: { contains: search, mode: "insensitive" } },

@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   computeCompletionRate,
+  isSopCategory,
+  isSopStatus,
   normalizeSopCheckInInput,
   normalizeSopTemplateInput,
+  normalizeSopTaskUpdateInput,
   normalizeSopWeeklyReportInput,
   parseStepLines,
   sopLabels
@@ -33,6 +36,14 @@ test("normalizeSopCheckInInput rejects empty note and keeps status", () => {
   assert.equal(input.status, "DONE");
 });
 
+test("normalizeSopTaskUpdateInput validates edit payload and completion status", () => {
+  assert.throws(() => normalizeSopTaskUpdateInput({ title: "" }), /任务标题/);
+  const input = normalizeSopTaskUpdateInput({ title: "复盘校区执行", status: "DONE" });
+  assert.equal(input.title, "复盘校区执行");
+  assert.equal(input.status, "DONE");
+  assert.ok(input.completedAt instanceof Date);
+});
+
 test("normalizeSopWeeklyReportInput creates metrics payload", () => {
   const input = normalizeSopWeeklyReportInput({
     campusId: "campus-1",
@@ -49,4 +60,11 @@ test("normalizeSopWeeklyReportInput creates metrics payload", () => {
 test("computeCompletionRate returns one decimal percentage", () => {
   assert.equal(computeCompletionRate(1, 3), 33.3);
   assert.equal(computeCompletionRate(0, 0), 0);
+});
+
+test("SOP filters reject invalid enum values", () => {
+  assert.equal(isSopCategory("GROUND_PROMOTION"), true);
+  assert.equal(isSopCategory("BAD_CATEGORY"), false);
+  assert.equal(isSopStatus("ACTIVE"), true);
+  assert.equal(isSopStatus("BAD_STATUS"), false);
 });

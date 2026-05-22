@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { normalizeSopWeeklyReportInput, sopCampusWhere } from "@/lib/sop";
+import { normalizeSopWeeklyReportInput, sopCampusWhere, sopExecutionScopeWhere } from "@/lib/sop";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -16,6 +16,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       select: { id: true }
     });
     if (!campus) return NextResponse.json({ error: "校区不存在或无权限" }, { status: 404 });
+    const template = await prisma.sopTemplate.findUnique({ where: { id }, select: { id: true } });
+    if (!template) return NextResponse.json({ error: "运营SOP不存在" }, { status: 404 });
+    if (input.sopExecutionId) {
+      const execution = await prisma.sopExecution.findFirst({
+        where: {
+          id: input.sopExecutionId,
+          sopTemplateId: id,
+          campusId: input.campusId,
+          ...sopExecutionScopeWhere(auth.user)
+        },
+        select: { id: true }
+      });
+      if (!execution) return NextResponse.json({ error: "关联执行不存在、校区不一致或无权限" }, { status: 404 });
+    }
 
     const item = await prisma.sopWeeklyReport.create({
       data: {

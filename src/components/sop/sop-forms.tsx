@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ClipboardCheck, FilePlus2, Flag, ListChecks, NotebookPen, ShieldCheck } from "lucide-react";
+import { ClipboardCheck, FilePlus2, Flag, ListChecks, NotebookPen, PencilLine, ShieldCheck } from "lucide-react";
 import { sopCategoryOptions, sopStatusOptions, sopTaskStatusOptions } from "@/lib/sop";
 
 type Option = { id: string; name: string };
@@ -25,7 +25,7 @@ export function SopTemplateForm() {
   return (
     <form action={submit} className="rounded-lg border border-line bg-white p-4">
       <FormTitle icon={FilePlus2} title="新建 SOP 文档" />
-      <Field name="title" label="SOP 标题" required placeholder="如：招生地推标准动作 SOP" />
+      <Field name="title" label="运营SOP 标题" required placeholder="如：招生地推标准动作 SOP" />
       <Select name="category" label="分类" options={sopCategoryOptions.map((item) => ({ value: item.value, label: item.label }))} />
       <Select name="status" label="状态" options={sopStatusOptions.map((item) => ({ value: item.value, label: item.label }))} />
       <Field name="module" label="模块" placeholder="如：招生 SOP / 教务 SOP" />
@@ -37,7 +37,7 @@ export function SopTemplateForm() {
         rows={6}
         placeholder={"每行一个步骤，可用“步骤标题 | 验收标准”格式\n例：确认地推点位 | 点位、时间、负责人清晰"}
       />
-      <button className="mt-4 h-10 w-full rounded-md bg-brand-600 text-sm font-semibold text-white">新建 SOP</button>
+      <button className="mt-4 h-10 w-full rounded-md bg-brand-600 text-sm font-semibold text-white">新建运营SOP</button>
     </form>
   );
 }
@@ -143,6 +143,55 @@ export function SopTaskCheckInForm({ taskId }: { taskId: string }) {
       <Field name="evidence" label="凭证链接" placeholder="表格、截图或资料链接" />
       <button className="h-9 rounded-md border border-line bg-white text-sm text-ink">提交打卡</button>
     </form>
+  );
+}
+
+export function SopTaskEditForm({
+  task
+}: {
+  task: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: string;
+    dueDate: string;
+  };
+}) {
+  const router = useRouter();
+  async function submit(formData: FormData) {
+    const response = await fetch(`/api/sop/tasks/${task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.fromEntries(formData.entries()))
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      alert(data.error || "任务保存失败");
+      return;
+    }
+    alert("任务已保存");
+    router.refresh();
+  }
+
+  return (
+    <details className="mt-3 rounded-md bg-[#F8FAFB] p-3">
+      <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium text-ink">
+        <PencilLine className="h-4 w-4 text-brand-600" />
+        编辑任务
+      </summary>
+      <form action={submit} className="mt-2 grid gap-2">
+        <Field name="title" label="任务标题" required defaultValue={task.title} />
+        <Select
+          name="status"
+          label="处理状态"
+          defaultValue={task.status}
+          options={sopTaskStatusOptions.map((item) => ({ value: item.value, label: item.label }))}
+        />
+        <Field name="dueDate" label="截止时间" type="datetime-local" defaultValue={task.dueDate} />
+        <TextArea name="description" label="任务说明" rows={3} defaultValue={task.description || ""} />
+        <button className="h-9 rounded-md border border-line bg-white text-sm text-ink">保存任务</button>
+      </form>
+    </details>
   );
 }
 
@@ -285,16 +334,18 @@ function Field({
 function Select({
   name,
   label,
-  options
+  options,
+  defaultValue
 }: {
   name: string;
   label: string;
   options: Array<{ value: string; label: string }>;
+  defaultValue?: string;
 }) {
   return (
     <label className="mt-3 block">
       <span className="text-sm font-medium text-ink">{label}</span>
-      <select name={name} className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
+      <select name={name} defaultValue={defaultValue} className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
         {options.map((item) => (
           <option key={`${name}-${item.value}`} value={item.value}>{item.label}</option>
         ))}
@@ -308,13 +359,15 @@ function TextArea({
   label,
   rows,
   required,
-  placeholder
+  placeholder,
+  defaultValue
 }: {
   name: string;
   label: string;
   rows: number;
   required?: boolean;
   placeholder?: string;
+  defaultValue?: string;
 }) {
   return (
     <label className="mt-3 block">
@@ -324,6 +377,7 @@ function TextArea({
         rows={rows}
         required={required}
         placeholder={placeholder}
+        defaultValue={defaultValue}
         className="mt-2 w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-brand-500"
       />
     </label>
