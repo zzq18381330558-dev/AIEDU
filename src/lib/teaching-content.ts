@@ -43,6 +43,7 @@ export const teachingContentLabels = {
 };
 
 const typeValues = contentTypeOptions.map((item) => item.value);
+const reviewActionValues: ContentReviewAction[] = ["SUBMIT", "APPROVE", "REJECT", "ARCHIVE"];
 
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -63,6 +64,13 @@ export function canManageTeachingContent(role: UserRole) {
 
 export function canReviewTeachingContent(role: UserRole) {
   return ["ADMIN", "HQ_OPERATIONS", "ACADEMIC_TEACHER"].includes(role);
+}
+
+export function parseReviewAction(value: unknown): ContentReviewAction {
+  if (typeof value === "string" && reviewActionValues.includes(value as ContentReviewAction)) {
+    return value as ContentReviewAction;
+  }
+  throw new Error("审核动作无效，请刷新后重试");
 }
 
 export function normalizeContentInput(input: Record<string, unknown>, defaults: { authorId: string }) {
@@ -133,6 +141,10 @@ export function renderExportHtml(content: { title: string; body: string | null; 
     .map((line) => `<p>${escapeHtml(line) || "&nbsp;"}</p>`)
     .join("");
   return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(content.title)}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;padding:40px;color:#17202A}h1{font-size:28px}p{margin:8px 0}</style></head><body><h1>${escapeHtml(content.title)}</h1>${content.summary ? `<p><strong>摘要：</strong>${escapeHtml(content.summary)}</p>` : ""}${body}</body></html>`;
+}
+
+export function renderPdfUnavailableHtml(title: string) {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>PDF 导出提示</title><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;padding:40px;color:#17202A}.box{max-width:720px;border:1px solid #E5EAF0;border-radius:8px;padding:24px;background:#fff}h1{font-size:24px;margin-top:0}p{margin:8px 0;color:#5B6776}</style></head><body><main class="box"><h1>教研中心 PDF 导出暂未接入</h1><p>《${escapeHtml(title)}》目前可先使用 Word 导出；PDF 导出需要接入服务端 PDF 渲染能力后启用。</p><p>当前操作没有生成导出记录，也不会影响内容版本。</p></main></body></html>`;
 }
 
 function escapeHtml(value: string) {

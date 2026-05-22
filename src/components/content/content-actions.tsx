@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Bot, Check, FileDown, Send, Upload } from "lucide-react";
+import { Archive, Bot, Check, FileDown, RotateCcw, Send, Upload } from "lucide-react";
 
 export function ContentActions({ id, campuses }: { id: string; campuses: Array<{ id: string; name: string }> }) {
   const router = useRouter();
@@ -21,6 +21,10 @@ export function ContentActions({ id, campuses }: { id: string; campuses: Array<{
 
   async function publish(formData: FormData) {
     const campusId = String(formData.get("campusId") || "");
+    if (!campusId) {
+      alert("暂无可发布校区，请先在系统设置中维护校区");
+      return;
+    }
     await post("publish", { campusId });
   }
 
@@ -38,8 +42,17 @@ export function ContentActions({ id, campuses }: { id: string; campuses: Array<{
         <Check className="h-3.5 w-3.5" />
         通过
       </button>
+      <button onClick={() => post("review", { action: "REJECT", comment: "驳回修改" })} className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs">
+        <RotateCcw className="h-3.5 w-3.5" />
+        驳回
+      </button>
+      <button onClick={() => post("review", { action: "ARCHIVE", comment: "废弃内容" })} className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs">
+        <Archive className="h-3.5 w-3.5" />
+        废弃
+      </button>
       <form action={publish} className="flex gap-2">
         <select name="campusId" className="h-8 rounded-md border border-line bg-white px-2 text-xs">
+          {campuses.length === 0 ? <option value="">暂无校区</option> : null}
           {campuses.map((campus) => <option key={campus.id} value={campus.id}>{campus.name}</option>)}
         </select>
         <button type="submit" className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs">

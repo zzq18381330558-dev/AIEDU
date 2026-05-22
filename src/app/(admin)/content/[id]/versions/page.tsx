@@ -36,14 +36,17 @@ export default async function ContentVersionsPage({ params }: { params: Promise<
                 <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap rounded-md bg-[#F8FAFB] p-3 text-xs leading-5 text-muted">{version.body}</pre>
               </div>
             ))}
+            {content.versions.length === 0 ? <div className="p-5 text-sm text-muted">暂无版本记录，请先保存内容或生成 AI 初稿。</div> : null}
           </div>
         </div>
         <div className="space-y-4">
           <Side title="审核流程">
             {content.reviews.map((review) => <div key={review.id} className="border-b border-line py-3 text-sm"><div className="font-medium text-ink">{teachingContentLabels.reviewAction[review.action]}</div><div className="text-xs text-muted">{review.reviewer.name} · {review.createdAt.toLocaleString("zh-CN")}</div><div className="mt-1 text-muted">{review.comment || "-"}</div></div>)}
+            {content.reviews.length === 0 ? <div className="py-3 text-sm text-muted">暂无审核记录。</div> : null}
           </Side>
           <Side title="导出记录">
             {content.exports.map((item) => <div key={item.id} className="border-b border-line py-3 text-sm"><div className="font-medium text-ink">{item.fileName}</div><div className="text-xs text-muted">{item.format} · {item.createdAt.toLocaleString("zh-CN")}</div></div>)}
+            {content.exports.length === 0 ? <div className="py-3 text-sm text-muted">暂无导出记录。Word 可直接导出，PDF 暂未接入时会显示提示。</div> : null}
           </Side>
         </div>
       </section>

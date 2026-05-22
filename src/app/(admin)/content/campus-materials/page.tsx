@@ -40,6 +40,11 @@ export default async function CampusMaterialsPage() {
             </div>
           </div>
         ))}
+        {publications.length === 0 ? (
+          <div className="rounded-lg border border-line bg-white p-5 text-sm text-muted md:col-span-2 xl:col-span-3">
+            暂无校区资料。内容通过审核并发布到校区后，会显示在校区资料中心。
+          </div>
+        ) : null}
       </div>
     </div>
   );

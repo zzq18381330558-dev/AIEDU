@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { canReviewTeachingContent, nextStatusByAction } from "@/lib/teaching-content";
+import { canReviewTeachingContent, nextStatusByAction, parseReviewAction } from "@/lib/teaching-content";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   try {
     const { id } = await context.params;
     const body = await request.json();
-    const action = String(body.action || "SUBMIT") as "SUBMIT" | "APPROVE" | "REJECT" | "ARCHIVE";
+    const action = parseReviewAction(body.action || "SUBMIT");
     const item = await prisma.$transaction(async (tx) => {
       await tx.teachingContentReview.create({
         data: {
