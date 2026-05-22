@@ -26,9 +26,17 @@ export async function GET(request: NextRequest) {
   const subject = searchParams.get("subject");
   const type = searchParams.get("type");
   const source = searchParams.get("source");
+  const chapter = searchParams.get("chapter")?.trim();
+  const knowledgePoint = searchParams.get("knowledgePoint")?.trim();
+  const tag = searchParams.get("tag")?.trim();
+  const difficulty = Number(searchParams.get("difficulty") || "");
   if (subject) where.subject = subject as Prisma.EnumQuestionSubjectFilter["equals"];
   if (type) where.type = type as Prisma.EnumQuestionTypeFilter["equals"];
   if (source) where.source = source as Prisma.EnumQuestionSourceFilter["equals"];
+  if (chapter) where.chapter = { contains: chapter, mode: "insensitive" };
+  if (knowledgePoint) where.knowledgePoint = { contains: knowledgePoint, mode: "insensitive" };
+  if (tag) where.highFrequencyTags = { has: tag };
+  if (Number.isFinite(difficulty) && difficulty >= 1 && difficulty <= 5) where.difficulty = difficulty;
 
   const [items, total] = await Promise.all([
     prisma.question.findMany({

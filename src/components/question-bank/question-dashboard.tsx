@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Bot, FileUp, Pencil, Plus, RefreshCw, Search } from "lucide-react";
+import Link from "next/link";
+import { Bot, Eye, FileUp, Pencil, Plus, RefreshCw, Search } from "lucide-react";
 import { QuestionModal, type QuestionValue } from "@/components/question-bank/question-modal";
-import { questionBankLabels, questionTypeOptions, subjectOptions } from "@/lib/question-bank";
+import { questionBankLabels, questionSourceOptions, questionTypeOptions, subjectOptions } from "@/lib/question-bank";
 
 type QuestionItem = QuestionValue & {
   id: string;
@@ -26,14 +27,26 @@ export function QuestionDashboard({ initialQuestions, canManage }: { initialQues
   const [search, setSearch] = useState("");
   const [subject, setSubject] = useState("");
   const [type, setType] = useState("");
+  const [source, setSource] = useState("");
+  const [difficulty, setDifficulty] = useState("");
+  const [knowledgePoint, setKnowledgePoint] = useState("");
+  const [tag, setTag] = useState("");
 
   async function reload() {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     if (subject) params.set("subject", subject);
     if (type) params.set("type", type);
+    if (source) params.set("source", source);
+    if (difficulty) params.set("difficulty", difficulty);
+    if (knowledgePoint) params.set("knowledgePoint", knowledgePoint);
+    if (tag) params.set("tag", tag);
     const response = await fetch(`/api/question-bank/questions?${params}`);
     const data = await response.json();
+    if (!response.ok) {
+      alert(data.error || "查询失败");
+      return;
+    }
     setQuestions(data.items || []);
   }
 
@@ -74,6 +87,16 @@ export function QuestionDashboard({ initialQuestions, canManage }: { initialQues
             <option value="">全部题型</option>
             {questionTypeOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
+          <select value={source} onChange={(event) => setSource(event.target.value)} className="h-10 rounded-md border border-line bg-white px-3 text-sm">
+            <option value="">全部来源</option>
+            {questionSourceOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+          </select>
+          <select value={difficulty} onChange={(event) => setDifficulty(event.target.value)} className="h-10 rounded-md border border-line bg-white px-3 text-sm">
+            <option value="">全部难度</option>
+            {[1, 2, 3, 4, 5].map((item) => <option key={item} value={item}>{item}/5</option>)}
+          </select>
+          <input value={knowledgePoint} onChange={(event) => setKnowledgePoint(event.target.value)} placeholder="知识点" className="h-10 rounded-md border border-line px-3 text-sm" />
+          <input value={tag} onChange={(event) => setTag(event.target.value)} placeholder="标签" className="h-10 rounded-md border border-line px-3 text-sm" />
           <button onClick={reload} className="inline-flex h-10 items-center gap-2 rounded-md border border-line px-3 text-sm">
             <RefreshCw className="h-4 w-4" />
             查询
@@ -134,6 +157,10 @@ export function QuestionDashboard({ initialQuestions, canManage }: { initialQues
                   <Td>{item._count?.wrongRecords || 0}</Td>
                   <Td>
                     <div className="flex flex-wrap gap-2">
+                      <Link href={`/question-bank/${item.id}`} className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs">
+                        <Eye className="h-3.5 w-3.5" />
+                        详情
+                      </Link>
                       {canManage ? (
                         <>
                           <button onClick={() => aiAnalysis(item.id)} className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs">
@@ -145,13 +172,18 @@ export function QuestionDashboard({ initialQuestions, canManage }: { initialQues
                             编辑
                           </button>
                         </>
-                      ) : "-"}
+                      ) : null}
                     </div>
                   </Td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {questions.length === 0 ? (
+            <div className="border-t border-line p-12 text-center text-sm text-muted">
+              暂无符合条件的题目，请调整筛选条件或新增题目。
+            </div>
+          ) : null}
         </div>
       </section>
 

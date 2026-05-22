@@ -30,15 +30,17 @@ export async function POST(request: NextRequest) {
       subject: strategy.subject,
       difficulty: { gte: strategy.difficultyFrom, lte: strategy.difficultyTo }
     };
+    if (strategy.type) where.type = strategy.type;
     if (strategy.chapter) where.chapter = { contains: strategy.chapter, mode: "insensitive" };
     if (strategy.knowledgePoint) where.knowledgePoint = { contains: strategy.knowledgePoint, mode: "insensitive" };
+    if (strategy.tags.length) where.highFrequencyTags = { hasSome: strategy.tags };
 
     const questions = await prisma.question.findMany({
       where,
       orderBy: [{ difficulty: "asc" }, { updatedAt: "desc" }],
       take: strategy.count
     });
-    if (questions.length === 0) throw new Error("没有符合条件的题目");
+    if (questions.length === 0) throw new Error("没有符合条件的题目，请放宽科目、知识点、题型或难度筛选后重试");
 
     const item = await prisma.examPaper.create({
       data: {

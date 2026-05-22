@@ -63,14 +63,18 @@ test("buildAiAnalysis includes answer and knowledge point", () => {
 test("buildPaperStrategy clamps count and difficulty", () => {
   const strategy = buildPaperStrategy({
     subject: "COMPREHENSIVE_QUALITY",
+    type: "SHORT_ANSWER",
     count: "200",
     difficultyFrom: "0",
-    difficultyTo: "9"
+    difficultyTo: "9",
+    tags: "学生观，教师观"
   });
 
   assert.equal(strategy.count, 100);
   assert.equal(strategy.difficultyFrom, 1);
   assert.equal(strategy.difficultyTo, 5);
+  assert.equal(strategy.type, "SHORT_ANSWER");
+  assert.deepEqual(strategy.tags, ["学生观", "教师观"]);
 });
 
 test("buildWeaknessRows ranks unmastered difficult knowledge points", () => {

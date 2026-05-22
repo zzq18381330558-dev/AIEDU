@@ -27,6 +27,13 @@ export async function POST(request: NextRequest) {
     const questionId = String(body.questionId || "");
     if (!studentId || !questionId) throw new Error("请选择学员和题目");
 
+    const [student, question] = await Promise.all([
+      prisma.student.findUnique({ where: { id: studentId }, select: { id: true } }),
+      prisma.question.findUnique({ where: { id: questionId }, select: { id: true } })
+    ]);
+    if (!student) throw new Error("学员不存在或已被删除");
+    if (!question) throw new Error("题目不存在或已被删除");
+
     const item = await prisma.wrongQuestionRecord.create({
       data: {
         studentId,

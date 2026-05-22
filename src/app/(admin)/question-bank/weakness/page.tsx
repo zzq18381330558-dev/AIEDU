@@ -56,6 +56,7 @@ export default async function WeaknessPage() {
             ))}
           </tbody>
         </table>
+        {rows.length === 0 ? <div className="border-t border-line p-12 text-center text-sm text-muted">暂无错题数据，记录学员错题后将自动生成薄弱知识点分析。</div> : null}
       </div>
     </div>
   );

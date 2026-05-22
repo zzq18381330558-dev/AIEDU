@@ -75,6 +75,10 @@ function listFrom(value: unknown) {
     .filter(Boolean);
 }
 
+function optionalEnum<T extends string>(value: unknown, values: readonly T[]) {
+  return typeof value === "string" && values.includes(value as T) ? (value as T) : undefined;
+}
+
 function optionsFrom(value: unknown) {
   if (!value) return undefined;
   if (typeof value === "object") return value as Prisma.InputJsonValue;
@@ -189,13 +193,17 @@ export function normalizeImportQuestionRow(row: Record<string, unknown>) {
 }
 
 export function buildPaperStrategy(input: Record<string, unknown>) {
+  const difficultyFrom = Math.min(5, Math.max(1, numberOr(input.difficultyFrom, 1)));
+  const difficultyTo = Math.min(5, Math.max(1, numberOr(input.difficultyTo, 5)));
   return {
     subject: enumOr(input.subject, subjectValues, "COMPREHENSIVE_QUALITY"),
+    type: optionalEnum(input.type, typeValues) ?? null,
     count: Math.min(100, Math.max(1, numberOr(input.count, 20))),
-    difficultyFrom: Math.min(5, Math.max(1, numberOr(input.difficultyFrom, 1))),
-    difficultyTo: Math.min(5, Math.max(1, numberOr(input.difficultyTo, 5))),
+    difficultyFrom: Math.min(difficultyFrom, difficultyTo),
+    difficultyTo: Math.max(difficultyFrom, difficultyTo),
     chapter: text(input.chapter),
-    knowledgePoint: text(input.knowledgePoint)
+    knowledgePoint: text(input.knowledgePoint),
+    tags: listFrom(input.tags || input.highFrequencyTags)
   };
 }
 
