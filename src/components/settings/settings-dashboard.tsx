@@ -138,6 +138,9 @@ export function SettingsDashboard({
                     <Td><EditButton onClick={() => setUserModal(user)} /></Td>
                   </tr>
                 ))}
+                {users.length === 0 ? (
+                  <tr><td colSpan={6} className="px-4 py-10 text-center text-muted">暂无用户，可点击创建用户添加账号</td></tr>
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -183,6 +186,9 @@ export function SettingsDashboard({
                   <Td><EditButton onClick={() => setCampusModal(campus)} /></Td>
                 </tr>
               ))}
+              {campuses.length === 0 ? (
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-muted">暂无校区，可点击新增校区添加基础信息</td></tr>
+              ) : null}
             </tbody>
           </table>
         </div>

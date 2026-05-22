@@ -37,6 +37,14 @@ test("studentScopeWhere restricts admissions counselor to owned students", () =>
   );
 });
 
+test("studentScopeWhere lets admin see all and manager see campus students", () => {
+  assert.deepEqual(studentScopeWhere({ id: "admin", role: "ADMIN", campusId: null }), {});
+  assert.deepEqual(
+    studentScopeWhere({ id: "manager", role: "CAMPUS_MANAGER", campusId: "c1" }),
+    { campusId: "c1" }
+  );
+});
+
 test("studentScopeWhere restricts academic teacher to owned students", () => {
   assert.deepEqual(
     studentScopeWhere({ id: "u2", role: "ACADEMIC_TEACHER", campusId: "c1" }),

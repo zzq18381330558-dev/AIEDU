@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildPerformanceRows,
   getTodayRange,
+  leadScopeWhere,
   normalizeFollowUpInput,
   normalizeImportRow,
   normalizeLeadInput
@@ -74,4 +75,12 @@ test("buildPerformanceRows calculates counselor conversion", () => {
   assert.equal(rows[0].wonCount, 1);
   assert.equal(rows[0].conversionRate, 50);
   assert.equal(rows[1].contactedCount, 0);
+});
+
+test("leadScopeWhere applies role data isolation", () => {
+  assert.deepEqual(leadScopeWhere({ id: "admin", role: "ADMIN", campusId: null }), {});
+  assert.deepEqual(leadScopeWhere({ id: "manager", role: "CAMPUS_MANAGER", campusId: "c1" }), { campusId: "c1" });
+  assert.deepEqual(leadScopeWhere({ id: "sales", role: "ADMISSIONS_COUNSELOR", campusId: "c1" }), {
+    assigneeId: "sales"
+  });
 });

@@ -48,7 +48,8 @@ export const settingsLabels = {
   >
 };
 
-const roleValues = new Set<UserRole>([...settingsRoleOptions.map((item) => item.value), "HQ_OPERATIONS"]);
+const roleValues = new Set(settingsRoleOptions.map((item) => item.value));
+const legacyRoleValues = new Set<UserRole>([...settingsRoleOptions.map((item) => item.value), "HQ_OPERATIONS"]);
 const userStatusValues = new Set(userStatusOptions.map((item) => item.value));
 const campusStatusValues = new Set(campusStatusOptions.map((item) => item.value));
 const dictionaryCategoryValues = new Set(dictionaryCategoryOptions.map((item) => item.value));
@@ -66,11 +67,18 @@ function enumOr<T extends string>(value: unknown, values: Set<T>, fallback: T) {
   return typeof value === "string" && values.has(value as T) ? (value as T) : fallback;
 }
 
-export function normalizeUserInput(input: Record<string, unknown>, defaults: { organizationId: string }) {
+export function normalizeUserInput(
+  input: Record<string, unknown>,
+  defaults: { organizationId: string },
+  options: { allowLegacyRoles?: boolean } = {}
+) {
   const name = text(input.name);
   const email = text(input.email).toLowerCase();
+  const role = text(input.role);
+  const allowedRoles = options.allowLegacyRoles ? legacyRoleValues : roleValues;
   if (!name) throw new Error("请输入用户姓名");
   if (!email) throw new Error("请输入登录邮箱");
+  if (role && !allowedRoles.has(role as UserRole)) throw new Error("不能选择该用户角色");
 
   return {
     organizationId: defaults.organizationId,
@@ -78,7 +86,7 @@ export function normalizeUserInput(input: Record<string, unknown>, defaults: { o
     name,
     email,
     phone: nullableText(input.phone),
-    role: enumOr(input.role, roleValues, "ADMISSIONS_COUNSELOR"),
+    role: role ? (role as UserRole) : "ADMISSIONS_COUNSELOR",
     status: enumOr(input.status, userStatusValues, "ACTIVE")
   } satisfies Omit<Prisma.UserUncheckedCreateInput, "passwordHash">;
 }
