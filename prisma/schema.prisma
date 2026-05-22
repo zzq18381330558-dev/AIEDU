@@ -136,6 +136,7 @@ enum ContentReviewAction {
 enum ContentExportFormat {
   WORD
   PDF
+  PPT
 }
 
 enum SopStatus {

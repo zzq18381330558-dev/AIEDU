@@ -1,7 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { normalizeImportRow, normalizeLeadInput } from "@/lib/crm";
+import { leadImportRequiredHeaders, normalizeImportRow, normalizeLeadInput } from "@/lib/crm";
 import { prisma } from "@/lib/prisma";
+
+const importEnumValues = {
+  教资方向: new Set(["幼儿", "小学", "中学", "INFANT", "PRIMARY", "MIDDLE"]),
+  来源渠道: new Set([
+    "高校合作",
+    "校园推广",
+    "朋友圈",
+    "短视频",
+    "地推",
+    "企业微信",
+    "转介绍",
+    "其他",
+    "UNIVERSITY_PARTNERSHIP",
+    "CAMPUS_PROMOTION",
+    "WECHAT_MOMENTS",
+    "SHORT_VIDEO",
+    "GROUND_PROMOTION",
+    "ENTERPRISE_WECHAT",
+    "REFERRAL",
+    "OTHER"
+  ]),
+  意向等级: new Set(["低", "中", "高", "强", "LOW", "MEDIUM", "HIGH", "STRONG"]),
+  跟进状态: new Set(["未联系", "已联系", "试听", "考虑中", "已成交", "已流失", "UNCONTACTED", "CONTACTED", "TRIAL", "CONSIDERING", "WON", "LOST"])
+} satisfies Record<string, Set<string>>;
 
 async function rowsFromFile(file: File) {
   const name = file.name.toLowerCase();
@@ -37,7 +61,9 @@ export async function POST(request: NextRequest) {
     if (!campusId) throw new Error("请选择导入线索所属校区");
 
     const rows = await rowsFromFile(file);
+    assertRequiredHeaders(rows, [...leadImportRequiredHeaders]);
     const normalizedRows = rows.map((row) => ({
+      ...assertImportEnums(row),
       ...normalizeImportRow(row),
       campusId,
       assigneeId: assigneeId || normalizeImportRow(row).assigneeId
@@ -63,4 +89,22 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return jsonError(error);
   }
+}
+
+function assertRequiredHeaders(rows: Array<Record<string, unknown>>, requiredHeaders: string[]) {
+  const headers = new Set(Object.keys(rows[0] || {}));
+  const missingHeaders = requiredHeaders.filter((header) => !headers.has(header));
+  if (missingHeaders.length) {
+    throw new Error(`导入文件缺少关键列：${missingHeaders.join("、")}。请下载模板后按表头填写。`);
+  }
+}
+
+function assertImportEnums(row: Record<string, unknown>) {
+  for (const [field, validValues] of Object.entries(importEnumValues)) {
+    const value = String(row[field] || "").trim();
+    if (value && !validValues.has(value)) {
+      throw new Error(`${field}字段填写无效，请使用模板中的中文值或枚举值`);
+    }
+  }
+  return {};
 }

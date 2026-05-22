@@ -3,9 +3,15 @@ import { jsonError, requireApiUser } from "@/lib/api";
 import {
   classScopeWhere,
   normalizeStudentImportRow,
-  normalizeStudentInput
+  normalizeStudentInput,
+  studentImportRequiredHeaders
 } from "@/lib/student-service";
 import { prisma } from "@/lib/prisma";
+
+const importEnumValues = {
+  教资方向: new Set(["幼儿", "小学", "中学", "INFANT", "PRIMARY", "MIDDLE"]),
+  学习状态: new Set(["未开学", "学习中", "低活跃", "冲刺期", "面试阶段", "暂停", "已结课", "已退费", "NOT_STARTED", "STUDYING", "LOW_ACTIVE", "SPRINT", "INTERVIEW_STAGE", "PAUSED", "COMPLETED", "REFUNDED"])
+} satisfies Record<string, Set<string>>;
 
 async function rowsFromFile(file: File) {
   const name = file.name.toLowerCase();
@@ -53,12 +59,14 @@ export async function POST(request: NextRequest) {
       prisma.user.findMany({ where: { role: "ACADEMIC_TEACHER", status: "ACTIVE" }, select: { id: true, name: true, campusId: true } }),
       prisma.user.findMany({ where: { role: "ADMISSIONS_COUNSELOR", status: "ACTIVE" }, select: { id: true, name: true, campusId: true } })
     ]);
+    assertRequiredHeaders(rows, [...studentImportRequiredHeaders]);
 
     let success = 0;
     const errors: Array<{ row: number; message: string }> = [];
 
     for (const [index, row] of rows.entries()) {
       try {
+        assertImportEnums(row);
         const input = normalizeStudentImportRow(row);
         const campus = matchByNameOrId(campuses, input.campusName);
         if (!campus) throw new Error("校区不存在，请填写系统内已有校区");
@@ -98,5 +106,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success, failed: errors.length, errors });
   } catch (error) {
     return jsonError(error);
+  }
+}
+
+function assertRequiredHeaders(rows: Array<Record<string, unknown>>, requiredHeaders: string[]) {
+  const headers = new Set(Object.keys(rows[0] || {}));
+  const missingHeaders = requiredHeaders.filter((header) => !headers.has(header));
+  if (missingHeaders.length) {
+    throw new Error(`导入文件缺少关键列：${missingHeaders.join("、")}。请下载模板后按表头填写。`);
+  }
+}
+
+function assertImportEnums(row: Record<string, unknown>) {
+  for (const [field, validValues] of Object.entries(importEnumValues)) {
+    const value = String(row[field] || "").trim();
+    if (value && !validValues.has(value)) {
+      throw new Error(`${field}字段填写无效，请使用模板中的中文值或枚举值`);
+    }
   }
 }

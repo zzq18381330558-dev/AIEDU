@@ -64,9 +64,13 @@ export function ContentActions({ id, campuses }: { id: string; campuses: Array<{
         <FileDown className="h-3.5 w-3.5" />
         Word
       </a>
-      <a href={`/api/content/items/${id}/export?format=pdf`} className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs">
+      <a href={`/api/content/items/${id}/export-ppt`} className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs">
         <FileDown className="h-3.5 w-3.5" />
-        PDF
+        生成PPT
+      </a>
+      <a href={`/api/content/items/${id}/export-pdf`} className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs">
+        <FileDown className="h-3.5 w-3.5" />
+        导出PDF
       </a>
     </div>
   );

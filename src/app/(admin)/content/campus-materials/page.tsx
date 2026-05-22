@@ -36,7 +36,7 @@ export default async function CampusMaterialsPage() {
             <p className="mt-2 text-sm leading-6 text-muted">{item.content.summary || item.content.body?.slice(0, 120) || "暂无摘要"}</p>
             <div className="mt-4 flex gap-2">
               <a href={`/api/content/items/${item.contentId}/export?format=word`} className="rounded-md border border-line px-3 py-2 text-xs">Word</a>
-              <a href={`/api/content/items/${item.contentId}/export?format=pdf`} className="rounded-md border border-line px-3 py-2 text-xs">PDF</a>
+              <a href={`/api/content/items/${item.contentId}/export-pdf`} className="rounded-md border border-line px-3 py-2 text-xs">导出PDF</a>
             </div>
           </div>
         ))}
