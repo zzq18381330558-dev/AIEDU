@@ -7,6 +7,13 @@ import type {
   UserRole
 } from "@prisma/client";
 import { crmLabels } from "@/lib/crm";
+import {
+  buildAnalyticsScope,
+  buildCourseSessionScopeWhere,
+  buildStudentScopeWhere,
+  type DataScopeUser,
+  isGlobalDataRole
+} from "@/lib/data-scope";
 import { buildWeaknessRows } from "@/lib/question-bank";
 import { getUserDisplayName } from "@/lib/user-display";
 
@@ -98,31 +105,71 @@ export function parseAnalyticsFilters(searchParams: URLSearchParams, now = new D
 }
 
 export function buildAnalyticsWhere(
-  user: { id: string; role: UserRole; campusId: string | null },
+  user: DataScopeUser,
   filters: AnalyticsFilters
-) {
-  const leadWhere: Prisma.LeadWhereInput = { createdAt: { gte: filters.from, lte: filters.to } };
-  const studentWhere: Prisma.StudentWhereInput = { enrolledAt: { gte: filters.from, lte: filters.to } };
-  const attendanceWhere: Prisma.AttendanceRecordWhereInput = {
-    courseSession: { startsAt: { gte: filters.from, lte: filters.to } }
-  };
+): Promise<{
+  leadWhere: Prisma.LeadWhereInput;
+  studentWhere: Prisma.StudentWhereInput;
+  attendanceWhere: Prisma.AttendanceRecordWhereInput;
+}> {
+  return buildAnalyticsScope(user).then((scope) => {
+    const leadWhere: Prisma.LeadWhereInput = { AND: [scope.leadWhere, { createdAt: { gte: filters.from, lte: filters.to } }] };
+    const studentWhere: Prisma.StudentWhereInput = { AND: [scope.studentWhere, { enrolledAt: { gte: filters.from, lte: filters.to } }] };
+    const attendanceWhere: Prisma.AttendanceRecordWhereInput = {
+      AND: [scope.attendanceWhere, { courseSession: { startsAt: { gte: filters.from, lte: filters.to } } }]
+    };
 
-  if (user.role === "CAMPUS_MANAGER" && user.campusId) {
-    leadWhere.campusId = user.campusId;
-    studentWhere.campusId = user.campusId;
-    attendanceWhere.student = { campusId: user.campusId };
-  }
-  if (filters.campusId) {
-    leadWhere.campusId = filters.campusId;
-    studentWhere.campusId = filters.campusId;
-    attendanceWhere.student = { ...(attendanceWhere.student as object), campusId: filters.campusId };
-  }
+    if (filters.campusId) {
+      leadWhere.AND = [...(leadWhere.AND as Prisma.LeadWhereInput[]), { campusId: filters.campusId }];
+      studentWhere.AND = [...(studentWhere.AND as Prisma.StudentWhereInput[]), { campusId: filters.campusId }];
+      attendanceWhere.AND = [
+        ...(attendanceWhere.AND as Prisma.AttendanceRecordWhereInput[]),
+        { student: { campusId: filters.campusId } }
+      ];
+    }
+    if (filters.assigneeId) {
+      leadWhere.AND = [...(leadWhere.AND as Prisma.LeadWhereInput[]), { assigneeId: filters.assigneeId }];
+      studentWhere.AND = [...(studentWhere.AND as Prisma.StudentWhereInput[]), { salesOwnerId: filters.assigneeId }];
+      attendanceWhere.AND = [
+        ...(attendanceWhere.AND as Prisma.AttendanceRecordWhereInput[]),
+        { student: { salesOwnerId: filters.assigneeId } }
+      ];
+    }
+    return { leadWhere, studentWhere, attendanceWhere };
+  });
+}
+
+export async function buildAnalyticsCourseSessionWhere(
+  user: DataScopeUser,
+  filters: AnalyticsFilters
+): Promise<Prisma.CourseSessionWhereInput> {
+  const where: Prisma.CourseSessionWhereInput = {
+    AND: [await buildCourseSessionScopeWhere(user), { startsAt: { gte: filters.from, lte: filters.to } }]
+  };
+  if (filters.campusId) where.AND = [...(where.AND as Prisma.CourseSessionWhereInput[]), { campusId: filters.campusId }];
   if (filters.assigneeId) {
-    leadWhere.assigneeId = filters.assigneeId;
-    studentWhere.salesOwnerId = filters.assigneeId;
-    attendanceWhere.student = { ...(attendanceWhere.student as object), salesOwnerId: filters.assigneeId };
+    where.AND = [
+      ...(where.AND as Prisma.CourseSessionWhereInput[]),
+      { class: { students: { some: { salesOwnerId: filters.assigneeId } } } }
+    ];
   }
-  return { leadWhere, studentWhere, attendanceWhere };
+  if (isGlobalDataRole(user.role) && !filters.campusId) {
+    where.AND = [...(where.AND as Prisma.CourseSessionWhereInput[]), { campus: { organizationId: user.organizationId } }];
+  }
+  return where;
+}
+
+export async function buildAnalyticsWrongQuestionWhere(
+  user: DataScopeUser,
+  filters: AnalyticsFilters
+): Promise<Prisma.WrongQuestionRecordWhereInput> {
+  const studentScope = await buildStudentScopeWhere(user);
+  const studentWhere: Prisma.StudentWhereInput = { AND: [studentScope] };
+  if (filters.campusId) studentWhere.AND = [...(studentWhere.AND as Prisma.StudentWhereInput[]), { campusId: filters.campusId }];
+  if (filters.assigneeId) {
+    studentWhere.AND = [...(studentWhere.AND as Prisma.StudentWhereInput[]), { salesOwnerId: filters.assigneeId }];
+  }
+  return { wrongAt: { gte: filters.from, lte: filters.to }, student: studentWhere };
 }
 
 export function buildCourseSessionWhere(
@@ -132,7 +179,7 @@ export function buildCourseSessionWhere(
   const where: Prisma.CourseSessionWhereInput = { startsAt: { gte: filters.from, lte: filters.to } };
   if (filters.campusId) {
     where.campusId = filters.campusId;
-  } else if (user.role === "ADMIN" || user.role === "HQ_OPERATIONS") {
+  } else if (user.role === "ADMIN") {
     where.campus = { organizationId: user.organizationId };
   } else if (user.campusId) {
     where.campusId = user.campusId;

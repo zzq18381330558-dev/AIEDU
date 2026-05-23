@@ -1,6 +1,7 @@
 import { ServiceTabs } from "@/components/student-service/service-tabs";
 import { AttendanceCreateForm } from "@/components/student-service/simple-create-form";
-import { studentScopeWhere, classScopeWhere, studentServiceLabels } from "@/lib/student-service";
+import { studentServiceLabels } from "@/lib/student-service";
+import { buildAttendanceScopeWhere, buildCourseSessionScopeWhere, buildStudentScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { getUserDisplayName } from "@/lib/user-display";
@@ -9,7 +10,7 @@ export default async function CheckInsPage() {
   const user = await requireUser("/student-service");
   const [records, students, sessions] = await Promise.all([
     prisma.attendanceRecord.findMany({
-      where: { student: studentScopeWhere(user) },
+      where: await buildAttendanceScopeWhere(user),
       include: {
         student: { select: { id: true, name: true, school: true } },
         courseSession: { select: { id: true, title: true, startsAt: true, class: { select: { name: true } } } },
@@ -18,9 +19,9 @@ export default async function CheckInsPage() {
       orderBy: { createdAt: "desc" },
       take: 200
     }),
-    prisma.student.findMany({ where: studentScopeWhere(user), select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.student.findMany({ where: await buildStudentScopeWhere(user), select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.courseSession.findMany({
-      where: { class: classScopeWhere(user) },
+      where: await buildCourseSessionScopeWhere(user),
       select: { id: true, title: true },
       orderBy: { startsAt: "desc" },
       take: 100

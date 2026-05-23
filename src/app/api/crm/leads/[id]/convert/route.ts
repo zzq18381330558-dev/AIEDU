@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { leadScopeWhere } from "@/lib/crm";
+import { buildCrmLeadScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -10,7 +10,7 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
 
   try {
     const lead = await prisma.lead.findFirst({
-      where: { id, ...leadScopeWhere(auth.user) },
+      where: { AND: [{ id }, await buildCrmLeadScopeWhere(auth.user)] },
       include: {
         student: { select: { id: true } }
       }

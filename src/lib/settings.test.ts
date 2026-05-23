@@ -9,29 +9,20 @@ test("settingsRoleOptions exposes only five base roles", () => {
   );
 });
 
-test("normalizeUserInput rejects HQ_OPERATIONS when creating user", () => {
+test("normalizeUserInput rejects removed roles", () => {
   assert.throws(() => normalizeUserInput(
     {
       name: "新用户",
       email: "new@example.com",
-      role: "HQ_OPERATIONS"
+      role: "REMOVED_ROLE"
     },
     { organizationId: "org-1" }
   ), /不能选择该用户角色/);
 });
 
-test("normalizeUserInput can preserve historical HQ_OPERATIONS during edit", () => {
-  const result = normalizeUserInput(
-    {
-      name: "总部运营",
-      email: "ops@example.com",
-      role: "HQ_OPERATIONS"
-    },
-    { organizationId: "org-1" },
-    { allowLegacyRoles: true }
-  );
-
-  assert.equal(result.role, "HQ_OPERATIONS");
+test("settingsRoleOptions uses merged administrator role labels", () => {
+  assert.equal(settingsRoleOptions[0].value, "ADMIN");
+  assert.equal(settingsRoleOptions[0].label, "管理员");
 });
 
 test("normalizeCampusInput validates required fields and status", () => {

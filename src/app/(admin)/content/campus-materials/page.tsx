@@ -1,16 +1,12 @@
 import { ContentTabs } from "@/components/content/content-tabs";
+import { buildCampusMaterialScopeWhere } from "@/lib/data-scope";
 import { teachingContentLabels } from "@/lib/teaching-content";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 export default async function CampusMaterialsPage() {
   const user = await requireUser("/content");
-  const where =
-    user.role === "ADMIN" || user.role === "HQ_OPERATIONS"
-      ? {}
-      : user.campusId
-        ? { campusId: user.campusId }
-        : { campusId: "__none__" };
+  const where = await buildCampusMaterialScopeWhere(user);
   const publications = await prisma.teachingContentPublication.findMany({
     where,
     include: {

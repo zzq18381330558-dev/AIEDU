@@ -20,12 +20,9 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     if (!exists) return NextResponse.json({ error: "用户不存在" }, { status: 404 });
 
     const body = await request.json();
-    if (body.role === "HQ_OPERATIONS" && exists.role !== "HQ_OPERATIONS") {
-      return NextResponse.json({ error: "总部运营为历史角色，不能分配给新用户" }, { status: 400 });
-    }
     const item = await prisma.user.update({
       where: { id },
-      data: normalizeUserInput(body, { organizationId: auth.user.organizationId }, { allowLegacyRoles: true }),
+      data: normalizeUserInput(body, { organizationId: auth.user.organizationId }),
       include
     });
     return NextResponse.json({ item });

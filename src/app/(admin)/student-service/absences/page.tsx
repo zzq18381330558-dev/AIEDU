@@ -1,6 +1,6 @@
 import { Bell } from "lucide-react";
 import { ServiceTabs } from "@/components/student-service/service-tabs";
-import { classScopeWhere, studentScopeWhere } from "@/lib/student-service";
+import { buildAttendanceScopeWhere, buildCourseSessionScopeWhere, buildStudentScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { getUserDisplayName } from "@/lib/user-display";
@@ -11,8 +11,7 @@ export default async function AbsencesPage() {
   const [recordedAbsences, overdueSessions] = await Promise.all([
     prisma.attendanceRecord.findMany({
       where: {
-        student: studentScopeWhere(user),
-        status: "ABSENT"
+        AND: [await buildAttendanceScopeWhere(user), { status: "ABSENT" }]
       },
       include: {
         student: { select: { name: true, phone: true, school: true, academicOwner: { select: { name: true, email: true, phone: true } } } },
@@ -22,13 +21,13 @@ export default async function AbsencesPage() {
       take: 100
     }),
     prisma.courseSession.findMany({
-      where: { startsAt: { lt: now }, class: classScopeWhere(user) },
+      where: { AND: [await buildCourseSessionScopeWhere(user), { startsAt: { lt: now } }] },
       include: {
         class: {
           select: {
             name: true,
             students: {
-              where: studentScopeWhere(user),
+              where: await buildStudentScopeWhere(user),
               select: { id: true, name: true, phone: true, school: true, enrolledAt: true, academicOwner: { select: { name: true, email: true, phone: true } } }
             }
           }

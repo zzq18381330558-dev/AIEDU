@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { buildPerformanceRows, leadScopeWhere } from "@/lib/crm";
+import { buildPerformanceRows } from "@/lib/crm";
+import { buildCrmLeadScopeWhere, buildScopedUserWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -14,21 +15,18 @@ export async function GET(request: NextRequest) {
     const to = searchParams.get("to");
     const campusId = searchParams.get("campusId");
 
-    const leadWhere: Prisma.LeadWhereInput = { ...leadScopeWhere(auth.user) };
-    if (campusId) leadWhere.campusId = campusId;
+    const leadWhere: Prisma.LeadWhereInput = { AND: [await buildCrmLeadScopeWhere(auth.user)] };
+    if (campusId) leadWhere.AND = [...(leadWhere.AND as Prisma.LeadWhereInput[]), { campusId }];
     if (from || to) {
-      leadWhere.createdAt = {};
-      if (from) leadWhere.createdAt.gte = new Date(from);
-      if (to) leadWhere.createdAt.lte = new Date(to);
+      const createdAt: Prisma.DateTimeFilter = {};
+      if (from) createdAt.gte = new Date(from);
+      if (to) createdAt.lte = new Date(to);
+      leadWhere.AND = [...(leadWhere.AND as Prisma.LeadWhereInput[]), { createdAt }];
     }
 
-    const userWhere: Prisma.UserWhereInput = {
-      role: "ADMISSIONS_COUNSELOR",
-      status: "ACTIVE"
-    };
-    if (auth.user.role === "CAMPUS_MANAGER" && auth.user.campusId) userWhere.campusId = auth.user.campusId;
-    if (auth.user.role === "ADMISSIONS_COUNSELOR") userWhere.id = auth.user.id;
-    if (campusId) userWhere.campusId = campusId;
+    const userWhere: Prisma.UserWhereInput = campusId
+      ? { ...(await buildScopedUserWhere(auth.user, "ADMISSIONS_COUNSELOR")), campusId }
+      : await buildScopedUserWhere(auth.user, "ADMISSIONS_COUNSELOR");
 
     const [users, leads, sourceGroups] = await Promise.all([
       prisma.user.findMany({

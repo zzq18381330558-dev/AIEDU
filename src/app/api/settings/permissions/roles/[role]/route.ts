@@ -6,7 +6,7 @@ import { getRolePermissions } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { settingsRoleOptions } from "@/lib/settings";
 
-const roleValues = new Set<UserRole>([...settingsRoleOptions.map((item) => item.value), "HQ_OPERATIONS"]);
+const roleValues = new Set<UserRole>(settingsRoleOptions.map((item) => item.value));
 
 function normalizeRole(value: string) {
   if (!roleValues.has(value as UserRole)) throw new Error("角色不存在");

@@ -1,22 +1,18 @@
 import { ServiceTabs } from "@/components/student-service/service-tabs";
 import { ClassCreateForm } from "@/components/student-service/simple-create-form";
-import { classScopeWhere, studentServiceLabels } from "@/lib/student-service";
+import { studentServiceLabels } from "@/lib/student-service";
+import { buildAccessibleCampusWhere, buildClassScopeWhere, buildScopedUserWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function ClassesPage() {
   const user = await requireUser("/student-service");
-  const campusWhere =
-    user.role === "ADMIN" || user.role === "HQ_OPERATIONS"
-      ? { organizationId: user.organizationId, status: "ACTIVE" as const }
-      : user.campusId
-        ? { id: user.campusId, status: "ACTIVE" as const }
-        : { id: "__none__" };
+  const campusWhere = await buildAccessibleCampusWhere(user, { activeOnly: true });
 
   const [classes, campuses, academicUsers, lecturers] = await Promise.all([
     prisma.studentClass.findMany({
-      where: classScopeWhere(user),
+      where: await buildClassScopeWhere(user),
       include: {
         campus: { select: { name: true } },
         academicOwner: { select: { name: true, email: true, phone: true } },
@@ -26,8 +22,8 @@ export default async function ClassesPage() {
       orderBy: { startAt: "desc" }
     }),
     prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: { role: "ACADEMIC_TEACHER", status: "ACTIVE" }, select: { id: true, name: true, email: true, phone: true } }),
-    prisma.user.findMany({ where: { role: "LECTURER", status: "ACTIVE" }, select: { id: true, name: true, email: true, phone: true } })
+    prisma.user.findMany({ where: await buildScopedUserWhere(user, "ACADEMIC_TEACHER"), select: { id: true, name: true, email: true, phone: true } }),
+    prisma.user.findMany({ where: await buildScopedUserWhere(user, "LECTURER"), select: { id: true, name: true, email: true, phone: true } })
   ]);
 
   return (

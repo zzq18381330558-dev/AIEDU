@@ -9,6 +9,7 @@ import {
   SopTaskForm,
   SopWeeklyReportForm
 } from "@/components/sop/sop-forms";
+import { buildSopScopeWhere } from "@/lib/data-scope";
 import {
   canInspectSop,
   canManageSop,
@@ -27,6 +28,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const executionScope = sopExecutionScopeWhere(user);
   const taskScope = sopTaskScopeWhere(user);
+  const sopScope = await buildSopScopeWhere(user);
 
   const [template, campuses, executions, tasks, inspections, weeklyReports] = await Promise.all([
     prisma.sopTemplate.findUnique({
@@ -62,7 +64,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
       orderBy: [{ dueDate: "asc" }, { updatedAt: "desc" }]
     }),
     prisma.sopInspection.findMany({
-      where: { sopTemplateId: id },
+      where: { AND: [{ sopTemplateId: id }, sopScope.inspection] },
       include: {
         inspector: { select: { name: true, email: true, phone: true } },
         execution: { include: { campus: { select: { name: true } } } }
@@ -71,14 +73,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
       take: 20
     }),
     prisma.sopWeeklyReport.findMany({
-      where: {
-        sopTemplateId: id,
-        ...(user.role === "ADMIN" || user.role === "HQ_OPERATIONS"
-          ? { campus: { organizationId: user.organizationId } }
-          : user.campusId
-            ? { campusId: user.campusId }
-            : { id: "__none__" })
-      },
+      where: { AND: [{ sopTemplateId: id }, sopScope.weeklyReport] },
       include: {
         campus: { select: { id: true, name: true } },
         reporter: { select: { name: true, email: true, phone: true } },

@@ -190,7 +190,7 @@ export function getTodayRange(now = new Date()) {
 }
 
 export function leadScopeWhere(user: { id: string; role: UserRole; campusId: string | null }) {
-  if (user.role === "ADMIN" || user.role === "HQ_OPERATIONS") return {};
+  if (user.role === "ADMIN") return {};
   if (user.role === "CAMPUS_MANAGER") return user.campusId ? { campusId: user.campusId } : { id: "__none__" };
   if (user.role === "ADMISSIONS_COUNSELOR") return { assigneeId: user.id };
   return { id: "__none__" };

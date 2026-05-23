@@ -2,8 +2,8 @@ import type { CampusBusinessType, CampusStatus, DictionaryCategory, Prisma, User
 import { roleLabels } from "@/lib/roles";
 
 export const settingsRoleOptions: Array<{ value: UserRole; label: string; description: string }> = [
-  { value: "ADMIN", label: "总部管理员", description: "查看和管理全部数据、账号、校区和系统配置" },
-  { value: "CAMPUS_MANAGER", label: "校区负责人", description: "查看本校区经营、线索、学员和 SOP 执行" },
+  { value: "ADMIN", label: "管理员", description: "查看和管理全部数据、账号、校区和系统配置" },
+  { value: "CAMPUS_MANAGER", label: "校区校长", description: "查看本校区经营、线索、学员和 SOP 执行" },
   { value: "ADMISSIONS_COUNSELOR", label: "招生老师", description: "只查看和跟进分配给自己的线索" },
   { value: "ACADEMIC_TEACHER", label: "教务老师", description: "只查看自己负责服务的学员" },
   { value: "LECTURER", label: "授课老师", description: "查看题库、教研内容和授课相关资料" }
@@ -35,10 +35,7 @@ export const dictionaryCategoryOptions: Array<{ value: DictionaryCategory; label
 ];
 
 export const settingsLabels = {
-  role: {
-    ...roleLabels,
-    ADMIN: "总部管理员"
-  } satisfies Record<UserRole, string>,
+  role: roleLabels satisfies Record<UserRole, string>,
   userStatus: Object.fromEntries(userStatusOptions.map((item) => [item.value, item.label])) as Record<
     UserStatus,
     string
@@ -65,7 +62,6 @@ const dictionaryCategoryAlias = new Map<string, DictionaryCategory>(
 );
 
 const roleValues = new Set(settingsRoleOptions.map((item) => item.value));
-const legacyRoleValues = new Set<UserRole>([...settingsRoleOptions.map((item) => item.value), "HQ_OPERATIONS"]);
 const userStatusValues = new Set(userStatusOptions.map((item) => item.value));
 const campusStatusValues = new Set(campusStatusOptions.map((item) => item.value));
 const campusBusinessTypeValues = new Set(campusBusinessTypeOptions.map((item) => item.value));
@@ -85,16 +81,14 @@ function enumOr<T extends string>(value: unknown, values: Set<T>, fallback: T) {
 
 export function normalizeUserInput(
   input: Record<string, unknown>,
-  defaults: { organizationId: string },
-  options: { allowLegacyRoles?: boolean } = {}
+  defaults: { organizationId: string }
 ) {
   const name = text(input.name);
   const email = text(input.email).toLowerCase();
   const role = text(input.role);
-  const allowedRoles = options.allowLegacyRoles ? legacyRoleValues : roleValues;
   if (!name) throw new Error("请输入用户姓名");
   if (!email) throw new Error("请输入登录邮箱");
-  if (role && !allowedRoles.has(role as UserRole)) throw new Error("不能选择该用户角色");
+  if (role && !roleValues.has(role as UserRole)) throw new Error("不能选择该用户角色");
 
   return {
     organizationId: defaults.organizationId,

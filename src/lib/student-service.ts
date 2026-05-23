@@ -160,7 +160,7 @@ function enumOr<T extends string>(value: unknown, values: readonly T[], fallback
 }
 
 export function studentScopeWhere(user: { id: string; role: UserRole; campusId: string | null }) {
-  if (user.role === "ADMIN" || user.role === "HQ_OPERATIONS") return {};
+  if (user.role === "ADMIN") return {};
   if (user.role === "CAMPUS_MANAGER") {
     return user.campusId ? { campusId: user.campusId } : { id: "__none__" };
   }
@@ -170,7 +170,7 @@ export function studentScopeWhere(user: { id: string; role: UserRole; campusId: 
 }
 
 export function classScopeWhere(user: { role: UserRole; campusId: string | null }) {
-  if (user.role === "ADMIN" || user.role === "HQ_OPERATIONS") return {};
+  if (user.role === "ADMIN") return {};
   return user.campusId ? { campusId: user.campusId } : { id: "__none__" };
 }
 

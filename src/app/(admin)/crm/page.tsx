@@ -1,19 +1,14 @@
 import { CrmDashboard } from "@/components/crm/crm-dashboard";
-import { getTodayRange, leadScopeWhere } from "@/lib/crm";
+import { getTodayRange } from "@/lib/crm";
+import { buildAccessibleCampusWhere, buildCrmLeadScopeWhere, buildScopedUserWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 export default async function CrmPage() {
   const user = await requireUser("/crm");
-  const scope = leadScopeWhere(user);
+  const scope = await buildCrmLeadScopeWhere(user);
   const today = getTodayRange();
-
-  const campusWhere =
-    user.role === "ADMIN" || user.role === "HQ_OPERATIONS"
-      ? { organizationId: user.organizationId, status: "ACTIVE" as const }
-      : user.campusId
-        ? { id: user.campusId, status: "ACTIVE" as const }
-        : { id: "__none__" };
+  const campusWhere = await buildAccessibleCampusWhere(user, { activeOnly: true });
 
   const [leads, campuses, counselors, statusGroups, sourceGroups, todayCount] = await Promise.all([
     prisma.lead.findMany({
@@ -32,11 +27,7 @@ export default async function CrmPage() {
       orderBy: { name: "asc" }
     }),
     prisma.user.findMany({
-      where: {
-        role: "ADMISSIONS_COUNSELOR",
-        status: "ACTIVE",
-        ...(user.role === "CAMPUS_MANAGER" && user.campusId ? { campusId: user.campusId } : {})
-      },
+      where: await buildScopedUserWhere(user, "ADMISSIONS_COUNSELOR"),
       select: { id: true, name: true },
       orderBy: { name: "asc" }
     }),

@@ -8,7 +8,8 @@ import {
   StudentStatusForm
 } from "@/components/student-service/student-detail-actions";
 import { crmLabels } from "@/lib/crm";
-import { classScopeWhere, studentScopeWhere, studentServiceLabels } from "@/lib/student-service";
+import { studentServiceLabels } from "@/lib/student-service";
+import { buildCourseSessionScopeWhere, buildStudentScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { getUserDisplayName } from "@/lib/user-display";
@@ -17,7 +18,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
   const user = await requireUser("/student-service");
   const { id } = await params;
   const student = await prisma.student.findFirst({
-    where: { id, ...studentScopeWhere(user) },
+    where: { AND: [{ id }, await buildStudentScopeWhere(user)] },
     include: {
       campus: { select: { id: true, name: true } },
       class: { select: { id: true, name: true } },
@@ -38,8 +39,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
 
   const sessions = await prisma.courseSession.findMany({
     where: {
-      ...classScopeWhere(user),
-      classId: student.classId || "__none__"
+      AND: [await buildCourseSessionScopeWhere(user), { classId: student.classId || "__none__" }]
     },
     select: { id: true, title: true, startsAt: true },
     orderBy: { startsAt: "desc" },

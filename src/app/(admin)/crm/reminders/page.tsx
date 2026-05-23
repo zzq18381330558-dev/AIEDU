@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Bell } from "lucide-react";
-import { crmLabels, getTodayRange, leadScopeWhere } from "@/lib/crm";
+import { crmLabels, getTodayRange } from "@/lib/crm";
+import { buildCrmLeadScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { getUserDisplayName } from "@/lib/user-display";
@@ -10,8 +11,7 @@ export default async function RemindersPage() {
   const today = getTodayRange();
   const leads = await prisma.lead.findMany({
     where: {
-      ...leadScopeWhere(user),
-      nextFollowUpAt: { gte: today.start, lt: today.end }
+      AND: [await buildCrmLeadScopeWhere(user), { nextFollowUpAt: { gte: today.start, lt: today.end } }]
     },
     include: {
       campus: { select: { name: true } },

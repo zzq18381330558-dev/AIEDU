@@ -3,20 +3,17 @@ import { BrainCircuit } from "lucide-react";
 import { AiStudentActions } from "@/components/student-service/ai-actions";
 import { ServiceTabs } from "@/components/student-service/service-tabs";
 import { StudentCreateForm } from "@/components/student-service/simple-create-form";
-import { studentServiceLabels, studentScopeWhere, classScopeWhere } from "@/lib/student-service";
+import { studentServiceLabels } from "@/lib/student-service";
+import { buildAccessibleCampusWhere, buildClassScopeWhere, buildScopedUserWhere, buildStudentScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function StudentServicePage() {
   const user = await requireUser("/student-service");
-  const scope = studentScopeWhere(user);
-  const campusWhere =
-    user.role === "ADMIN" || user.role === "HQ_OPERATIONS"
-      ? { organizationId: user.organizationId, status: "ACTIVE" as const }
-      : user.campusId
-        ? { id: user.campusId, status: "ACTIVE" as const }
-        : { id: "__none__" };
+  const scope = await buildStudentScopeWhere(user);
+  const classScope = await buildClassScopeWhere(user);
+  const campusWhere = await buildAccessibleCampusWhere(user, { activeOnly: true });
 
   const [students, campuses, classes, academicUsers, salesUsers, planCount, pendingReminders] = await Promise.all([
     prisma.student.findMany({
@@ -32,14 +29,14 @@ export default async function StudentServicePage() {
       take: 100
     }),
     prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.studentClass.findMany({ where: classScopeWhere(user), select: { id: true, name: true }, orderBy: { startAt: "desc" } }),
+    prisma.studentClass.findMany({ where: classScope, select: { id: true, name: true }, orderBy: { startAt: "desc" } }),
     prisma.user.findMany({
-      where: { role: "ACADEMIC_TEACHER", status: "ACTIVE", ...(user.campusId ? { campusId: user.campusId } : {}) },
+      where: await buildScopedUserWhere(user, "ACADEMIC_TEACHER"),
       select: { id: true, name: true, email: true, phone: true },
       orderBy: { name: "asc" }
     }),
     prisma.user.findMany({
-      where: { role: "ADMISSIONS_COUNSELOR", status: "ACTIVE", ...(user.campusId ? { campusId: user.campusId } : {}) },
+      where: await buildScopedUserWhere(user, "ADMISSIONS_COUNSELOR"),
       select: { id: true, name: true, email: true, phone: true },
       orderBy: { name: "asc" }
     }),

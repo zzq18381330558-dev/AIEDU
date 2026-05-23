@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { leadScopeWhere, normalizeFollowUpInput } from "@/lib/crm";
+import { normalizeFollowUpInput } from "@/lib/crm";
+import { buildCrmLeadScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -9,7 +10,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
   const { id } = await context.params;
 
   const lead = await prisma.lead.findFirst({
-    where: { id, ...leadScopeWhere(auth.user) },
+    where: { AND: [{ id }, await buildCrmLeadScopeWhere(auth.user)] },
     select: { id: true }
   });
   if (!lead) return NextResponse.json({ error: "线索不存在" }, { status: 404 });
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
   try {
     const lead = await prisma.lead.findFirst({
-      where: { id, ...leadScopeWhere(auth.user) },
+      where: { AND: [{ id }, await buildCrmLeadScopeWhere(auth.user)] },
       select: { id: true }
     });
     if (!lead) return NextResponse.json({ error: "线索不存在" }, { status: 404 });

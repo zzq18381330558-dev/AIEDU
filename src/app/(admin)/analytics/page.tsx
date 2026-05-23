@@ -1,6 +1,7 @@
 import { BarChart3 } from "lucide-react";
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
-import { buildAnalyticsWhere, buildCourseSessionWhere, buildTrendRows, buildWrongQuestionWhere, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
+import { buildAnalyticsCourseSessionWhere, buildAnalyticsWhere, buildAnalyticsWrongQuestionWhere, buildTrendRows, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
+import { buildAccessibleCampusWhere, buildScopedUserWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -16,15 +17,13 @@ export default async function AnalyticsPage({
     if (typeof value === "string") urlParams.set(key, value);
   }
   const filters = parseAnalyticsFilters(urlParams);
-  const { leadWhere, studentWhere, attendanceWhere } = buildAnalyticsWhere(user, filters);
-  const courseSessionWhere = buildCourseSessionWhere(user, filters);
-  const wrongQuestionWhere = buildWrongQuestionWhere(user, filters);
-  const campusWhere =
-    user.role === "ADMIN" || user.role === "HQ_OPERATIONS"
-      ? { organizationId: user.organizationId, status: "ACTIVE" as const }
-      : user.campusId
-        ? { id: user.campusId, status: "ACTIVE" as const }
-        : { id: "__none__" };
+  const { leadWhere, studentWhere, attendanceWhere } = await buildAnalyticsWhere(user, filters);
+  const courseSessionWhere = await buildAnalyticsCourseSessionWhere(user, filters);
+  const wrongQuestionWhere = await buildAnalyticsWrongQuestionWhere(user, filters);
+  const campusWhere = await buildAccessibleCampusWhere(user, { activeOnly: true });
+  const counselorWhere = filters.campusId
+    ? { ...(await buildScopedUserWhere(user, "ADMISSIONS_COUNSELOR")), campusId: filters.campusId }
+    : await buildScopedUserWhere(user, "ADMISSIONS_COUNSELOR");
 
   const [leads, students, attendance, courseSessions, wrongQuestionRecords, campuses, counselors, reports] = await Promise.all([
     prisma.lead.findMany({ where: leadWhere, include: { campus: { select: { name: true } }, assignee: { select: { name: true, email: true, phone: true } } } }),
@@ -36,7 +35,7 @@ export default async function AnalyticsPage({
       include: { question: { select: { subject: true, chapter: true, knowledgePoint: true, difficulty: true } } }
     }),
     prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: { role: "ADMISSIONS_COUNSELOR", status: "ACTIVE", ...(filters.campusId ? { campusId: filters.campusId } : {}) }, select: { id: true, name: true, email: true, phone: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: counselorWhere, select: { id: true, name: true, email: true, phone: true }, orderBy: { name: "asc" } }),
     prisma.analyticsDailyReport.findMany({ orderBy: { reportDate: "desc" }, take: 5 })
   ]);
 

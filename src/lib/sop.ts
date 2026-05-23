@@ -81,38 +81,43 @@ function enumOr<T extends string>(value: unknown, values: readonly T[], fallback
 }
 
 export function canManageSop(role: UserRole) {
-  return role === "ADMIN" || role === "HQ_OPERATIONS";
+  return role === "ADMIN";
 }
 
 export function canInspectSop(role: UserRole) {
-  return role === "ADMIN" || role === "HQ_OPERATIONS";
+  return role === "ADMIN";
 }
 
-export function sopCampusWhere(user: { role: UserRole; campusId: string | null; organizationId: string }) {
-  if (user.role === "ADMIN" || user.role === "HQ_OPERATIONS") return { organizationId: user.organizationId };
-  return user.campusId ? { id: user.campusId } : { id: "__none__" };
+export function sopCampusWhere(user: { id: string; role: UserRole; campusId: string | null; organizationId: string }) {
+  if (user.role === "ADMIN") return { organizationId: user.organizationId };
+  if (user.role !== "CAMPUS_MANAGER") return { id: "__none__" };
+  return { organizationId: user.organizationId, OR: [{ id: user.campusId || "__none__" }, { managerId: user.id }] };
 }
 
 export function sopTaskScopeWhere(user: {
+  id: string;
   role: UserRole;
   campusId: string | null;
   organizationId: string;
 }): Prisma.SopTaskWhereInput {
-  if (user.role === "ADMIN" || user.role === "HQ_OPERATIONS") {
+  if (user.role === "ADMIN") {
     return { campus: { organizationId: user.organizationId } };
   }
-  return user.campusId ? { campusId: user.campusId } : { id: "__none__" };
+  if (user.role !== "CAMPUS_MANAGER") return { id: "__none__" };
+  return { campus: { organizationId: user.organizationId, OR: [{ id: user.campusId || "__none__" }, { managerId: user.id }] } };
 }
 
 export function sopExecutionScopeWhere(user: {
+  id: string;
   role: UserRole;
   campusId: string | null;
   organizationId: string;
 }): Prisma.SopExecutionWhereInput {
-  if (user.role === "ADMIN" || user.role === "HQ_OPERATIONS") {
+  if (user.role === "ADMIN") {
     return { campus: { organizationId: user.organizationId } };
   }
-  return user.campusId ? { campusId: user.campusId } : { id: "__none__" };
+  if (user.role !== "CAMPUS_MANAGER") return { id: "__none__" };
+  return { campus: { organizationId: user.organizationId, OR: [{ id: user.campusId || "__none__" }, { managerId: user.id }] } };
 }
 
 export function normalizeSopTemplateInput(input: Record<string, unknown>) {

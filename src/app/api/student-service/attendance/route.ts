@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { classScopeWhere, normalizeAttendanceInput, studentScopeWhere } from "@/lib/student-service";
+import { normalizeAttendanceInput } from "@/lib/student-service";
+import { buildAttendanceScopeWhere, buildCourseSessionScopeWhere, buildStudentScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -8,7 +9,7 @@ export async function GET() {
   if ("response" in auth) return auth.response;
 
   const items = await prisma.attendanceRecord.findMany({
-    where: { student: studentScopeWhere(auth.user) },
+    where: await buildAttendanceScopeWhere(auth.user),
     include: {
       student: { select: { id: true, name: true, school: true } },
       courseSession: { select: { title: true, startsAt: true, class: { select: { name: true } } } },
@@ -35,11 +36,11 @@ export async function POST(request: NextRequest) {
 
     const [student, courseSession] = await Promise.all([
       prisma.student.findFirst({
-        where: { id: studentId, ...studentScopeWhere(auth.user) },
+        where: { AND: [{ id: studentId }, await buildStudentScopeWhere(auth.user)] },
         select: { id: true, campusId: true, classId: true }
       }),
       prisma.courseSession.findFirst({
-        where: { id: courseSessionId, class: classScopeWhere(auth.user) },
+        where: { AND: [{ id: courseSessionId }, await buildCourseSessionScopeWhere(auth.user)] },
         select: { id: true, campusId: true, classId: true }
       })
     ]);

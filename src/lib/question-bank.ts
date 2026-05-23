@@ -135,7 +135,7 @@ function optionsFrom(value: unknown) {
 }
 
 export function canManageQuestionBank(role: UserRole) {
-  return ["ADMIN", "HQ_OPERATIONS", "ACADEMIC_TEACHER", "LECTURER"].includes(role);
+  return ["ADMIN", "ACADEMIC_TEACHER", "LECTURER"].includes(role);
 }
 
 export function normalizeQuestionInput(input: Record<string, unknown>) {

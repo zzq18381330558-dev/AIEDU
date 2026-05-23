@@ -69,7 +69,7 @@ export function SopExecutionForm({
     <form action={submit} className="rounded-lg border border-line bg-white p-4">
       <FormTitle icon={Flag} title="启动校区执行" />
       <Select name="campusId" label="执行校区" options={campuses.map((item) => ({ value: item.id, label: item.name }))} />
-      <Field name="owner" label="校区责任人" required placeholder="如：校区负责人 / 张老师" />
+      <Field name="owner" label="校区责任人" required placeholder="如：校区校长 / 张老师" />
       <button className="mt-4 h-10 w-full rounded-md bg-brand-600 text-sm font-semibold text-white">生成任务清单</button>
     </form>
   );

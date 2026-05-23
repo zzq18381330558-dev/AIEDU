@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { studentScopeWhere } from "@/lib/student-service";
+import { buildAttendanceScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -10,8 +10,7 @@ export async function GET() {
 
     const items = await prisma.attendanceRecord.findMany({
       where: {
-        student: studentScopeWhere(auth.user),
-        status: "ABSENT"
+        AND: [await buildAttendanceScopeWhere(auth.user), { status: "ABSENT" }]
       },
       include: {
         student: { select: { id: true, name: true, phone: true, school: true, academicOwner: { select: { name: true, email: true, phone: true } } } },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { getTodayRange, leadScopeWhere } from "@/lib/crm";
+import { getTodayRange } from "@/lib/crm";
+import { buildCrmLeadScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -9,10 +10,10 @@ export async function GET() {
     if ("response" in auth) return auth.response;
 
     const { start, end } = getTodayRange();
+    const scope = await buildCrmLeadScopeWhere(auth.user);
     const items = await prisma.lead.findMany({
       where: {
-        ...leadScopeWhere(auth.user),
-        nextFollowUpAt: { gte: start, lt: end }
+        AND: [scope, { nextFollowUpAt: { gte: start, lt: end } }]
       },
       include: {
         campus: { select: { id: true, name: true } },

@@ -105,7 +105,7 @@ export function SettingsDashboard({
   }, [filteredDictionaries]);
   const userRoleGroups = useMemo(
     () =>
-      (["ADMIN", "HQ_OPERATIONS", "CAMPUS_MANAGER", "ADMISSIONS_COUNSELOR", "ACADEMIC_TEACHER", "LECTURER"] as const).map(
+      (["ADMIN", "CAMPUS_MANAGER", "ADMISSIONS_COUNSELOR", "ACADEMIC_TEACHER", "LECTURER"] as const).map(
         (role) => ({
           role,
           label: settingsLabels.role[role],
@@ -188,10 +188,6 @@ export function SettingsDashboard({
   }
 
   function openNewUser(role = "") {
-    if (role === "HQ_OPERATIONS") {
-      alert("不能选择该用户角色");
-      return;
-    }
     setNewUserRole(role);
     setUserModal("new");
   }
@@ -260,7 +256,7 @@ export function SettingsDashboard({
         <div className="rounded-lg border border-line bg-white">
           <PanelHeader icon={ShieldCheck} title="角色管理" />
           <div className="border-b border-line px-5 py-4 text-sm leading-6 text-muted">
-            当前版本使用固定 5 类基础角色；历史总部运营账号仅做兼容展示。自定义角色将在后续权限模块中实现，本轮不新增动态角色表。
+            当前版本使用固定 5 类基础角色。自定义角色将在后续权限模块中实现，本轮不新增动态角色表。
           </div>
           <div className="divide-y divide-line">
             {settingsRoleOptions.map((role) => (
@@ -464,7 +460,7 @@ function getDictionaryCategoryLabel(categoryName: string) {
 }
 
 function isFixedRole(role: string) {
-  return ["ADMIN", "HQ_OPERATIONS", "CAMPUS_MANAGER", "ADMISSIONS_COUNSELOR", "ACADEMIC_TEACHER", "LECTURER"].includes(role);
+  return ["ADMIN", "CAMPUS_MANAGER", "ADMISSIONS_COUNSELOR", "ACADEMIC_TEACHER", "LECTURER"].includes(role);
 }
 
 function RoleUserRows({
@@ -751,11 +747,6 @@ const roleInfoCopy: Record<string, { positioning: string; dataScope: string; sce
     positioning: "系统最高管理角色",
     dataScope: "全部校区、全部数据",
     scenario: "系统初始化、用户/校区/字典维护、全局管理"
-  },
-  HQ_OPERATIONS: {
-    positioning: "历史兼容角色",
-    dataScope: "按当前系统实现展示",
-    scenario: "历史账号兼容，不建议新建"
   },
   CAMPUS_MANAGER: {
     positioning: "校区经营负责人",

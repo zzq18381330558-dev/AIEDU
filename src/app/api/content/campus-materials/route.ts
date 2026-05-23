@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
+import { buildCampusMaterialScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -7,12 +8,7 @@ export async function GET() {
     const auth = await requireApiUser("/content");
     if ("response" in auth) return auth.response;
 
-    const where =
-      auth.user.role === "ADMIN" || auth.user.role === "HQ_OPERATIONS"
-        ? {}
-        : auth.user.campusId
-          ? { campusId: auth.user.campusId }
-          : { campusId: "__none__" };
+    const where = await buildCampusMaterialScopeWhere(auth.user);
 
     const items = await prisma.teachingContentPublication.findMany({
       where,

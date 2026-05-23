@@ -10,7 +10,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
   try {
     const task = await prisma.sopTask.findFirst({
-      where: { id, ...sopTaskScopeWhere(auth.user) },
+      where: { AND: [{ id }, sopTaskScopeWhere(auth.user)] },
       select: { id: true, sopExecutionId: true }
     });
     if (!task) return NextResponse.json({ error: "任务不存在或无权限" }, { status: 404 });

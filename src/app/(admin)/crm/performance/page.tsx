@@ -1,17 +1,13 @@
 import { TrendingUp } from "lucide-react";
-import { buildPerformanceRows, crmLabels, leadScopeWhere } from "@/lib/crm";
+import { buildPerformanceRows, crmLabels } from "@/lib/crm";
+import { buildCrmLeadScopeWhere, buildScopedUserWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 export default async function PerformancePage() {
   const user = await requireUser("/crm");
-  const leadWhere = leadScopeWhere(user);
-  const userWhere =
-    user.role === "ADMISSIONS_COUNSELOR"
-      ? { id: user.id }
-      : user.role === "CAMPUS_MANAGER" && user.campusId
-        ? { role: "ADMISSIONS_COUNSELOR" as const, status: "ACTIVE" as const, campusId: user.campusId }
-        : { role: "ADMISSIONS_COUNSELOR" as const, status: "ACTIVE" as const };
+  const leadWhere = await buildCrmLeadScopeWhere(user);
+  const userWhere = await buildScopedUserWhere(user, "ADMISSIONS_COUNSELOR");
 
   const [users, leads, sourceGroups] = await Promise.all([
     prisma.user.findMany({

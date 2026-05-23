@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BarChart3, ClipboardList, FileText, ListChecks, ShieldCheck } from "lucide-react";
 import type { Prisma } from "@prisma/client";
 import { SopTemplateForm } from "@/components/sop/sop-forms";
+import { buildSopScopeWhere } from "@/lib/data-scope";
 import {
   canManageSop,
   computeCompletionRate,
@@ -34,6 +35,7 @@ export default async function SopPage({
   }
 
   const taskScope = sopTaskScopeWhere(user);
+  const sopScope = await buildSopScopeWhere(user);
   const [templates, activeCount, executions, totalTasks, doneTasks, blockedTasks, reports, inspections] = await Promise.all([
     prisma.sopTemplate.findMany({
       where: templateWhere,
@@ -46,7 +48,7 @@ export default async function SopPage({
     }),
     prisma.sopTemplate.count({ where: { status: "ACTIVE" } }),
     prisma.sopExecution.findMany({
-      where: user.role === "ADMIN" || user.role === "HQ_OPERATIONS" ? { campus: { organizationId: user.organizationId } } : user.campusId ? { campusId: user.campusId } : { id: "__none__" },
+      where: sopScope.execution,
       include: {
         campus: { select: { name: true } },
         template: { select: { title: true, category: true } },
@@ -59,7 +61,7 @@ export default async function SopPage({
     prisma.sopTask.count({ where: { ...taskScope, status: "DONE" } }),
     prisma.sopTask.count({ where: { ...taskScope, status: "BLOCKED" } }),
     prisma.sopWeeklyReport.findMany({
-      where: user.role === "ADMIN" || user.role === "HQ_OPERATIONS" ? { campus: { organizationId: user.organizationId } } : user.campusId ? { campusId: user.campusId } : { id: "__none__" },
+      where: sopScope.weeklyReport,
       include: {
         campus: { select: { name: true } },
         reporter: { select: { name: true, email: true, phone: true } },
@@ -69,6 +71,7 @@ export default async function SopPage({
       take: 5
     }),
     prisma.sopInspection.findMany({
+      where: sopScope.inspection,
       include: {
         inspector: { select: { name: true, email: true, phone: true } },
         template: { select: { title: true } },

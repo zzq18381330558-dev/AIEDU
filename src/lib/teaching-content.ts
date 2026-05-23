@@ -61,11 +61,11 @@ function enumOr<T extends string>(value: unknown, values: readonly T[], fallback
 }
 
 export function canManageTeachingContent(role: UserRole) {
-  return ["ADMIN", "HQ_OPERATIONS", "ACADEMIC_TEACHER", "LECTURER"].includes(role);
+  return ["ADMIN", "ACADEMIC_TEACHER", "LECTURER"].includes(role);
 }
 
 export function canReviewTeachingContent(role: UserRole) {
-  return ["ADMIN", "HQ_OPERATIONS", "ACADEMIC_TEACHER"].includes(role);
+  return ["ADMIN", "ACADEMIC_TEACHER"].includes(role);
 }
 
 export function parseReviewAction(value: unknown): ContentReviewAction {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { buildAnalyticsWhere, buildCourseSessionWhere, buildTrendRows, buildWrongQuestionWhere, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
+import { buildAnalyticsCourseSessionWhere, buildAnalyticsWhere, buildAnalyticsWrongQuestionWhere, buildTrendRows, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     if ("response" in auth) return auth.response;
 
     const filters = parseAnalyticsFilters(new URL(request.url).searchParams);
-    const { leadWhere, studentWhere, attendanceWhere } = buildAnalyticsWhere(auth.user, filters);
+    const { leadWhere, studentWhere, attendanceWhere } = await buildAnalyticsWhere(auth.user, filters);
     const [leads, students, attendance, courseSessions, wrongQuestionRecords] = await Promise.all([
       prisma.lead.findMany({
         where: leadWhere,
@@ -33,11 +33,11 @@ export async function GET(request: NextRequest) {
         }
       }),
       prisma.courseSession.findMany({
-        where: buildCourseSessionWhere(auth.user, filters),
+        where: await buildAnalyticsCourseSessionWhere(auth.user, filters),
         select: { startsAt: true, endsAt: true }
       }),
       prisma.wrongQuestionRecord.findMany({
-        where: buildWrongQuestionWhere(auth.user, filters),
+        where: await buildAnalyticsWrongQuestionWhere(auth.user, filters),
         include: { question: { select: { subject: true, chapter: true, knowledgePoint: true, difficulty: true } } }
       })
     ]);

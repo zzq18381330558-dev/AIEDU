@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { classScopeWhere, normalizeSessionInput } from "@/lib/student-service";
+import { normalizeSessionInput } from "@/lib/student-service";
+import { buildClassScopeWhere, buildCourseSessionScopeWhere, buildScopedUserWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -8,7 +9,7 @@ export async function GET() {
   if ("response" in auth) return auth.response;
 
   const items = await prisma.courseSession.findMany({
-    where: { class: classScopeWhere(auth.user) },
+    where: await buildCourseSessionScopeWhere(auth.user),
     include: {
       class: { select: { id: true, name: true } },
       campus: { select: { id: true, name: true } },
@@ -32,11 +33,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = normalizeSessionInput(body, { campusId: auth.user.campusId || String(body.campusId || "") });
     const studentClass = await prisma.studentClass.findFirst({
-      where: { id: data.classId, ...classScopeWhere(auth.user) },
+      where: { AND: [{ id: data.classId }, await buildClassScopeWhere(auth.user)] },
       select: { id: true, campusId: true }
     });
     if (!studentClass) throw new Error("班级不存在或无权排课");
     if (studentClass.campusId !== data.campusId) throw new Error("课程校区必须与班级校区一致");
+    if (data.lecturerId) {
+      const lecturer = await prisma.user.findFirst({
+        where: { AND: [{ id: data.lecturerId }, await buildScopedUserWhere(auth.user, "LECTURER")] },
+        select: { id: true, campusId: true }
+      });
+      if (!lecturer) throw new Error("授课老师不存在或无权限");
+      if (lecturer.campusId && lecturer.campusId !== data.campusId) throw new Error("授课老师不属于所选校区");
+    }
     const item = await prisma.courseSession.create({
       data
     });

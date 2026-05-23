@@ -28,14 +28,13 @@ async function main() {
       code: "HQ",
       city: "上海",
       contactPhone: "021-00000000",
-      address: "总部运营中心"
+      address: "管理中心"
     }
   });
 
   const users = [
-    ["系统管理员", "admin@aiedu.local", UserRole.ADMIN],
-    ["总部运营", "ops@aiedu.local", UserRole.HQ_OPERATIONS],
-    ["校区负责人", "campus@aiedu.local", UserRole.CAMPUS_MANAGER],
+    ["管理员", "admin@aiedu.local", UserRole.ADMIN],
+    ["校区校长", "campus@aiedu.local", UserRole.CAMPUS_MANAGER],
     ["招生老师", "sales@aiedu.local", UserRole.ADMISSIONS_COUNSELOR],
     ["教务老师", "academic@aiedu.local", UserRole.ACADEMIC_TEACHER],
     ["授课老师", "lecturer@aiedu.local", UserRole.LECTURER]
@@ -237,9 +236,9 @@ async function main() {
       document: "1. 总部确认校区启动目标。\n2. 校区完成招生账号、企微、社群和线索表准备。\n3. 首周执行地推、朋友圈和咨询转化动作。\n4. 每日提交任务打卡，每周提交经营周报。",
       steps: {
         create: [
-          { title: "搭建招生账号与线索池", standard: "企微、社群、线索表和分配规则齐备", ownerRole: "校区负责人", sortOrder: 1 },
+          { title: "搭建招生账号与线索池", standard: "企微、社群、线索表和分配规则齐备", ownerRole: "校区校长", sortOrder: 1 },
           { title: "完成首周地推与社群排期", standard: "明确点位、时间、物料、负责人和每日目标", ownerRole: "招生老师", sortOrder: 2 },
-          { title: "复盘线索转化数据", standard: "输出来源、咨询、试听、成交和问题动作", ownerRole: "总部运营", sortOrder: 3 }
+          { title: "复盘线索转化数据", standard: "输出来源、咨询、试听、成交和问题动作", ownerRole: "管理员", sortOrder: 3 }
         ]
       }
     }
@@ -316,7 +315,7 @@ async function main() {
           create: item.steps.map((title, index) => ({
             title,
             sortOrder: index + 1,
-            ownerRole: index % 2 === 0 ? "校区负责人" : "总部运营"
+            ownerRole: index % 2 === 0 ? "校区校长" : "管理员"
           }))
         }
       }
@@ -330,7 +329,7 @@ async function main() {
       id: "seed-sop-execution-hq",
       sopTemplateId: seedSop.id,
       campusId: campus.id,
-      owner: "校区负责人",
+      owner: "校区校长",
       progress: 33
     }
   });

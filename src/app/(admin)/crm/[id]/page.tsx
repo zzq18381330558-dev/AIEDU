@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { LeadConvertButton } from "@/components/crm/lead-convert-button";
 import { FollowUpPanel } from "@/components/crm/follow-up-panel";
-import { crmLabels, leadScopeWhere } from "@/lib/crm";
+import { crmLabels } from "@/lib/crm";
+import { buildCrmLeadScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { getUserDisplayName } from "@/lib/user-display";
@@ -13,7 +14,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const { id } = await params;
 
   const lead = await prisma.lead.findFirst({
-    where: { id, ...leadScopeWhere(user) },
+    where: { AND: [{ id }, await buildCrmLeadScopeWhere(user)] },
     include: {
       campus: { select: { name: true } },
       assignee: { select: { name: true, email: true, phone: true } },

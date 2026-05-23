@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { normalizeStudentStatusInput, studentScopeWhere } from "@/lib/student-service";
+import { normalizeStudentStatusInput } from "@/lib/student-service";
+import { buildStudentScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -9,7 +10,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
   const { id } = await context.params;
 
   const item = await prisma.student.findFirst({
-    where: { id, ...studentScopeWhere(auth.user) },
+    where: { AND: [{ id }, await buildStudentScopeWhere(auth.user)] },
     include: {
       campus: { select: { id: true, name: true } },
       class: { select: { id: true, name: true } },
@@ -33,7 +34,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
   try {
     const exists = await prisma.student.findFirst({
-      where: { id, ...studentScopeWhere(auth.user) },
+      where: { AND: [{ id }, await buildStudentScopeWhere(auth.user)] },
       select: { id: true }
     });
     if (!exists) return NextResponse.json({ error: "学员不存在" }, { status: 404 });

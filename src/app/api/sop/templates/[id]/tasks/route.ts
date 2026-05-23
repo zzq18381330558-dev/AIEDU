@@ -12,7 +12,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const body = await request.json();
     const input = normalizeSopTaskInput(body, { sopTemplateId: id });
     const campus = await prisma.campus.findFirst({
-      where: { id: input.campusId, ...sopCampusWhere(auth.user) },
+      where: { AND: [{ id: input.campusId }, sopCampusWhere(auth.user)] },
       select: { id: true }
     });
     if (!campus) return NextResponse.json({ error: "校区不存在或无权限" }, { status: 404 });
@@ -20,10 +20,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     if (input.sopExecutionId) {
       const execution = await prisma.sopExecution.findFirst({
         where: {
-          id: input.sopExecutionId,
-          sopTemplateId: id,
-          campusId: input.campusId,
-          ...sopExecutionScopeWhere(auth.user)
+          AND: [
+            { id: input.sopExecutionId, sopTemplateId: id, campusId: input.campusId },
+            sopExecutionScopeWhere(auth.user)
+          ]
         },
         select: { id: true }
       });

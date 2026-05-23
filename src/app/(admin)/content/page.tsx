@@ -1,6 +1,7 @@
 import { GraduationCap } from "lucide-react";
 import { ContentActions } from "@/components/content/content-actions";
 import { ContentTabs } from "@/components/content/content-tabs";
+import { buildAccessibleCampusWhere } from "@/lib/data-scope";
 import { teachingContentLabels } from "@/lib/teaching-content";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -18,7 +19,7 @@ export default async function ContentPage() {
       take: 100
     }),
     prisma.campus.findMany({
-      where: user.role === "ADMIN" || user.role === "HQ_OPERATIONS" ? { organizationId: user.organizationId, status: "ACTIVE" } : user.campusId ? { id: user.campusId, status: "ACTIVE" } : { id: "__none__" },
+      where: await buildAccessibleCampusWhere(user, { activeOnly: true }),
       select: { id: true, name: true },
       orderBy: { name: "asc" }
     }),

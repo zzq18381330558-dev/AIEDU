@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
 import {
-  classScopeWhere,
   normalizeStudentImportRow,
   normalizeStudentInput,
   studentImportRequiredHeaders
 } from "@/lib/student-service";
+import { buildAccessibleCampusWhere, buildClassScopeWhere, buildScopedUserWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 const importEnumValues = {
@@ -46,18 +46,13 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file");
     if (!(file instanceof File)) throw new Error("请上传 .xlsx 格式的 Excel 文件");
 
-    const campusWhere =
-      auth.user.role === "ADMIN" || auth.user.role === "HQ_OPERATIONS"
-        ? { organizationId: auth.user.organizationId, status: "ACTIVE" as const }
-        : auth.user.campusId
-          ? { id: auth.user.campusId, status: "ACTIVE" as const }
-          : { id: "__none__" };
+    const campusWhere = await buildAccessibleCampusWhere(auth.user, { activeOnly: true });
     const [rows, campuses, classes, academicUsers, salesUsers] = await Promise.all([
       rowsFromFile(file),
       prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true } }),
-      prisma.studentClass.findMany({ where: classScopeWhere(auth.user), select: { id: true, name: true, campusId: true } }),
-      prisma.user.findMany({ where: { role: "ACADEMIC_TEACHER", status: "ACTIVE" }, select: { id: true, name: true, campusId: true } }),
-      prisma.user.findMany({ where: { role: "ADMISSIONS_COUNSELOR", status: "ACTIVE" }, select: { id: true, name: true, campusId: true } })
+      prisma.studentClass.findMany({ where: await buildClassScopeWhere(auth.user), select: { id: true, name: true, campusId: true } }),
+      prisma.user.findMany({ where: await buildScopedUserWhere(auth.user, "ACADEMIC_TEACHER"), select: { id: true, name: true, campusId: true } }),
+      prisma.user.findMany({ where: await buildScopedUserWhere(auth.user, "ADMISSIONS_COUNSELOR"), select: { id: true, name: true, campusId: true } })
     ]);
     assertRequiredHeaders(rows, [...studentImportRequiredHeaders]);
 

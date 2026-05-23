@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { normalizeServiceRecordInput, studentScopeWhere } from "@/lib/student-service";
+import { normalizeServiceRecordInput } from "@/lib/student-service";
+import { buildStudentScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
   try {
     const student = await prisma.student.findFirst({
-      where: { id, ...studentScopeWhere(auth.user) },
+      where: { AND: [{ id }, await buildStudentScopeWhere(auth.user)] },
       select: { id: true }
     });
     if (!student) return NextResponse.json({ error: "学员不存在" }, { status: 404 });
