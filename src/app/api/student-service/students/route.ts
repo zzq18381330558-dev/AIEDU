@@ -7,8 +7,8 @@ import { prisma } from "@/lib/prisma";
 const include = {
   campus: { select: { id: true, name: true } },
   class: { select: { id: true, name: true } },
-  academicOwner: { select: { id: true, name: true } },
-  salesOwner: { select: { id: true, name: true } },
+  academicOwner: { select: { id: true, name: true, email: true, phone: true } },
+  salesOwner: { select: { id: true, name: true, email: true, phone: true } },
   _count: { select: { attendanceRecords: true, studyPlans: true, reminders: true } }
 } satisfies Prisma.StudentInclude;
 

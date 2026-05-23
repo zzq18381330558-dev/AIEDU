@@ -6,6 +6,7 @@ import { FollowUpPanel } from "@/components/crm/follow-up-panel";
 import { crmLabels, leadScopeWhere } from "@/lib/crm";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser("/crm");
@@ -15,10 +16,10 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     where: { id, ...leadScopeWhere(user) },
     include: {
       campus: { select: { name: true } },
-      assignee: { select: { name: true } },
+      assignee: { select: { name: true, email: true, phone: true } },
       student: { select: { id: true } },
       followUps: {
-        include: { creator: { select: { name: true } } },
+        include: { creator: { select: { name: true, email: true, phone: true } } },
         orderBy: { followAt: "desc" }
       }
     }
@@ -50,7 +51,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               <div>手机：{lead.phone}</div>
               <div>微信：{lead.wechat || "-"}</div>
               <div>校区：{lead.campus.name}</div>
-              <div>招生老师：{lead.assignee?.name || "未分配"}</div>
+              <div>招生老师：{getUserDisplayName(lead.assignee, "未分配")}</div>
               <div>学校：{lead.school || "-"}</div>
               <div>专业：{lead.grade || ""} {lead.major || ""}</div>
               <div>最近跟进：{lead.lastFollowedAt ? lead.lastFollowedAt.toLocaleString("zh-CN") : "-"}</div>

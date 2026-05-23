@@ -12,6 +12,7 @@ import {
 } from "@/lib/sop";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function SopPage({
   searchParams
@@ -61,7 +62,7 @@ export default async function SopPage({
       where: user.role === "ADMIN" || user.role === "HQ_OPERATIONS" ? { campus: { organizationId: user.organizationId } } : user.campusId ? { campusId: user.campusId } : { id: "__none__" },
       include: {
         campus: { select: { name: true } },
-        reporter: { select: { name: true } },
+        reporter: { select: { name: true, email: true, phone: true } },
         template: { select: { title: true } }
       },
       orderBy: { weekStart: "desc" },
@@ -69,7 +70,7 @@ export default async function SopPage({
     }),
     prisma.sopInspection.findMany({
       include: {
-        inspector: { select: { name: true } },
+        inspector: { select: { name: true, email: true, phone: true } },
         template: { select: { title: true } },
         execution: { include: { campus: { select: { name: true } } } }
       },
@@ -181,7 +182,7 @@ export default async function SopPage({
           {reports.map((item) => (
             <div key={item.id} className="border-b border-line p-4 last:border-0">
               <div className="font-semibold text-ink">{item.campus.name} · {item.weekStart.toLocaleDateString("zh-CN")}</div>
-              <div className="mt-1 text-xs text-muted">{item.template.title} / {item.reporter.name}</div>
+              <div className="mt-1 text-xs text-muted">{item.template.title} / {getUserDisplayName(item.reporter)}</div>
               <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">{item.summary}</p>
             </div>
           ))}
@@ -192,7 +193,7 @@ export default async function SopPage({
             <div key={item.id} className="border-b border-line p-4 last:border-0">
               <div className="font-semibold text-ink">{item.template.title}</div>
               <div className="mt-1 text-sm text-brand-700">评分 {item.score}</div>
-              <div className="mt-1 text-xs text-muted">{item.execution?.campus.name || "文档检查"} / {item.inspector.name}</div>
+              <div className="mt-1 text-xs text-muted">{item.execution?.campus.name || "文档检查"} / {getUserDisplayName(item.inspector)}</div>
               <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">{item.comment || "无检查意见"}</p>
             </div>
           ))}

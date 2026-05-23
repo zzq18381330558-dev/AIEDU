@@ -14,7 +14,7 @@ export async function GET() {
         status: "ABSENT"
       },
       include: {
-        student: { select: { id: true, name: true, phone: true, school: true, academicOwner: { select: { name: true } } } },
+        student: { select: { id: true, name: true, phone: true, school: true, academicOwner: { select: { name: true, email: true, phone: true } } } },
         courseSession: { select: { title: true, startsAt: true, class: { select: { name: true } } } }
       },
       orderBy: { createdAt: "desc" },

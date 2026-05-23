@@ -6,8 +6,8 @@ import { prisma } from "@/lib/prisma";
 
 const leadInclude = {
   campus: { select: { id: true, name: true } },
-  assignee: { select: { id: true, name: true } },
-  creator: { select: { id: true, name: true } },
+  assignee: { select: { id: true, name: true, email: true, phone: true } },
+  creator: { select: { id: true, name: true, email: true, phone: true } },
   _count: { select: { followUps: true } }
 } satisfies Prisma.LeadInclude;
 

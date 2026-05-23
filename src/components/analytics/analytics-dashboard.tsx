@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Download, FileText } from "lucide-react";
+import { getUserDisplayName } from "@/lib/user-display";
 
 type Row = Record<string, string | number>;
 type Summary = {
@@ -21,7 +22,7 @@ export function AnalyticsDashboard({
 }: {
   summary: Summary;
   campuses: Array<{ id: string; name: string }>;
-  counselors: Array<{ id: string; name: string }>;
+  counselors: Array<{ id: string; name?: string | null; email?: string | null; phone?: string | null }>;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -57,7 +58,7 @@ export function AnalyticsDashboard({
         </select>
         <select name="assigneeId" defaultValue={params.get("assigneeId") || ""} className="h-10 rounded-md border border-line bg-white px-3 text-sm">
           <option value="">全部招生老师</option>
-          {counselors.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          {counselors.map((item) => <option key={item.id} value={item.id}>{getUserDisplayName(item)}</option>)}
         </select>
         <button className="h-10 rounded-md bg-brand-600 text-sm font-semibold text-white">筛选</button>
       </form>

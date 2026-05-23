@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeCampusInput } from "@/lib/settings";
 
 const include = {
-  manager: { select: { id: true, name: true } },
+  manager: { select: { id: true, name: true, email: true, phone: true } },
   _count: { select: { users: true, leads: true, students: true } }
 };
 

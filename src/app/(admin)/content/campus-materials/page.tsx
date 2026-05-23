@@ -15,7 +15,7 @@ export default async function CampusMaterialsPage() {
     where,
     include: {
       campus: { select: { name: true } },
-      content: { include: { author: { select: { name: true } } } }
+      content: { include: { author: { select: { name: true, email: true, phone: true } } } }
     },
     orderBy: { publishedAt: "desc" },
     take: 100

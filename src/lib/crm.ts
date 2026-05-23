@@ -6,6 +6,7 @@ import type {
   Prisma,
   UserRole
 } from "@prisma/client";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export const examTrackOptions: Array<{ value: LeadExamTrack; label: string }> = [
   { value: "INFANT", label: "幼儿" },
@@ -196,7 +197,7 @@ export function leadScopeWhere(user: { id: string; role: UserRole; campusId: str
 }
 
 export function buildPerformanceRows(
-  users: Array<{ id: string; name: string; campus?: { name: string } | null }>,
+  users: Array<{ id: string; name?: string | null; email?: string | null; phone?: string | null; campus?: { name: string } | null }>,
   leads: Array<{ assigneeId: string | null; status: LeadStatus; createdAt: Date }>
 ) {
   return users.map((user) => {
@@ -205,7 +206,7 @@ export function buildPerformanceRows(
     const contacted = owned.filter((lead) => lead.status !== "UNCONTACTED").length;
     return {
       userId: user.id,
-      name: user.name,
+      name: getUserDisplayName(user),
       campusName: user.campus?.name || "-",
       assignedCount: owned.length,
       contactedCount: contacted,

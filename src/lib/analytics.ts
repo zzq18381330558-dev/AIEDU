@@ -8,6 +8,7 @@ import type {
 } from "@prisma/client";
 import { crmLabels } from "@/lib/crm";
 import { buildWeaknessRows } from "@/lib/question-bank";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export type AnalyticsFilters = {
   from: Date;
@@ -25,7 +26,7 @@ export type AnalyticsInput = {
     status: LeadStatus;
     createdAt: Date;
     campus?: { name: string } | null;
-    assignee?: { name: string } | null;
+    assignee?: { name?: string | null; email?: string | null; phone?: string | null } | null;
   }>;
   students: Array<{
     id: string;
@@ -217,7 +218,7 @@ export function computeAnalytics(input: AnalyticsInput) {
       const won = items.filter((lead) => lead.status === "WON").length;
       return { leadCount: items.length, wonCount: won, revenue: money(won * financeDefaults.tuitionPerStudent), conversionRate: pct(won, items.length) };
     }),
-    counselorRows: groupRows(leads, (lead) => lead.assignee?.name || "未分配", (items) => {
+    counselorRows: groupRows(leads, (lead) => getUserDisplayName(lead.assignee, "未分配"), (items) => {
       const won = items.filter((lead) => lead.status === "WON").length;
       return { leadCount: items.length, consultCount: items.filter((lead) => lead.status !== "UNCONTACTED").length, wonCount: won, conversionRate: pct(won, items.length) };
     }),

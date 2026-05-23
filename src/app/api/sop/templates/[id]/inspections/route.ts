@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         ...input
       },
       include: {
-        inspector: { select: { id: true, name: true } },
+        inspector: { select: { id: true, name: true, email: true, phone: true } },
         execution: { include: { campus: { select: { id: true, name: true } } } }
       }
     });

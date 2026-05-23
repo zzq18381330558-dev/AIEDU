@@ -3,6 +3,7 @@ import { SessionCreateForm } from "@/components/student-service/simple-create-fo
 import { classScopeWhere, studentServiceLabels } from "@/lib/student-service";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function SchedulePage() {
   const user = await requireUser("/student-service");
@@ -19,7 +20,7 @@ export default async function SchedulePage() {
       include: {
         campus: { select: { name: true } },
         class: { select: { id: true, name: true } },
-        lecturer: { select: { name: true } },
+        lecturer: { select: { name: true, email: true, phone: true } },
         _count: { select: { attendanceRecords: true, reminders: true } }
       },
       orderBy: { startsAt: "asc" },
@@ -27,7 +28,7 @@ export default async function SchedulePage() {
     }),
     prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.studentClass.findMany({ where: classScopeWhere(user), select: { id: true, name: true }, orderBy: { startAt: "desc" } }),
-    prisma.user.findMany({ where: { role: "LECTURER", status: "ACTIVE" }, select: { id: true, name: true } })
+    prisma.user.findMany({ where: { role: "LECTURER", status: "ACTIVE" }, select: { id: true, name: true, email: true, phone: true } })
   ]);
 
   return (
@@ -45,7 +46,7 @@ export default async function SchedulePage() {
                   {item.homework ? <div className="mt-2 text-xs text-muted">作业：{item.homework}</div> : null}
                 </div>
                 <div className="text-sm text-muted">{item.startsAt.toLocaleString("zh-CN")}</div>
-                <div className="text-sm text-muted">授课：{item.lecturer?.name || "-"}</div>
+                <div className="text-sm text-muted">授课：{getUserDisplayName(item.lecturer)}</div>
                 <div className="text-sm text-brand-700">打卡 {item._count.attendanceRecords}</div>
               </div>
             ))}

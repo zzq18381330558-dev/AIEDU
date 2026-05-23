@@ -11,8 +11,8 @@ export async function GET() {
     where: classScopeWhere(auth.user),
     include: {
       campus: { select: { id: true, name: true } },
-      academicOwner: { select: { id: true, name: true } },
-      lecturer: { select: { id: true, name: true } },
+      academicOwner: { select: { id: true, name: true, email: true, phone: true } },
+      lecturer: { select: { id: true, name: true, email: true, phone: true } },
       _count: { select: { students: true, sessions: true } }
     },
     orderBy: { startAt: "desc" }
@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
       data: normalizeClassInput(body, { campusId: auth.user.campusId || String(body.campusId || "") }),
       include: {
         campus: { select: { id: true, name: true } },
-        academicOwner: { select: { id: true, name: true } },
-        lecturer: { select: { id: true, name: true } },
+        academicOwner: { select: { id: true, name: true, email: true, phone: true } },
+        lecturer: { select: { id: true, name: true, email: true, phone: true } },
         _count: { select: { students: true, sessions: true } }
       }
     });

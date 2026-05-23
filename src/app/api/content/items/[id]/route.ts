@@ -39,7 +39,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       return tx.teachingContent.findUniqueOrThrow({
         where: { id },
         include: {
-          author: { select: { id: true, name: true } },
+          author: { select: { id: true, name: true, email: true, phone: true } },
           _count: { select: { versions: true, reviews: true, publications: true, exports: true } }
         }
       });

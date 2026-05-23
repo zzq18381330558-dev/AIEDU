@@ -20,6 +20,7 @@ import {
 } from "@/lib/sop";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function SopDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser("/sop");
@@ -53,7 +54,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
         campus: { select: { id: true, name: true } },
         execution: { select: { id: true, owner: true } },
         checkIns: {
-          include: { user: { select: { name: true } } },
+          include: { user: { select: { name: true, email: true, phone: true } } },
           orderBy: { createdAt: "desc" },
           take: 3
         }
@@ -63,7 +64,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
     prisma.sopInspection.findMany({
       where: { sopTemplateId: id },
       include: {
-        inspector: { select: { name: true } },
+        inspector: { select: { name: true, email: true, phone: true } },
         execution: { include: { campus: { select: { name: true } } } }
       },
       orderBy: { createdAt: "desc" },
@@ -80,7 +81,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
       },
       include: {
         campus: { select: { id: true, name: true } },
-        reporter: { select: { name: true } },
+        reporter: { select: { name: true, email: true, phone: true } },
         execution: { select: { id: true, owner: true } }
       },
       orderBy: { weekStart: "desc" },
@@ -182,7 +183,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
                     <div className="mt-3 space-y-2">
                       {task.checkIns.map((checkIn) => (
                         <div key={checkIn.id} className="rounded-md border border-line bg-white px-3 py-2 text-xs leading-5 text-muted">
-                          <span className="font-semibold text-ink">{checkIn.user.name}</span>：{checkIn.note}
+                          <span className="font-semibold text-ink">{getUserDisplayName(checkIn.user)}</span>：{checkIn.note}
                           {checkIn.evidence ? <div>凭证：{checkIn.evidence}</div> : null}
                         </div>
                       ))}
@@ -235,7 +236,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
                     {item.score}
                   </div>
                 </div>
-                <div className="mt-1 text-xs text-muted">{item.inspector.name} / {item.createdAt.toLocaleString("zh-CN")}</div>
+                <div className="mt-1 text-xs text-muted">{getUserDisplayName(item.inspector)} / {item.createdAt.toLocaleString("zh-CN")}</div>
                 <p className="mt-2 text-sm leading-6 text-muted">{item.comment || "无检查意见"}</p>
               </div>
             ))}
@@ -251,7 +252,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="font-semibold text-ink">{item.campus.name} · {item.weekStart.toLocaleDateString("zh-CN")}</div>
-                  <div className="mt-1 text-xs text-muted">提交人：{item.reporter.name} / 责任人：{item.execution?.owner || "-"}</div>
+                  <div className="mt-1 text-xs text-muted">提交人：{getUserDisplayName(item.reporter)} / 责任人：{item.execution?.owner || "-"}</div>
                 </div>
               </div>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-ink">{item.summary}</p>

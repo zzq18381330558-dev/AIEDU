@@ -11,6 +11,7 @@ import { crmLabels } from "@/lib/crm";
 import { classScopeWhere, studentScopeWhere, studentServiceLabels } from "@/lib/student-service";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser("/student-service");
@@ -20,14 +21,14 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
     include: {
       campus: { select: { id: true, name: true } },
       class: { select: { id: true, name: true } },
-      academicOwner: { select: { id: true, name: true } },
-      salesOwner: { select: { id: true, name: true } },
+      academicOwner: { select: { id: true, name: true, email: true, phone: true } },
+      salesOwner: { select: { id: true, name: true, email: true, phone: true } },
       lead: { select: { id: true, sourceChannel: true, status: true, intentLevel: true, note: true, createdAt: true } },
-      tickets: { include: { owner: { select: { name: true } } }, orderBy: { createdAt: "desc" } },
+      tickets: { include: { owner: { select: { name: true, email: true, phone: true } } }, orderBy: { createdAt: "desc" } },
       studyPlans: { orderBy: { createdAt: "desc" } },
       reminders: { orderBy: { scheduledAt: "desc" }, take: 20 },
       attendanceRecords: {
-        include: { courseSession: { select: { id: true, title: true, startsAt: true, homework: true } }, recorder: { select: { name: true } } },
+        include: { courseSession: { select: { id: true, title: true, startsAt: true, homework: true } }, recorder: { select: { name: true, email: true, phone: true } } },
         orderBy: { createdAt: "desc" }
       }
     }
@@ -53,7 +54,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
       type: "服务记录",
       title: item.title,
       detail: item.aiSuggestion || "",
-      meta: `${studentServiceLabels.serviceTicketStatus[item.status]} / ${item.owner?.name || "系统"}`
+      meta: `${studentServiceLabels.serviceTicketStatus[item.status]} / ${getUserDisplayName(item.owner, "系统")}`
     })),
     ...student.attendanceRecords.map((item) => ({
       id: `attendance-${item.id}`,
@@ -61,7 +62,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
       type: "打卡记录",
       title: item.courseSession.title,
       detail: item.note || item.courseSession.homework || "",
-      meta: `${studentServiceLabels.attendanceStatus[item.status]} / ${item.recorder?.name || "系统"}`
+      meta: `${studentServiceLabels.attendanceStatus[item.status]} / ${getUserDisplayName(item.recorder, "系统")}`
     })),
     ...student.studyPlans.map((item) => ({
       id: `plan-${item.id}`,
@@ -113,8 +114,8 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
             <div>专业：{student.grade || ""} {student.major || ""}</div>
             <div>班型：{student.classType || "-"}</div>
             <div>班级：{student.class?.name || "未分班"}</div>
-            <div>教务：{student.academicOwner?.name || "未分配"}</div>
-            <div>招生：{student.salesOwner?.name || "未分配"}</div>
+            <div>教务：{getUserDisplayName(student.academicOwner, "未分配")}</div>
+            <div>招生：{getUserDisplayName(student.salesOwner, "未分配")}</div>
           </div>
         </div>
       </section>

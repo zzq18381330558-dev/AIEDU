@@ -4,6 +4,7 @@ import { ContentTabs } from "@/components/content/content-tabs";
 import { teachingContentLabels } from "@/lib/teaching-content";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function ContentVersionsPage({ params }: { params: Promise<{ id: string }> }) {
   await requireUser("/content");
@@ -12,7 +13,7 @@ export default async function ContentVersionsPage({ params }: { params: Promise<
     where: { id },
     include: {
       versions: { orderBy: { version: "desc" } },
-      reviews: { include: { reviewer: { select: { name: true } } }, orderBy: { createdAt: "desc" } },
+      reviews: { include: { reviewer: { select: { name: true, email: true, phone: true } } }, orderBy: { createdAt: "desc" } },
       exports: { orderBy: { createdAt: "desc" } }
     }
   });
@@ -60,7 +61,7 @@ export default async function ContentVersionsPage({ params }: { params: Promise<
         </div>
         <div className="space-y-4">
           <Side title="审核流程">
-            {content.reviews.map((review) => <div key={review.id} className="border-b border-line py-3 text-sm"><div className="font-medium text-ink">{teachingContentLabels.reviewAction[review.action]}</div><div className="text-xs text-muted">{review.reviewer.name} · {review.createdAt.toLocaleString("zh-CN")}</div><div className="mt-1 text-muted">{review.comment || "-"}</div></div>)}
+            {content.reviews.map((review) => <div key={review.id} className="border-b border-line py-3 text-sm"><div className="font-medium text-ink">{teachingContentLabels.reviewAction[review.action]}</div><div className="text-xs text-muted">{getUserDisplayName(review.reviewer)} · {review.createdAt.toLocaleString("zh-CN")}</div><div className="mt-1 text-muted">{review.comment || "-"}</div></div>)}
             {content.reviews.length === 0 ? <div className="py-3 text-sm text-muted">暂无审核记录。</div> : null}
           </Side>
           <Side title="导出记录">

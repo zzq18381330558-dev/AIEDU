@@ -10,8 +10,9 @@ import {
   settingsRoleOptions,
   userStatusOptions
 } from "@/lib/settings";
+import { getUserDisplayName } from "@/lib/user-display";
 
-type Option = { id: string; name: string };
+type Option = { id: string; name?: string | null; email?: string | null; phone?: string | null };
 
 type UserItem = {
   id: string;
@@ -68,6 +69,17 @@ export function SettingsDashboard({
   const filteredDictionaries = useMemo(
     () => dictionaries.filter((item) => !category || item.category === category),
     [category, dictionaries]
+  );
+  const userRoleGroups = useMemo(
+    () =>
+      (["ADMIN", "HQ_OPERATIONS", "CAMPUS_MANAGER", "ADMISSIONS_COUNSELOR", "ACADEMIC_TEACHER", "LECTURER"] as const).map(
+        (role) => ({
+          role,
+          label: settingsLabels.role[role],
+          users: users.filter((item) => item.role === role)
+        })
+      ),
+    [users]
   );
 
   async function reload() {
@@ -128,15 +140,8 @@ export function SettingsDashboard({
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-[#FAFBFC]">
-                    <Td className="font-medium">{user.name}</Td>
-                    <Td>{user.email}<div className="text-xs text-muted">{user.phone || "-"}</div></Td>
-                    <Td>{settingsLabels.role[user.role as keyof typeof settingsLabels.role] || user.role}</Td>
-                    <Td>{user.campus?.name || "总部"}</Td>
-                    <Td><StatusBadge active={user.status === "ACTIVE"} label={settingsLabels.userStatus[user.status as keyof typeof settingsLabels.userStatus]} /></Td>
-                    <Td><EditButton onClick={() => setUserModal(user)} /></Td>
-                  </tr>
+                {userRoleGroups.map((group) => (
+                  <RoleUserRows key={group.role} label={group.label} users={group.users} onEdit={setUserModal} />
                 ))}
                 {users.length === 0 ? (
                   <tr><td colSpan={6} className="px-4 py-10 text-center text-muted">暂无用户，可点击新建用户开通账号</td></tr>
@@ -179,7 +184,7 @@ export function SettingsDashboard({
                 <tr key={campus.id} className="hover:bg-[#FAFBFC]">
                   <Td><span className="font-medium">{campus.name}</span><div className="text-xs text-muted">{campus.code}</div></Td>
                   <Td>{campus.city}</Td>
-                  <Td>{campus.manager?.name || "-"}</Td>
+                  <Td>{getUserDisplayName(campus.manager)}</Td>
                   <Td>{campus.contactPhone || "-"}</Td>
                   <Td><StatusBadge active={campus.status === "ACTIVE"} label={settingsLabels.campusStatus[campus.status as keyof typeof settingsLabels.campusStatus]} /></Td>
                   <Td>{campus._count?.users || 0} 用户 / {campus._count?.students || 0} 学员</Td>
@@ -294,6 +299,39 @@ function Td({ children, className = "" }: { children: React.ReactNode; className
   return <td className={`whitespace-nowrap px-4 py-3 text-ink ${className}`}>{children}</td>;
 }
 
+function RoleUserRows({
+  label,
+  users,
+  onEdit
+}: {
+  label: string;
+  users: UserItem[];
+  onEdit: (user: UserItem) => void;
+}) {
+  return (
+    <>
+      <tr className="bg-[#F8FAFB]">
+        <td colSpan={6} className="px-4 py-2 text-xs font-semibold text-muted">{label}</td>
+      </tr>
+      {users.map((user) => (
+        <tr key={user.id} className="hover:bg-[#FAFBFC]">
+          <Td className="font-medium">{getUserDisplayName(user)}</Td>
+          <Td>{user.email || "-"}<div className="text-xs text-muted">{user.phone || "-"}</div></Td>
+          <Td>{settingsLabels.role[user.role as keyof typeof settingsLabels.role] || user.role}</Td>
+          <Td>{user.campus?.name || "总部"}</Td>
+          <Td><StatusBadge active={user.status === "ACTIVE"} label={settingsLabels.userStatus[user.status as keyof typeof settingsLabels.userStatus]} /></Td>
+          <Td><EditButton onClick={() => onEdit(user)} /></Td>
+        </tr>
+      ))}
+      {users.length === 0 ? (
+        <tr>
+          <td colSpan={6} className="px-4 py-3 text-sm text-muted">暂无{label}用户</td>
+        </tr>
+      ) : null}
+    </>
+  );
+}
+
 function BaseModal({ open, title, children, onClose }: { open: boolean; title: string; children: React.ReactNode; onClose: () => void }) {
   if (!open) return null;
   return (
@@ -339,13 +377,18 @@ function UserModal({ open, value, campuses, onClose, onSaved }: { open: boolean;
 }
 
 function CampusModal({ open, value, managers, onClose, onSaved }: { open: boolean; value: CampusItem | null; managers: Option[]; onClose: () => void; onSaved: () => Promise<void> }) {
+  const managerOptions = managers.map((item) => ({ value: item.id, label: getUserDisplayName(item) }));
+  if (value?.managerId && value.manager && !managerOptions.some((item) => item.value === value.managerId)) {
+    managerOptions.push({ value: value.managerId, label: getUserDisplayName(value.manager) });
+  }
+
   return (
     <BaseModal open={open} title={value ? "编辑校区" : "新建校区"} onClose={onClose}>
       <EntityForm endpoint={value ? `/api/settings/campuses/${value.id}` : "/api/settings/campuses"} method={value ? "PUT" : "POST"} onClose={onClose} onSaved={onSaved}>
         <Field label="校区名称" name="name" required defaultValue={value?.name} />
         <Field label="校区编码" name="code" required defaultValue={value?.code} />
         <Field label="城市" name="city" required defaultValue={value?.city} />
-        <Select label="负责人" name="managerId" options={[{ value: "", label: "暂不指定" }, ...managers.map((item) => ({ value: item.id, label: item.name }))]} defaultValue={value?.managerId || ""} />
+        <Select label="负责人" name="managerId" options={[{ value: "", label: "暂不指定" }, ...managerOptions]} defaultValue={value?.managerId || ""} />
         <Field label="联系方式" name="contactPhone" defaultValue={value?.contactPhone} />
         <Select label="校区状态" name="status" options={campusStatusOptions} defaultValue={value?.status || "ACTIVE"} />
         <label className="md:col-span-2">

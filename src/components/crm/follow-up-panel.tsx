@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { crmLabels, intentLevelOptions, leadStatusOptions } from "@/lib/crm";
+import { getUserDisplayName } from "@/lib/user-display";
 
 type FollowUp = {
   id: string;
@@ -12,7 +13,7 @@ type FollowUp = {
   intentLevel: string;
   followAt: string;
   nextAt?: string | null;
-  creator?: { name: string };
+  creator?: { name?: string | null; email?: string | null; phone?: string | null };
 };
 
 function dateTimeLocalValue(value?: string | null) {
@@ -99,7 +100,7 @@ export function FollowUpPanel({
           {items.map((item) => (
             <div key={item.id} className="p-5">
               <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="font-semibold text-ink">{item.creator?.name || "系统"}</span>
+                <span className="font-semibold text-ink">{getUserDisplayName(item.creator, "系统")}</span>
                 <span className="text-muted">{new Date(item.followAt).toLocaleString("zh-CN")}</span>
                 <span className="rounded-md bg-brand-50 px-2 py-1 text-xs text-brand-700">
                   {crmLabels.status[item.status as keyof typeof crmLabels.status]}

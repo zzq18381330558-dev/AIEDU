@@ -11,8 +11,9 @@ import {
   sourceChannelOptions
 } from "@/lib/crm";
 import { LeadModal, type LeadModalValue } from "@/components/crm/lead-modal";
+import { getUserDisplayName } from "@/lib/user-display";
 
-type Option = { id: string; name: string };
+type Option = { id: string; name?: string | null; email?: string | null; phone?: string | null };
 type LeadItem = LeadModalValue & {
   id: string;
   campus?: Option;
@@ -204,7 +205,7 @@ export function CrmDashboard({
                     <Td>{crmLabels.examTrack[lead.examTrack as keyof typeof crmLabels.examTrack] || "-"}</Td>
                     <Td>{crmLabels.sourceChannel[lead.sourceChannel as keyof typeof crmLabels.sourceChannel] || "-"}</Td>
                     <Td>{lead.campus?.name || "-"}</Td>
-                    <Td>{lead.assignee?.name || "未分配"}</Td>
+                    <Td>{getUserDisplayName(lead.assignee, "未分配")}</Td>
                     <Td>{crmLabels.intentLevel[lead.intentLevel as keyof typeof crmLabels.intentLevel] || "-"}</Td>
                     <Td>{crmLabels.status[lead.status as keyof typeof crmLabels.status] || "-"}</Td>
                     <Td>{lead.nextFollowUpAt ? new Date(lead.nextFollowUpAt).toLocaleString("zh-CN") : "-"}</Td>
@@ -253,7 +254,7 @@ export function CrmDashboard({
             <select name="assigneeId" className="mt-3 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
               <option value="">导入后暂不分配</option>
               {counselors.map((user) => (
-                <option key={user.id} value={user.id}>{user.name}</option>
+                <option key={user.id} value={user.id}>{getUserDisplayName(user)}</option>
               ))}
             </select>
             <input name="file" type="file" accept=".xlsx,.xls,.csv" required className="mt-3 w-full text-sm" />

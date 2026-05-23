@@ -13,8 +13,8 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
     include: {
       campus: { select: { id: true, name: true } },
       class: { select: { id: true, name: true } },
-      academicOwner: { select: { id: true, name: true } },
-      salesOwner: { select: { id: true, name: true } },
+      academicOwner: { select: { id: true, name: true, email: true, phone: true } },
+      salesOwner: { select: { id: true, name: true, email: true, phone: true } },
       lead: { select: { id: true, sourceChannel: true, status: true, intentLevel: true, note: true, createdAt: true } }
     }
   });
@@ -45,8 +45,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       include: {
         campus: { select: { id: true, name: true } },
         class: { select: { id: true, name: true } },
-        academicOwner: { select: { id: true, name: true } },
-        salesOwner: { select: { id: true, name: true } }
+        academicOwner: { select: { id: true, name: true, email: true, phone: true } },
+        salesOwner: { select: { id: true, name: true, email: true, phone: true } }
       }
     });
     return NextResponse.json({ item });

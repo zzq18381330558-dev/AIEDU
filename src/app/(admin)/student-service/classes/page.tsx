@@ -3,6 +3,7 @@ import { ClassCreateForm } from "@/components/student-service/simple-create-form
 import { classScopeWhere, studentServiceLabels } from "@/lib/student-service";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function ClassesPage() {
   const user = await requireUser("/student-service");
@@ -18,15 +19,15 @@ export default async function ClassesPage() {
       where: classScopeWhere(user),
       include: {
         campus: { select: { name: true } },
-        academicOwner: { select: { name: true } },
-        lecturer: { select: { name: true } },
+        academicOwner: { select: { name: true, email: true, phone: true } },
+        lecturer: { select: { name: true, email: true, phone: true } },
         _count: { select: { students: true, sessions: true } }
       },
       orderBy: { startAt: "desc" }
     }),
     prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: { role: "ACADEMIC_TEACHER", status: "ACTIVE" }, select: { id: true, name: true } }),
-    prisma.user.findMany({ where: { role: "LECTURER", status: "ACTIVE" }, select: { id: true, name: true } })
+    prisma.user.findMany({ where: { role: "ACADEMIC_TEACHER", status: "ACTIVE" }, select: { id: true, name: true, email: true, phone: true } }),
+    prisma.user.findMany({ where: { role: "LECTURER", status: "ACTIVE" }, select: { id: true, name: true, email: true, phone: true } })
   ]);
 
   return (
@@ -54,8 +55,8 @@ export default async function ClassesPage() {
                   <Td className="font-semibold">{item.name}</Td>
                   <Td>{item.campus.name}</Td>
                   <Td>{item.startAt.toLocaleString("zh-CN")}</Td>
-                  <Td>{item.academicOwner?.name || "-"}</Td>
-                  <Td>{item.lecturer?.name || "-"}</Td>
+                  <Td>{getUserDisplayName(item.academicOwner)}</Td>
+                  <Td>{getUserDisplayName(item.lecturer)}</Td>
                   <Td>{studentServiceLabels.examTrack[item.examTrack]}</Td>
                   <Td>{item._count.students}</Td>
                   <Td>{item._count.sessions}</Td>

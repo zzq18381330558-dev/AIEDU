@@ -27,8 +27,8 @@ export default async function AnalyticsPage({
         : { id: "__none__" };
 
   const [leads, students, attendance, courseSessions, wrongQuestionRecords, campuses, counselors, reports] = await Promise.all([
-    prisma.lead.findMany({ where: leadWhere, include: { campus: { select: { name: true } }, assignee: { select: { name: true } } } }),
-    prisma.student.findMany({ where: studentWhere, include: { campus: { select: { name: true } }, class: { select: { name: true } }, salesOwner: { select: { name: true } } } }),
+    prisma.lead.findMany({ where: leadWhere, include: { campus: { select: { name: true } }, assignee: { select: { name: true, email: true, phone: true } } } }),
+    prisma.student.findMany({ where: studentWhere, include: { campus: { select: { name: true } }, class: { select: { name: true } }, salesOwner: { select: { name: true, email: true, phone: true } } } }),
     prisma.attendanceRecord.findMany({ where: attendanceWhere, include: { courseSession: { select: { homework: true, class: { select: { id: true, name: true } } } } } }),
     prisma.courseSession.findMany({ where: courseSessionWhere, select: { startsAt: true, endsAt: true } }),
     prisma.wrongQuestionRecord.findMany({
@@ -36,7 +36,7 @@ export default async function AnalyticsPage({
       include: { question: { select: { subject: true, chapter: true, knowledgePoint: true, difficulty: true } } }
     }),
     prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: { role: "ADMISSIONS_COUNSELOR", status: "ACTIVE", ...(filters.campusId ? { campusId: filters.campusId } : {}) }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { role: "ADMISSIONS_COUNSELOR", status: "ACTIVE", ...(filters.campusId ? { campusId: filters.campusId } : {}) }, select: { id: true, name: true, email: true, phone: true }, orderBy: { name: "asc" } }),
     prisma.analyticsDailyReport.findMany({ orderBy: { reportDate: "desc" }, take: 5 })
   ]);
 

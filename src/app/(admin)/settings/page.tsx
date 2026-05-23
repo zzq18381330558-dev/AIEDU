@@ -14,7 +14,7 @@ export default async function SettingsPage() {
     prisma.campus.findMany({
       where: { organizationId: user.organizationId },
       include: {
-        manager: { select: { id: true, name: true } },
+        manager: { select: { id: true, name: true, email: true, phone: true } },
         _count: { select: { users: true, leads: true, students: true } }
       },
       orderBy: [{ status: "asc" }, { name: "asc" }]
@@ -29,7 +29,7 @@ export default async function SettingsPage() {
         role: { in: ["ADMIN", "CAMPUS_MANAGER"] },
         status: "ACTIVE"
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, email: true, phone: true },
       orderBy: { name: "asc" }
     })
   ]);

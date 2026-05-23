@@ -6,6 +6,7 @@ import { StudentCreateForm } from "@/components/student-service/simple-create-fo
 import { studentServiceLabels, studentScopeWhere, classScopeWhere } from "@/lib/student-service";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function StudentServicePage() {
   const user = await requireUser("/student-service");
@@ -23,8 +24,8 @@ export default async function StudentServicePage() {
       include: {
         campus: { select: { name: true } },
         class: { select: { name: true } },
-        academicOwner: { select: { name: true } },
-        salesOwner: { select: { name: true } },
+        academicOwner: { select: { name: true, email: true, phone: true } },
+        salesOwner: { select: { name: true, email: true, phone: true } },
         _count: { select: { studyPlans: true, attendanceRecords: true } }
       },
       orderBy: { updatedAt: "desc" },
@@ -34,12 +35,12 @@ export default async function StudentServicePage() {
     prisma.studentClass.findMany({ where: classScopeWhere(user), select: { id: true, name: true }, orderBy: { startAt: "desc" } }),
     prisma.user.findMany({
       where: { role: "ACADEMIC_TEACHER", status: "ACTIVE", ...(user.campusId ? { campusId: user.campusId } : {}) },
-      select: { id: true, name: true },
+      select: { id: true, name: true, email: true, phone: true },
       orderBy: { name: "asc" }
     }),
     prisma.user.findMany({
       where: { role: "ADMISSIONS_COUNSELOR", status: "ACTIVE", ...(user.campusId ? { campusId: user.campusId } : {}) },
-      select: { id: true, name: true },
+      select: { id: true, name: true, email: true, phone: true },
       orderBy: { name: "asc" }
     }),
     prisma.studyPlan.count({ where: { student: scope } }),
@@ -102,7 +103,7 @@ export default async function StudentServicePage() {
                     <Td>{student.classType || "-"}</Td>
                     <Td>{studentServiceLabels.examTrack[student.examTrack]}</Td>
                     <Td>{student.class?.name || "未分班"}</Td>
-                    <Td>{student.academicOwner?.name || "未分配"}</Td>
+                    <Td>{getUserDisplayName(student.academicOwner, "未分配")}</Td>
                     <Td>{studentServiceLabels.studyStatus[student.studyStatus]}</Td>
                     <Td className="max-w-xs whitespace-normal">{student.serviceNote || "-"}</Td>
                     <Td><AiStudentActions studentId={student.id} /></Td>

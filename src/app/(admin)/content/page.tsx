@@ -4,13 +4,14 @@ import { ContentTabs } from "@/components/content/content-tabs";
 import { teachingContentLabels } from "@/lib/teaching-content";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function ContentPage() {
   const user = await requireUser("/content");
   const [items, campuses, templates, keyPoints, draftCount, reviewingCount, publishedCount] = await Promise.all([
     prisma.teachingContent.findMany({
       include: {
-        author: { select: { name: true } },
+        author: { select: { name: true, email: true, phone: true } },
         _count: { select: { versions: true, reviews: true, publications: true, exports: true } }
       },
       orderBy: { updatedAt: "desc" },
@@ -86,7 +87,7 @@ export default async function ContentPage() {
                   <Td>{item.category}</Td>
                   <Td>{teachingContentLabels.status[item.status]}</Td>
                   <Td>v{item.currentVersion}<div className="text-xs text-muted">{item._count.versions} 条</div></Td>
-                  <Td>{item.author.name}</Td>
+                  <Td>{getUserDisplayName(item.author)}</Td>
                   <Td>{item._count.publications}</Td>
                   <Td><ContentActions id={item.id} campuses={campuses} templates={templates} keyPoints={keyPoints} /></Td>
                 </tr>

@@ -10,8 +10,9 @@ import {
   studyStatusOptions
 } from "@/lib/student-service";
 import { examTrackOptions } from "@/lib/crm";
+import { getUserDisplayName } from "@/lib/user-display";
 
-type Option = { id: string; name: string };
+type Option = { id: string; name?: string | null; email?: string | null; phone?: string | null };
 
 export function StudentCreateForm({
   campuses,
@@ -261,7 +262,7 @@ function Select({ name, options }: { name: string; options: Option[] }) {
     <select name={name} className="h-10 rounded-md border border-line bg-white px-3 text-sm">
       {options.map((option) => (
         <option key={option.id || "empty"} value={option.id}>
-          {option.name}
+          {getUserDisplayName(option, option.name || "-")}
         </option>
       ))}
     </select>

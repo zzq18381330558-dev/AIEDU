@@ -3,6 +3,7 @@ import { ServiceTabs } from "@/components/student-service/service-tabs";
 import { classScopeWhere, studentScopeWhere } from "@/lib/student-service";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function AbsencesPage() {
   const user = await requireUser("/student-service");
@@ -14,7 +15,7 @@ export default async function AbsencesPage() {
         status: "ABSENT"
       },
       include: {
-        student: { select: { name: true, phone: true, school: true, academicOwner: { select: { name: true } } } },
+        student: { select: { name: true, phone: true, school: true, academicOwner: { select: { name: true, email: true, phone: true } } } },
         courseSession: { select: { title: true, startsAt: true, class: { select: { name: true } } } }
       },
       orderBy: { createdAt: "desc" },
@@ -28,7 +29,7 @@ export default async function AbsencesPage() {
             name: true,
             students: {
               where: studentScopeWhere(user),
-              select: { id: true, name: true, phone: true, school: true, enrolledAt: true, academicOwner: { select: { name: true } } }
+              select: { id: true, name: true, phone: true, school: true, enrolledAt: true, academicOwner: { select: { name: true, email: true, phone: true } } }
             }
           }
         },
@@ -89,7 +90,7 @@ export default async function AbsencesPage() {
                 {item.courseSession.startsAt.toLocaleString("zh-CN")}
                 {item.inferred ? <div className="mt-1 text-xs text-red-700">未打卡自动识别</div> : null}
               </div>
-              <div className="text-sm text-brand-700">教务：{item.student.academicOwner?.name || "未分配"}</div>
+              <div className="text-sm text-brand-700">教务：{getUserDisplayName(item.student.academicOwner, "未分配")}</div>
             </div>
           ))}
           {absences.length === 0 ? <div className="p-12 text-center text-sm text-muted">暂无缺课提醒。已开课课程的缺课记录和未打卡学员会自动汇总到这里。</div> : null}

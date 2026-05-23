@@ -25,7 +25,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
           note: input.note,
           evidence: input.evidence
         },
-        include: { user: { select: { id: true, name: true } } }
+        include: { user: { select: { id: true, name: true, email: true, phone: true } } }
       });
       await tx.sopTask.update({
         where: { id },

@@ -24,7 +24,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       return tx.teachingContent.update({
         where: { id },
         data: { status: nextStatusByAction(action) },
-        include: { reviews: { include: { reviewer: { select: { name: true } } }, orderBy: { createdAt: "desc" } } }
+        include: { reviews: { include: { reviewer: { select: { name: true, email: true, phone: true } } }, orderBy: { createdAt: "desc" } } }
       });
     });
     return NextResponse.json({ item });

@@ -3,6 +3,7 @@ import { Bell } from "lucide-react";
 import { crmLabels, getTodayRange, leadScopeWhere } from "@/lib/crm";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function RemindersPage() {
   const user = await requireUser("/crm");
@@ -14,7 +15,7 @@ export default async function RemindersPage() {
     },
     include: {
       campus: { select: { name: true } },
-      assignee: { select: { name: true } }
+      assignee: { select: { name: true, email: true, phone: true } }
     },
     orderBy: { nextFollowUpAt: "asc" }
   });
@@ -48,7 +49,7 @@ export default async function RemindersPage() {
                 <div className="mt-1 text-sm text-muted">{lead.phone} · {lead.school || "未填写学校"}</div>
               </div>
               <div className="text-sm text-muted">状态：{crmLabels.status[lead.status]}</div>
-              <div className="text-sm text-muted">老师：{lead.assignee?.name || "未分配"}</div>
+              <div className="text-sm text-muted">老师：{getUserDisplayName(lead.assignee, "未分配")}</div>
               <div className="text-sm font-medium text-brand-700">{lead.nextFollowUpAt?.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</div>
             </Link>
           ))}

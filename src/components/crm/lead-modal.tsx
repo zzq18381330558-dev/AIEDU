@@ -8,8 +8,9 @@ import {
   leadStatusOptions,
   sourceChannelOptions
 } from "@/lib/crm";
+import { getUserDisplayName } from "@/lib/user-display";
 
-type Option = { id: string; name: string };
+type Option = { id: string; name?: string | null; email?: string | null; phone?: string | null };
 
 export type LeadModalValue = {
   id?: string;
@@ -97,11 +98,11 @@ export function LeadModal({
             options={sourceChannelOptions}
             defaultValue={value?.sourceChannel || "OTHER"}
           />
-          <Select label="所属校区" name="campusId" options={campuses.map((item) => ({ value: item.id, label: item.name }))} defaultValue={value?.campusId || campuses[0]?.id} />
+          <Select label="所属校区" name="campusId" options={campuses.map((item) => ({ value: item.id, label: item.name || "-" }))} defaultValue={value?.campusId || campuses[0]?.id} />
           <Select
             label="招生老师"
             name="assigneeId"
-            options={[{ value: "", label: "暂不分配" }, ...counselors.map((item) => ({ value: item.id, label: item.name }))]}
+            options={[{ value: "", label: "暂不分配" }, ...counselors.map((item) => ({ value: item.id, label: getUserDisplayName(item) }))]}
             defaultValue={value?.assigneeId || ""}
           />
           <Select

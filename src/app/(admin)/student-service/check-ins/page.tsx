@@ -3,6 +3,7 @@ import { AttendanceCreateForm } from "@/components/student-service/simple-create
 import { studentScopeWhere, classScopeWhere, studentServiceLabels } from "@/lib/student-service";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { getUserDisplayName } from "@/lib/user-display";
 
 export default async function CheckInsPage() {
   const user = await requireUser("/student-service");
@@ -12,7 +13,7 @@ export default async function CheckInsPage() {
       include: {
         student: { select: { id: true, name: true, school: true } },
         courseSession: { select: { id: true, title: true, startsAt: true, class: { select: { name: true } } } },
-        recorder: { select: { name: true } }
+        recorder: { select: { name: true, email: true, phone: true } }
       },
       orderBy: { createdAt: "desc" },
       take: 200
@@ -42,7 +43,7 @@ export default async function CheckInsPage() {
                 </div>
                 <div><AttendanceBadge status={item.status} /></div>
                 <div className="text-sm text-muted">{item.checkInAt ? item.checkInAt.toLocaleString("zh-CN") : "-"}</div>
-                <div className="text-sm text-muted">{item.recorder?.name || "-"}</div>
+                <div className="text-sm text-muted">{getUserDisplayName(item.recorder)}</div>
               </div>
             ))}
             {records.length === 0 ? <div className="p-12 text-center text-sm text-muted">暂无打卡记录。新建课程并登记学员到课、迟到、请假或缺课后会显示在这里。</div> : null}

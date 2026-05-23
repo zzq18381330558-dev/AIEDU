@@ -12,7 +12,7 @@ export async function GET() {
     include: {
       class: { select: { id: true, name: true } },
       campus: { select: { id: true, name: true } },
-      lecturer: { select: { id: true, name: true } },
+      lecturer: { select: { id: true, name: true, email: true, phone: true } },
       _count: { select: { attendanceRecords: true, reminders: true } }
     },
     orderBy: { startsAt: "asc" },
