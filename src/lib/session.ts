@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { canAccess, roleHome } from "@/lib/roles";
 
 const COOKIE_NAME = "ai_edu_session";
+const DEFAULT_SESSION_SECRET = "local-dev-session-secret-change-me";
 
 export type SessionUser = {
   id: string;
@@ -24,7 +25,11 @@ type SessionPayload = {
 };
 
 function getSecret() {
-  return process.env.SESSION_SECRET || "local-dev-session-secret-change-me";
+  const secret = process.env.SESSION_SECRET || DEFAULT_SESSION_SECRET;
+  if (process.env.NODE_ENV === "production" && secret === DEFAULT_SESSION_SECRET) {
+    throw new Error("生产环境必须配置强随机 SESSION_SECRET，不能使用默认开发密钥。");
+  }
+  return secret;
 }
 
 function sign(value: string) {
