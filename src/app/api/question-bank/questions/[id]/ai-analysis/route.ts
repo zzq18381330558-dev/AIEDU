@@ -18,8 +18,9 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       where: { id },
       data: { analysis },
       include: {
-        bank: { select: { id: true, name: true } },
-        _count: { select: { wrongRecords: true, paperItems: true } }
+      bank: { select: { id: true, name: true } },
+      paper: { select: { id: true, title: true } },
+      _count: { select: { wrongRecords: true, paperItems: true } }
       }
     });
     return NextResponse.json({ item });

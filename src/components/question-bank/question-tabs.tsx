@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const tabs = [
   { href: "/question-bank", label: "题目列表", icon: BookOpenCheck },
-  { href: "/question-bank/papers", label: "自动组卷", icon: FileStack },
+  { href: "/question-bank/papers", label: "试卷管理", icon: FileStack },
   { href: "/question-bank/wrong-questions", label: "错题本", icon: NotebookPen },
   { href: "/question-bank/weakness", label: "薄弱分析", icon: BarChart3 }
 ];

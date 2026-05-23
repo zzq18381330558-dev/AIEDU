@@ -15,6 +15,7 @@ export default async function QuestionDetailPage({ params }: { params: Promise<{
       where: { id },
       include: {
         bank: { select: { name: true } },
+        paper: { select: { id: true, title: true } },
         paperItems: { include: { paper: { select: { id: true, title: true } } }, take: 8 },
         wrongRecords: {
           include: { student: { select: { name: true, school: true } } },
@@ -67,8 +68,9 @@ export default async function QuestionDetailPage({ params }: { params: Promise<{
               <Info label="难度" value={`${question.difficulty}/5`} />
               <Info label="来源" value={questionBankLabels.source[question.source]} />
               <Info label="年份" value={question.year ? String(question.year) : "-"} />
+              <Info label="题号/分值" value={`${question.questionNo || "-"} / ${question.score ?? "-"}`} />
               <Info label="标签" value={question.highFrequencyTags.length ? question.highFrequencyTags.join("、") : "-"} />
-              <Info label="题库" value={question.bank?.name || "-"} />
+              <Info label="所属试卷" value={question.paper?.title || question.bank?.name || "-"} />
             </div>
           </Panel>
           <Panel title="选项与答案">
@@ -107,7 +109,12 @@ export default async function QuestionDetailPage({ params }: { params: Promise<{
                   {item.paper.title}
                 </div>
               ))}
-              {question.paperItems.length === 0 ? <Empty icon={FileStack} text="暂无关联试卷" /> : null}
+              {question.paper ? (
+                <Link href={`/question-bank/papers/${question.paper.id}`} className="rounded-md border border-line p-3 text-sm text-ink hover:border-brand-300">
+                  {question.paper.title}
+                </Link>
+              ) : null}
+              {question.paperItems.length === 0 && !question.paper ? <Empty icon={FileStack} text="暂无关联试卷" /> : null}
             </div>
           </Panel>
         </aside>

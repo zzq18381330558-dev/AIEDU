@@ -10,7 +10,7 @@ export function PaperGenerator() {
     const response = await fetch("/api/question-bank/papers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(Object.fromEntries(formData.entries()))
+      body: JSON.stringify({ ...Object.fromEntries(formData.entries()), mode: "auto-generate" })
     });
     const data = await response.json();
     if (!response.ok) {

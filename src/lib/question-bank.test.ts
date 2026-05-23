@@ -4,6 +4,9 @@ import {
   buildAiAnalysis,
   buildPaperStrategy,
   buildWeaknessRows,
+  normalizePaperInput,
+  normalizePaperQuestionImportRow,
+  validateImportHeaders,
   normalizeImportQuestionRow,
   normalizeQuestionInput
 } from "./question-bank";
@@ -75,6 +78,56 @@ test("buildPaperStrategy clamps count and difficulty", () => {
   assert.equal(strategy.difficultyTo, 5);
   assert.equal(strategy.type, "SHORT_ANSWER");
   assert.deepEqual(strategy.tags, ["学生观", "教师观"]);
+});
+
+test("normalizePaperInput validates paper metadata", () => {
+  const result = normalizePaperInput({
+    name: "2024下半年中学综合素质真题",
+    type: "REAL_EXAM",
+    subject: "COMPREHENSIVE_QUALITY",
+    stage: "MIDDLE",
+    year: "2024",
+    totalScore: "150",
+    duration: "120",
+    difficulty: "HARD"
+  });
+
+  assert.equal(result.title, "2024下半年中学综合素质真题");
+  assert.equal(result.paperType, "REAL_EXAM");
+  assert.equal(result.stage, "MIDDLE");
+  assert.equal(result.totalScore, 150);
+});
+
+test("normalizePaperQuestionImportRow maps set-import columns", () => {
+  const result = normalizePaperQuestionImportRow(
+    {
+      题号: "1",
+      题型: "单选题",
+      题目: "下列说法正确的是",
+      选项A: "正确项",
+      选项B: "干扰项",
+      正确答案: "A",
+      难度: "中等",
+      考点: "学生观",
+      分值: "2"
+    },
+    {
+      paperId: "paper-1",
+      subject: "COMPREHENSIVE_QUALITY",
+      year: 2024,
+      source: "REAL_EXAM"
+    }
+  );
+
+  assert.equal(result.paperId, "paper-1");
+  assert.equal(result.questionNo, "1");
+  assert.equal(result.type, "SINGLE_CHOICE");
+  assert.equal(result.difficulty, 3);
+  assert.equal(result.score, 2);
+});
+
+test("validateImportHeaders reports missing Chinese columns", () => {
+  assert.throws(() => validateImportHeaders(["题号", "题型"], ["题号", "题目"]), /缺少关键列：题目/);
 });
 
 test("buildWeaknessRows ranks unmastered difficult knowledge points", () => {

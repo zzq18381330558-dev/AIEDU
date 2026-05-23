@@ -1,7 +1,9 @@
 import type {
   ContentReviewAction,
   ContentStatus,
+  TeachingContentTemplate,
   TeachingContentType,
+  TeachingKeyPoint,
   UserRole
 } from "@prisma/client";
 
@@ -87,6 +89,110 @@ export function normalizeContentInput(input: Record<string, unknown>, defaults: 
     summary: nullableText(input.summary),
     body: body || null
   };
+}
+
+export function normalizeTemplateInput(input: Record<string, unknown>) {
+  const name = text(input.name);
+  const subject = text(input.subject);
+  const chapter = text(input.chapter);
+  const structureMarkdown = text(input.structureMarkdown);
+  if (!name) throw new Error("请输入模板名称");
+  if (!subject) throw new Error("请输入适用科目");
+  if (!chapter) throw new Error("请输入适用章节");
+  if (!structureMarkdown) throw new Error("请输入模板结构 Markdown");
+
+  return {
+    name,
+    subject,
+    chapter,
+    type: enumOr(input.type, typeValues, "COURSE_HANDOUT"),
+    structureMarkdown,
+    enabled: input.enabled !== "false" && input.enabled !== false
+  };
+}
+
+export function normalizeKeyPointInput(input: Record<string, unknown>) {
+  const subject = text(input.subject);
+  const chapter = text(input.chapter);
+  const name = text(input.name);
+  const questionTypes = text(input.questionTypes);
+  const direction = text(input.direction);
+  const mistakes = text(input.mistakes);
+  const keywords = text(input.keywords);
+  const frequency = Number(input.frequency || 3);
+  if (!subject) throw new Error("请输入科目");
+  if (!chapter) throw new Error("请输入章节");
+  if (!name) throw new Error("请输入考点名称");
+  if (!Number.isInteger(frequency) || frequency < 1 || frequency > 5) throw new Error("高频指数需为 1-5");
+  if (!questionTypes) throw new Error("请输入常考题型");
+  if (!direction) throw new Error("请输入命题方向");
+  if (!mistakes) throw new Error("请输入易错点");
+  if (!keywords) throw new Error("请输入关键词");
+
+  return {
+    subject,
+    chapter,
+    name,
+    frequency,
+    questionTypes,
+    direction,
+    mistakes,
+    keywords,
+    note: nullableText(input.note)
+  };
+}
+
+export function buildTemplateDrivenDraft(input: {
+  title: string;
+  type: TeachingContentType;
+  category: string;
+  subject: string;
+  chapter: string;
+  template: Pick<TeachingContentTemplate, "name" | "structureMarkdown">;
+  keyPoints: Array<Pick<TeachingKeyPoint, "name" | "frequency" | "questionTypes" | "direction" | "mistakes" | "keywords" | "note">>;
+}) {
+  if (input.keyPoints.length === 0) throw new Error("请选择至少一个高频考点");
+  const typeLabel = teachingContentLabels.type[input.type];
+  const keyPointText = input.keyPoints
+    .map((point, index) => [
+      `${index + 1}. ${point.name}（高频指数：${point.frequency}/5）`,
+      `   - 常考题型：${point.questionTypes}`,
+      `   - 命题方向：${point.direction}`,
+      `   - 易错点：${point.mistakes}`,
+      `   - 关键词：${point.keywords}`,
+      point.note ? `   - 备注：${point.note}` : null
+    ].filter(Boolean).join("\n"))
+    .join("\n");
+
+  return [
+    `# ${input.title}`,
+    "",
+    "## AI 生成约束",
+    "- 本初稿必须按照下方模板结构输出，不允许脱离模板自由生成。",
+    "- 每个核心段落必须引用至少一个高频考点、命题方向或易错点。",
+    "- 未在模板结构和高频考点中出现的信息，只能作为教学衔接补充，不得替代核心内容。",
+    "",
+    "## 基础信息",
+    `- 内容类型：${typeLabel}`,
+    `- 内容分类：${input.category}`,
+    `- 适用科目：${input.subject}`,
+    `- 适用章节：${input.chapter}`,
+    `- 使用模板：${input.template.name}`,
+    "",
+    "## 模板结构 Markdown",
+    input.template.structureMarkdown,
+    "",
+    "## 高频考点与命题依据",
+    keyPointText,
+    "",
+    "## 按模板生成的内容初稿",
+    input.template.structureMarkdown,
+    "",
+    "## 教研审核关注点",
+    "- 模板栏目是否完整保留。",
+    "- 高频考点、命题方向、易错点是否准确进入正文。",
+    "- 是否便于校区老师直接授课、出卷或制作课件。"
+  ].join("\n");
 }
 
 export function buildAiDraft(input: {

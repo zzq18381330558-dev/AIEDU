@@ -538,6 +538,9 @@ model QuestionBank {
 model Question {
   id             String          @id @default(cuid())
   questionBankId String?
+  paperId        String?
+  questionNo     String?
+  score          Int?
   subject        QuestionSubject
   chapter        String
   knowledgePoint String
@@ -551,12 +554,15 @@ model Question {
   source         QuestionSource  @default(ORIGINAL)
   year           Int?
   bank           QuestionBank?   @relation(fields: [questionBankId], references: [id])
+  paper          ExamPaper?      @relation("PaperQuestions", fields: [paperId], references: [id], onDelete: SetNull)
   paperItems     ExamPaperQuestion[]
   wrongRecords   WrongQuestionRecord[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   @@index([questionBankId])
+  @@index([paperId])
+  @@index([questionNo])
   @@index([subject])
   @@index([chapter])
   @@index([knowledgePoint])
@@ -570,18 +576,30 @@ model ExamPaper {
   id             String        @id @default(cuid())
   questionBankId String?
   title          String
+  paperType      String        @default("MOCK")
   subject        QuestionSubject
+  stage          String?
+  year           Int?
+  region         String?
+  source         String?
   totalScore     Int           @default(100)
   durationMinutes Int          @default(120)
+  questionCount  Int           @default(0)
+  difficulty     String        @default("MEDIUM")
+  description    String?
   status         PaperStatus   @default(DRAFT)
   strategy       Json?
   bank           QuestionBank? @relation(fields: [questionBankId], references: [id])
   questions      ExamPaperQuestion[]
+  paperQuestions Question[]    @relation("PaperQuestions")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   @@index([questionBankId])
+  @@index([paperType])
   @@index([subject])
+  @@index([stage])
+  @@index([year])
   @@index([status])
 }
 
@@ -693,6 +711,42 @@ model TeachingContentExport {
 
   @@index([contentId])
   @@index([format])
+}
+
+model TeachingContentTemplate {
+  id                String              @id @default(cuid())
+  name              String
+  subject           String
+  chapter           String
+  type              TeachingContentType
+  structureMarkdown String
+  enabled           Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([subject])
+  @@index([chapter])
+  @@index([type])
+  @@index([enabled])
+}
+
+model TeachingKeyPoint {
+  id             String   @id @default(cuid())
+  subject        String
+  chapter        String
+  name           String
+  frequency      Int
+  questionTypes  String
+  direction      String
+  mistakes       String
+  keywords       String
+  note           String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([subject])
+  @@index([chapter])
+  @@index([frequency])
 }
 
 model AnalyticsMetric {

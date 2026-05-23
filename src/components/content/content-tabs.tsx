@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, FolderKanban, Plus } from "lucide-react";
+import { FileText, FolderKanban, Layers, Lightbulb, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { href: "/content", label: "内容库", icon: FolderKanban },
   { href: "/content/new", label: "新建内容", icon: Plus },
+  { href: "/content/templates", label: "教研模板库", icon: Layers },
+  { href: "/content/key-points", label: "高频考点库", icon: Lightbulb },
   { href: "/content/campus-materials", label: "校区资料中心", icon: FileText }
 ];
 

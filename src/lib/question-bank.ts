@@ -1,4 +1,5 @@
 import type {
+  PaperStatus,
   Prisma,
   QuestionSource,
   QuestionSubject,
@@ -30,6 +31,24 @@ export const questionSourceOptions: Array<{ value: QuestionSource; label: string
   { value: "ORIGINAL", label: "自编题" }
 ];
 
+export const paperTypeOptions = [
+  { value: "REAL_EXAM", label: "真题卷" },
+  { value: "MOCK", label: "模拟卷" },
+  { value: "SPECIAL", label: "专项卷" }
+] as const;
+
+export const paperDifficultyOptions = [
+  { value: "EASY", label: "简单" },
+  { value: "MEDIUM", label: "中等" },
+  { value: "HARD", label: "困难" }
+] as const;
+
+export const paperStageOptions = [
+  { value: "INFANT", label: "幼儿" },
+  { value: "PRIMARY", label: "小学" },
+  { value: "MIDDLE", label: "中学" }
+] as const;
+
 export const questionBankLabels = {
   subject: Object.fromEntries(subjectOptions.map((item) => [item.value, item.label])) as Record<
     QuestionSubject,
@@ -42,12 +61,28 @@ export const questionBankLabels = {
   source: Object.fromEntries(questionSourceOptions.map((item) => [item.value, item.label])) as Record<
     QuestionSource,
     string
+  >,
+  paperType: Object.fromEntries(paperTypeOptions.map((item) => [item.value, item.label])) as Record<
+    (typeof paperTypeOptions)[number]["value"],
+    string
+  >,
+  paperDifficulty: Object.fromEntries(paperDifficultyOptions.map((item) => [item.value, item.label])) as Record<
+    (typeof paperDifficultyOptions)[number]["value"],
+    string
+  >,
+  paperStage: Object.fromEntries(paperStageOptions.map((item) => [item.value, item.label])) as Record<
+    (typeof paperStageOptions)[number]["value"],
+    string
   >
 };
 
 const subjectValues = subjectOptions.map((item) => item.value);
 const typeValues = questionTypeOptions.map((item) => item.value);
 const sourceValues = questionSourceOptions.map((item) => item.value);
+const paperTypeValues = paperTypeOptions.map((item) => item.value);
+const paperDifficultyValues = paperDifficultyOptions.map((item) => item.value);
+const paperStageValues = paperStageOptions.map((item) => item.value);
+const paperStatusValues: PaperStatus[] = ["DRAFT", "PUBLISHED", "ARCHIVED"];
 
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -117,6 +152,9 @@ export function normalizeQuestionInput(input: Record<string, unknown>) {
   const options = optionsFrom(input.options);
   return {
     questionBankId: nullableText(input.questionBankId),
+    paperId: nullableText(input.paperId),
+    questionNo: nullableText(input.questionNo),
+    score: input.score ? numberOr(input.score, 0) : null,
     subject: enumOr(input.subject, subjectValues, "COMPREHENSIVE_QUALITY"),
     chapter,
     knowledgePoint,
@@ -130,6 +168,28 @@ export function normalizeQuestionInput(input: Record<string, unknown>) {
     source: enumOr(input.source, sourceValues, "ORIGINAL"),
     year: input.year ? numberOr(input.year, new Date().getFullYear()) : null
   } satisfies Prisma.QuestionUncheckedCreateInput;
+}
+
+export function normalizePaperInput(input: Record<string, unknown>) {
+  const title = text(input.name || input.title);
+  if (!title) throw new Error("请输入试卷名称");
+
+  return {
+    questionBankId: nullableText(input.questionBankId),
+    title,
+    paperType: enumOr(input.paperType || input.type, paperTypeValues, "MOCK"),
+    subject: enumOr(input.subject, subjectValues, "COMPREHENSIVE_QUALITY"),
+    stage: optionalEnum(input.stage, paperStageValues) ?? null,
+    year: input.year ? numberOr(input.year, new Date().getFullYear()) : null,
+    region: nullableText(input.region),
+    source: nullableText(input.source),
+    totalScore: Math.max(0, numberOr(input.totalScore, 100)),
+    durationMinutes: Math.max(0, numberOr(input.duration || input.durationMinutes, 120)),
+    questionCount: Math.max(0, numberOr(input.questionCount, 0)),
+    difficulty: enumOr(input.difficulty, paperDifficultyValues, "MEDIUM"),
+    description: nullableText(input.description),
+    status: enumOr(input.status, paperStatusValues, "DRAFT")
+  } satisfies Prisma.ExamPaperUncheckedCreateInput;
 }
 
 export function buildAiAnalysis(question: {
@@ -169,6 +229,23 @@ export const questionImportHeaders = [
 
 export const questionImportRequiredHeaders = ["题干", "正确答案"] as const;
 
+export const paperQuestionImportHeaders = [
+  "题号",
+  "题型",
+  "题目",
+  "选项A",
+  "选项B",
+  "选项C",
+  "选项D",
+  "正确答案",
+  "解析",
+  "难度",
+  "考点",
+  "分值"
+] as const;
+
+export const paperQuestionImportRequiredHeaders = ["题号", "题型", "题目", "正确答案"] as const;
+
 export function normalizeImportQuestionRow(row: Record<string, unknown>) {
   const map: Record<(typeof questionImportHeaders)[number], string> = {
     科目: "subject",
@@ -207,6 +284,91 @@ export function normalizeImportQuestionRow(row: Record<string, unknown>) {
     input[key] = typeof value === "string" && aliases[value.trim()] ? aliases[value.trim()] : value;
   }
   return input;
+}
+
+export function validateImportHeaders(headers: string[], requiredHeaders: readonly string[]) {
+  const missing = requiredHeaders.filter((header) => !headers.includes(header));
+  if (missing.length) {
+    throw new Error(`导入文件缺少关键列：${missing.join("、")}。请下载模板后按表头填写。`);
+  }
+}
+
+function questionTypeFromLabel(value: unknown) {
+  const raw = text(value);
+  const aliases: Record<string, QuestionType> = {
+    单选: "SINGLE_CHOICE",
+    单项选择: "SINGLE_CHOICE",
+    单选题: "SINGLE_CHOICE",
+    材料分析: "MATERIAL_ANALYSIS",
+    材料分析题: "MATERIAL_ANALYSIS",
+    作文: "WRITING",
+    写作: "WRITING",
+    简答: "SHORT_ANSWER",
+    简答题: "SHORT_ANSWER",
+    辨析: "DISCRIMINATION",
+    辨析题: "DISCRIMINATION",
+    案例分析: "CASE_ANALYSIS",
+    案例分析题: "CASE_ANALYSIS"
+  };
+  return enumOr(raw, typeValues, aliases[raw] || ("" as QuestionType));
+}
+
+function difficultyFromLabel(value: unknown) {
+  const raw = text(value);
+  const aliases: Record<string, number> = {
+    简单: 1,
+    易: 1,
+    中等: 3,
+    中: 3,
+    困难: 5,
+    难: 5
+  };
+  return aliases[raw] || Math.min(5, Math.max(1, numberOr(raw, 3)));
+}
+
+function optionsFromColumns(row: Record<string, unknown>) {
+  const options = ["A", "B", "C", "D"]
+    .map((key) => ({ key, text: text(row[`选项${key}`]) }))
+    .filter((item) => item.text);
+  return options.length ? options.map((item) => `${item.key}. ${item.text}`).join("\n") : "";
+}
+
+export function normalizePaperQuestionImportRow(
+  row: Record<string, unknown>,
+  defaults: {
+    paperId: string;
+    subject: QuestionSubject;
+    year: number | null;
+    source: QuestionSource;
+  }
+) {
+  const questionNo = text(row["题号"]);
+  const type = questionTypeFromLabel(row["题型"]);
+  const stem = text(row["题目"]);
+  const answer = text(row["正确答案"]);
+
+  if (!questionNo) throw new Error("题号不能为空");
+  if (!type) throw new Error(`题型“${text(row["题型"]) || "空"}”无效，请使用：${questionTypeOptions.map((item) => item.label).join("、")}`);
+  if (!stem) throw new Error("题目不能为空");
+  if (!answer) throw new Error("正确答案不能为空");
+
+  return normalizeQuestionInput({
+    paperId: defaults.paperId,
+    questionNo,
+    score: row["分值"] ? numberOr(row["分值"], 0) : 0,
+    subject: defaults.subject,
+    chapter: "成套试卷",
+    knowledgePoint: text(row["考点"]) || "未分类知识点",
+    type,
+    stem,
+    options: optionsFromColumns(row),
+    answer,
+    analysis: row["解析"],
+    difficulty: difficultyFromLabel(row["难度"]),
+    highFrequencyTags: row["考点"],
+    source: defaults.source,
+    year: defaults.year
+  });
 }
 
 export function buildPaperStrategy(input: Record<string, unknown>) {

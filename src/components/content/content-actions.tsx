@@ -3,7 +3,20 @@
 import { useRouter } from "next/navigation";
 import { Archive, Bot, Check, FileDown, RotateCcw, Send, Upload } from "lucide-react";
 
-export function ContentActions({ id, campuses }: { id: string; campuses: Array<{ id: string; name: string }> }) {
+type TemplateOption = { id: string; name: string; subject: string; chapter: string };
+type KeyPointOption = { id: string; name: string; subject: string; chapter: string; frequency: number };
+
+export function ContentActions({
+  id,
+  campuses,
+  templates,
+  keyPoints
+}: {
+  id: string;
+  campuses: Array<{ id: string; name: string }>;
+  templates: TemplateOption[];
+  keyPoints: KeyPointOption[];
+}) {
   const router = useRouter();
 
   async function post(path: string, body?: unknown) {
@@ -28,12 +41,27 @@ export function ContentActions({ id, campuses }: { id: string; campuses: Array<{
     await post("publish", { campusId });
   }
 
+  async function generateDraft(formData: FormData) {
+    const templateId = String(formData.get("templateId") || "");
+    const keyPointIds = formData.getAll("keyPointIds").map(String).filter(Boolean);
+    await post("ai-draft", { templateId, keyPointIds });
+  }
+
   return (
-    <div className="flex flex-wrap gap-2">
-      <button onClick={() => post("ai-draft")} className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs">
-        <Bot className="h-3.5 w-3.5" />
-        AI 初稿
-      </button>
+    <div className="flex max-w-[420px] flex-wrap gap-2">
+      <form action={generateDraft} className="flex flex-wrap gap-2">
+        <select name="templateId" className="h-8 max-w-36 rounded-md border border-line bg-white px-2 text-xs">
+          <option value="">选择模板</option>
+          {templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}
+        </select>
+        <select name="keyPointIds" multiple className="h-8 max-w-40 rounded-md border border-line bg-white px-2 text-xs">
+          {keyPoints.map((point) => <option key={point.id} value={point.id}>{point.name} {point.frequency}/5</option>)}
+        </select>
+        <button type="submit" className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs">
+          <Bot className="h-3.5 w-3.5" />
+          根据模板生成
+        </button>
+      </form>
       <button onClick={() => post("review", { action: "SUBMIT", comment: "提交审核" })} className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs">
         <Send className="h-3.5 w-3.5" />
         提审

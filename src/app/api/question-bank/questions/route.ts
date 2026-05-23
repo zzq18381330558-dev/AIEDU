@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 
 const include = {
   bank: { select: { id: true, name: true } },
+  paper: { select: { id: true, title: true } },
   _count: { select: { wrongRecords: true, paperItems: true } }
 } satisfies Prisma.QuestionInclude;
 
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
   const chapter = searchParams.get("chapter")?.trim();
   const knowledgePoint = searchParams.get("knowledgePoint")?.trim();
   const tag = searchParams.get("tag")?.trim();
+  const paperId = searchParams.get("paperId")?.trim();
   const difficulty = Number(searchParams.get("difficulty") || "");
   if (subject && !isOptionValue(subject, subjectOptions)) return NextResponse.json({ error: "科目筛选条件无效" }, { status: 400 });
   if (type && !isOptionValue(type, questionTypeOptions)) return NextResponse.json({ error: "题型筛选条件无效" }, { status: 400 });
@@ -52,6 +54,7 @@ export async function GET(request: NextRequest) {
   if (chapter) where.chapter = { contains: chapter, mode: "insensitive" };
   if (knowledgePoint) where.knowledgePoint = { contains: knowledgePoint, mode: "insensitive" };
   if (tag) where.highFrequencyTags = { has: tag };
+  if (paperId) where.paperId = paperId;
   if (Number.isFinite(difficulty) && difficulty >= 1 && difficulty <= 5) where.difficulty = difficulty;
 
   const [items, total] = await Promise.all([
@@ -74,9 +77,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const item = await prisma.question.create({
-      data: normalizeQuestionInput(body),
-      include
+    const data = normalizeQuestionInput(body);
+    const item = await prisma.$transaction(async (tx) => {
+      const created = await tx.question.create({ data, include });
+      if (created.paperId) {
+        const questionCount = await tx.question.count({ where: { paperId: created.paperId } });
+        await tx.examPaper.update({ where: { id: created.paperId }, data: { questionCount } });
+      }
+      return created;
     });
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) {

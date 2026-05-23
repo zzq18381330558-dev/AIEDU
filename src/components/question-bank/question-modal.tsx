@@ -9,6 +9,9 @@ import {
 
 export type QuestionValue = {
   id?: string;
+  paperId?: string | null;
+  questionNo?: string | null;
+  score?: number | null;
   subject?: string;
   chapter?: string;
   knowledgePoint?: string;
@@ -42,11 +45,15 @@ function optionsText(value: unknown) {
 export function QuestionModal({
   open,
   value,
+  defaultPaperId,
+  defaultSubject,
   onClose,
   onSaved
 }: {
   open: boolean;
   value: QuestionValue | null;
+  defaultPaperId?: string;
+  defaultSubject?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -54,7 +61,7 @@ export function QuestionModal({
   const editing = Boolean(value?.id);
 
   async function submit(formData: FormData) {
-    const payload = Object.fromEntries(formData.entries());
+    const payload = { ...Object.fromEntries(formData.entries()), paperId: value?.paperId || defaultPaperId || "" };
     const response = await fetch(editing ? `/api/question-bank/questions/${value?.id}` : "/api/question-bank/questions", {
       method: editing ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
@@ -78,7 +85,9 @@ export function QuestionModal({
           </button>
         </div>
         <form action={submit} className="grid gap-4 p-5 md:grid-cols-2">
-          <Select label="科目" name="subject" options={subjectOptions} defaultValue={value?.subject || "COMPREHENSIVE_QUALITY"} />
+          {defaultPaperId || value?.paperId ? <Field label="题号" name="questionNo" defaultValue={value?.questionNo || ""} /> : null}
+          {defaultPaperId || value?.paperId ? <Field label="分值" name="score" type="number" defaultValue={value?.score ? String(value.score) : ""} /> : null}
+          <Select label="科目" name="subject" options={subjectOptions} defaultValue={value?.subject || defaultSubject || "COMPREHENSIVE_QUALITY"} />
           <Select label="题型" name="type" options={questionTypeOptions} defaultValue={value?.type || "SINGLE_CHOICE"} />
           <Field label="章节" name="chapter" defaultValue={value?.chapter} required />
           <Field label="知识点" name="knowledgePoint" defaultValue={value?.knowledgePoint} required />

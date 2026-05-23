@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { buildPaperStrategy, canManageQuestionBank } from "@/lib/question-bank";
+import { buildPaperStrategy, canManageQuestionBank, normalizePaperInput } from "@/lib/question-bank";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -10,7 +10,7 @@ export async function GET() {
 
   const items = await prisma.examPaper.findMany({
     include: {
-      _count: { select: { questions: true } }
+      _count: { select: { questions: true, paperQuestions: true } }
     },
     orderBy: { createdAt: "desc" },
     take: 50
@@ -21,10 +21,20 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const auth = await requireApiUser("/question-bank");
   if ("response" in auth) return auth.response;
-  if (!canManageQuestionBank(auth.user.role)) return NextResponse.json({ error: "无权组卷" }, { status: 403 });
+  if (!canManageQuestionBank(auth.user.role)) return NextResponse.json({ error: "无权管理试卷" }, { status: 403 });
 
   try {
     const body = await request.json();
+    if (body.mode !== "auto-generate") {
+      const item = await prisma.examPaper.create({
+        data: normalizePaperInput(body),
+        include: {
+          _count: { select: { questions: true, paperQuestions: true } }
+        }
+      });
+      return NextResponse.json({ item }, { status: 201 });
+    }
+
     const strategy = buildPaperStrategy(body);
     const where: Prisma.QuestionWhereInput = {
       subject: strategy.subject,
@@ -45,9 +55,11 @@ export async function POST(request: NextRequest) {
     const item = await prisma.examPaper.create({
       data: {
         title: String(body.title || `${new Date().toLocaleDateString("zh-CN")} 自动组卷`),
+        paperType: "SPECIAL",
         subject: strategy.subject,
         totalScore: Number(body.totalScore || questions.length * 2),
         durationMinutes: Number(body.durationMinutes || 120),
+        questionCount: questions.length,
         strategy,
         questions: {
           create: questions.map((question, index) => ({

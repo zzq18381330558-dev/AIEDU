@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 const include = {
   bank: { select: { id: true, name: true } },
+  paper: { select: { id: true, title: true } },
   _count: { select: { wrongRecords: true, paperItems: true } }
 } satisfies Prisma.QuestionInclude;
 
@@ -27,10 +28,19 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
   try {
     const { id } = await context.params;
     const body = await request.json();
-    const item = await prisma.question.update({
-      where: { id },
-      data: normalizeQuestionInput(body),
-      include
+    const item = await prisma.$transaction(async (tx) => {
+      const before = await tx.question.findUnique({ where: { id }, select: { paperId: true } });
+      const updated = await tx.question.update({
+        where: { id },
+        data: normalizeQuestionInput(body),
+        include
+      });
+      const paperIds = Array.from(new Set([before?.paperId, updated.paperId].filter(Boolean))) as string[];
+      for (const paperId of paperIds) {
+        const questionCount = await tx.question.count({ where: { paperId } });
+        await tx.examPaper.update({ where: { id: paperId }, data: { questionCount } });
+      }
+      return updated;
     });
     return NextResponse.json({ item });
   } catch (error) {

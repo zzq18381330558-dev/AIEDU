@@ -15,6 +15,10 @@ import {
 
 type QuestionItem = QuestionValue & {
   id: string;
+  paperId?: string | null;
+  questionNo?: string | null;
+  score?: number | null;
+  paper?: { id: string; title: string } | null;
   subject: keyof typeof questionBankLabels.subject;
   type: keyof typeof questionBankLabels.type;
   source: keyof typeof questionBankLabels.source;
@@ -153,6 +157,7 @@ export function QuestionDashboard({ initialQuestions, canManage }: { initialQues
                 <Th>题干</Th>
                 <Th>科目</Th>
                 <Th>章节/知识点</Th>
+                <Th>所属试卷</Th>
                 <Th>题型</Th>
                 <Th>难度</Th>
                 <Th>标签</Th>
@@ -172,6 +177,10 @@ export function QuestionDashboard({ initialQuestions, canManage }: { initialQues
                   </Td>
                   <Td>{questionBankLabels.subject[item.subject]}</Td>
                   <Td>{item.chapter}<div className="text-xs text-muted">{item.knowledgePoint}</div></Td>
+                  <Td>
+                    {item.paper ? <Link href={`/question-bank/papers/${item.paper.id}`} className="text-brand-700 hover:underline">{item.paper.title}</Link> : "-"}
+                    {item.questionNo ? <div className="text-xs text-muted">题号 {item.questionNo} · {item.score ?? "-"} 分</div> : null}
+                  </Td>
                   <Td>{questionBankLabels.type[item.type]}</Td>
                   <Td>{item.difficulty}/5</Td>
                   <Td>{item.highFrequencyTags?.join("、") || "-"}</Td>

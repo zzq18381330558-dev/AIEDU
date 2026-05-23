@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildAiDraft,
+  buildTemplateDrivenDraft,
   exportFileName,
   nextStatusByAction,
+  normalizeKeyPointInput,
+  normalizeTemplateInput,
   normalizeContentInput,
   parseReviewAction,
   renderPdfUnavailableHtml,
@@ -35,6 +38,57 @@ test("buildAiDraft creates structured draft", () => {
 
   assert.match(draft, /作文模板/);
   assert.match(draft, /教研审核关注点/);
+});
+
+test("template and key point inputs validate required teaching fields", () => {
+  const template = normalizeTemplateInput({
+    name: "综合素质讲义模板",
+    subject: "综合素质",
+    chapter: "职业理念",
+    type: "COURSE_HANDOUT",
+    structureMarkdown: "## 高频考点"
+  });
+  assert.equal(template.name, "综合素质讲义模板");
+  assert.equal(template.enabled, true);
+
+  const point = normalizeKeyPointInput({
+    subject: "综合素质",
+    chapter: "职业理念",
+    name: "职业理念",
+    frequency: "5",
+    questionTypes: "单选题、材料分析题",
+    direction: "围绕学生观与教师观命题",
+    mistakes: "概念混淆",
+    keywords: "学生观,教师观"
+  });
+  assert.equal(point.frequency, 5);
+  assert.throws(() => normalizeKeyPointInput({ ...point, frequency: 6 }), /高频指数/);
+});
+
+test("buildTemplateDrivenDraft includes template structure and key point constraints", () => {
+  const draft = buildTemplateDrivenDraft({
+    title: "职业理念讲义",
+    type: "COURSE_HANDOUT",
+    category: "教资培训",
+    subject: "综合素质",
+    chapter: "职业理念",
+    template: { name: "综合素质讲义模板", structureMarkdown: "## 高频考点\n\n## 易错提醒" },
+    keyPoints: [{
+      name: "职业理念",
+      frequency: 5,
+      questionTypes: "单选题、材料分析题",
+      direction: "围绕学生观、教师观命题",
+      mistakes: "把学生是发展中的人与完整的人混淆",
+      keywords: "学生观,教师观",
+      note: null
+    }]
+  });
+
+  assert.match(draft, /不允许脱离模板自由生成/);
+  assert.match(draft, /## 高频考点/);
+  assert.match(draft, /职业理念/);
+  assert.match(draft, /命题方向/);
+  assert.match(draft, /易错点/);
 });
 
 test("nextStatusByAction maps review actions", () => {

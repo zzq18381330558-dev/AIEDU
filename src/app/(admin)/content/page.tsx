@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/session";
 
 export default async function ContentPage() {
   const user = await requireUser("/content");
-  const [items, campuses, draftCount, reviewingCount, publishedCount] = await Promise.all([
+  const [items, campuses, templates, keyPoints, draftCount, reviewingCount, publishedCount] = await Promise.all([
     prisma.teachingContent.findMany({
       include: {
         author: { select: { name: true } },
@@ -20,6 +20,17 @@ export default async function ContentPage() {
       where: user.role === "ADMIN" || user.role === "HQ_OPERATIONS" ? { organizationId: user.organizationId } : user.campusId ? { id: user.campusId } : { id: "__none__" },
       select: { id: true, name: true },
       orderBy: { name: "asc" }
+    }),
+    prisma.teachingContentTemplate.findMany({
+      where: { enabled: true },
+      select: { id: true, name: true, subject: true, chapter: true },
+      orderBy: { updatedAt: "desc" },
+      take: 100
+    }),
+    prisma.teachingKeyPoint.findMany({
+      select: { id: true, name: true, subject: true, chapter: true, frequency: true },
+      orderBy: [{ frequency: "desc" }, { updatedAt: "desc" }],
+      take: 200
     }),
     prisma.teachingContent.count({ where: { status: "DRAFT" } }),
     prisma.teachingContent.count({ where: { status: "REVIEWING" } }),
@@ -77,7 +88,7 @@ export default async function ContentPage() {
                   <Td>v{item.currentVersion}<div className="text-xs text-muted">{item._count.versions} 条</div></Td>
                   <Td>{item.author.name}</Td>
                   <Td>{item._count.publications}</Td>
-                  <Td><ContentActions id={item.id} campuses={campuses} /></Td>
+                  <Td><ContentActions id={item.id} campuses={campuses} templates={templates} keyPoints={keyPoints} /></Td>
                 </tr>
               ))}
               {items.length === 0 ? <tr><td colSpan={8} className="px-4 py-12 text-center text-muted">暂无内容</td></tr> : null}

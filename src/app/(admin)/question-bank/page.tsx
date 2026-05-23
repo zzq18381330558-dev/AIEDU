@@ -11,6 +11,7 @@ export default async function QuestionBankPage() {
     prisma.question.findMany({
       include: {
         bank: { select: { id: true, name: true } },
+        paper: { select: { id: true, title: true } },
         _count: { select: { wrongRecords: true, paperItems: true } }
       },
       orderBy: { updatedAt: "desc" },
