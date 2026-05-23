@@ -2,9 +2,9 @@
 
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
+import { getFirstAllowedPath } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { createSession, destroySession } from "@/lib/session";
-import { roleHome } from "@/lib/roles";
 
 export type LoginState = {
   error?: string;
@@ -29,7 +29,7 @@ export async function loginAction(_state: LoginState, formData: FormData): Promi
   }
 
   await createSession(user.id);
-  redirect(roleHome[user.role]);
+  redirect(await getFirstAllowedPath(user));
 }
 
 export async function logoutAction() {

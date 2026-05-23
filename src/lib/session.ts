@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { canAccess, roleHome } from "@/lib/roles";
+import { canAccessPath, getFirstAllowedPath } from "@/lib/permissions";
 
 const COOKIE_NAME = "ai_edu_session";
 const DEFAULT_SESSION_SECRET = "local-dev-session-secret-change-me";
@@ -105,6 +105,6 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 export async function requireUser(pathname?: string) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (pathname && !canAccess(user.role, pathname)) redirect(roleHome[user.role]);
+  if (pathname && !(await canAccessPath(user, pathname))) redirect(await getFirstAllowedPath(user));
   return user;
 }

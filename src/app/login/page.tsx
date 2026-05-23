@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
+import { getFirstAllowedPath } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
-import { roleHome } from "@/lib/roles";
 import { LoginForm } from "@/components/login-form";
 
 export default async function LoginPage() {
   const user = await getSessionUser();
-  if (user) redirect(roleHome[user.role]);
+  if (user) redirect(await getFirstAllowedPath(user));
 
   return (
     <main className="flex min-h-screen bg-[#F5F7F8]">

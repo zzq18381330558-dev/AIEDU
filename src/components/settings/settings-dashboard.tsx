@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Building2, ChevronDown, ChevronRight, LibraryBig, Pencil, Plus, RefreshCw, ShieldCheck, UserCog, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Building2, ChevronDown, ChevronRight, LibraryBig, Minus, Pencil, Plus, RefreshCw, ShieldCheck, UserCog, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   campusBusinessTypeOptions,
@@ -11,6 +11,8 @@ import {
   settingsRoleOptions,
   userStatusOptions
 } from "@/lib/settings";
+import { permissionModules } from "@/lib/permission-modules";
+import { modulePermissions, roleHome } from "@/lib/roles";
 import { getUserDisplayName } from "@/lib/user-display";
 
 type Option = { id: string; name?: string | null; email?: string | null; phone?: string | null };
@@ -64,6 +66,14 @@ export function SettingsDashboard({
   const [campuses, setCampuses] = useState(initialCampuses);
   const [dictionaries, setDictionaries] = useState(initialDictionaries);
   const [userModal, setUserModal] = useState<UserItem | "new" | null>(null);
+  const [newUserRole, setNewUserRole] = useState("");
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [roleInfo, setRoleInfo] = useState<string | null>(null);
+  const [permissionModal, setPermissionModal] = useState<
+    | { type: "role"; id: string; title: string }
+    | { type: "user"; id: string; title: string }
+    | null
+  >(null);
   const [campusModal, setCampusModal] = useState<CampusItem | "new" | null>(null);
   const [dictionaryModal, setDictionaryModal] = useState<DictionaryItem | "new" | null>(null);
   const [category, setCategory] = useState("");
@@ -177,6 +187,15 @@ export function SettingsDashboard({
     setOpenDictionaryGroups((current) => ({ ...current, [categoryName]: !current[categoryName] }));
   }
 
+  function openNewUser(role = "") {
+    if (role === "HQ_OPERATIONS") {
+      alert("不能选择该用户角色");
+      return;
+    }
+    setNewUserRole(role);
+    setUserModal("new");
+  }
+
   return (
     <div className="space-y-6">
       <section className="rounded-lg border border-line bg-white p-5 shadow-soft">
@@ -205,23 +224,33 @@ export function SettingsDashboard({
 
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-lg border border-line bg-white">
-          <PanelHeader icon={UserCog} title="用户管理" action="新建用户" onAction={() => setUserModal("new")} />
+          <PanelHeader
+            icon={UserCog}
+            title="用户管理"
+            action="新建角色"
+            onAction={() => setRoleModalOpen(true)}
+          />
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
               <tbody className="divide-y divide-line">
                 {userRoleGroups.map((group) => (
                   <RoleUserRows
                     key={group.role}
+                    role={group.role}
                     label={group.label}
                     users={group.users}
                     open={Boolean(openUserGroups[group.role])}
                     onToggleOpen={() => toggleUserGroup(group.role)}
+                    onAddUser={() => openNewUser(group.role)}
+                    onManagePermissions={() => setPermissionModal({ type: "role", id: group.role, title: `${group.label}权限管理` })}
+                    onShowRoleInfo={() => setRoleInfo(group.role)}
                     onEdit={setUserModal}
                     onToggle={toggleUser}
+                    onManageUserPermissions={(user) => setPermissionModal({ type: "user", id: user.id, title: `${getUserDisplayName(user)}权限管理` })}
                   />
                 ))}
                 {users.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-10 text-center text-muted">暂无用户，可点击新建用户开通账号</td></tr>
+                  <tr><td colSpan={6} className="px-4 py-10 text-center text-muted">暂无用户，可从角色组点击增加用户开通账号</td></tr>
                 ) : null}
               </tbody>
             </table>
@@ -311,7 +340,17 @@ export function SettingsDashboard({
         </div>
       </section>
 
-      <UserModal open={Boolean(userModal)} value={userModal === "new" ? null : userModal} campuses={campuses} onClose={() => setUserModal(null)} onSaved={reload} />
+      <UserModal
+        open={Boolean(userModal)}
+        value={userModal === "new" ? null : userModal}
+        defaultRole={userModal === "new" ? newUserRole : ""}
+        campuses={campuses}
+        onClose={() => setUserModal(null)}
+        onSaved={reload}
+      />
+      <RolePlaceholderModal open={roleModalOpen} onClose={() => setRoleModalOpen(false)} />
+      <RoleInfoModal role={roleInfo} onClose={() => setRoleInfo(null)} />
+      <PermissionModal value={permissionModal} onClose={() => setPermissionModal(null)} />
       <CampusModal open={Boolean(campusModal)} value={campusModal === "new" ? null : campusModal} managers={managers} onClose={() => setCampusModal(null)} onSaved={reload} />
       <DictionaryModal
         open={Boolean(dictionaryModal)}
@@ -334,19 +373,41 @@ function Metric({ label, value, hint }: { label: string; value: string; hint: st
   );
 }
 
-function PanelHeader({ icon: Icon, title, action, onAction }: { icon: LucideIcon; title: string; action?: string; onAction?: () => void }) {
+function PanelHeader({
+  icon: Icon,
+  title,
+  action,
+  onAction,
+  secondaryAction,
+  onSecondaryAction
+}: {
+  icon: LucideIcon;
+  title: string;
+  action?: string;
+  onAction?: () => void;
+  secondaryAction?: string;
+  onSecondaryAction?: () => void;
+}) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
       <div className="flex items-center gap-2 font-semibold text-ink">
         <Icon className="h-4 w-4 text-brand-600" />
         {title}
       </div>
-      {action ? (
-        <button onClick={onAction} className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-600 px-3 text-sm font-semibold text-white">
-          <Plus className="h-4 w-4" />
-          {action}
-        </button>
-      ) : null}
+      <div className="flex flex-wrap justify-end gap-2">
+        {secondaryAction ? (
+          <button onClick={onSecondaryAction} className="inline-flex h-9 items-center gap-2 rounded-md border border-line px-3 text-sm text-ink">
+            <Plus className="h-4 w-4" />
+            {secondaryAction}
+          </button>
+        ) : null}
+        {action ? (
+          <button onClick={onAction} className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-600 px-3 text-sm font-semibold text-white">
+            <Plus className="h-4 w-4" />
+            {action}
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -376,11 +437,16 @@ function ToggleButton({ active, onClick }: { active: boolean; onClick: () => voi
   );
 }
 
-function RowActions({ active, onEdit, onToggle }: { active: boolean; onEdit: () => void; onToggle: () => void }) {
+function RowActions({ active, onEdit, onToggle, onPermission }: { active: boolean; onEdit: () => void; onToggle: () => void; onPermission?: () => void }) {
   return (
     <div className="flex flex-wrap gap-2">
       <EditButton onClick={onEdit} />
       <ToggleButton active={active} onClick={onToggle} />
+      {onPermission ? (
+        <button onClick={onPermission} className="inline-flex h-8 items-center rounded-md border border-line px-2 text-xs">
+          权限管理
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -397,33 +463,70 @@ function getDictionaryCategoryLabel(categoryName: string) {
   return settingsLabels.dictionaryCategory[categoryName as keyof typeof settingsLabels.dictionaryCategory] || categoryName;
 }
 
+function isFixedRole(role: string) {
+  return ["ADMIN", "HQ_OPERATIONS", "CAMPUS_MANAGER", "ADMISSIONS_COUNSELOR", "ACADEMIC_TEACHER", "LECTURER"].includes(role);
+}
+
 function RoleUserRows({
+  role,
   label,
   users,
   open,
   onToggleOpen,
+  onAddUser,
+  onManagePermissions,
+  onShowRoleInfo,
   onEdit,
-  onToggle
+  onToggle,
+  onManageUserPermissions
 }: {
+  role: string;
   label: string;
   users: UserItem[];
   open: boolean;
   onToggleOpen: () => void;
+  onAddUser: () => void;
+  onManagePermissions: () => void;
+  onShowRoleInfo: () => void;
   onEdit: (user: UserItem) => void;
   onToggle: (user: UserItem) => void;
+  onManageUserPermissions: (user: UserItem) => void;
 }) {
   const ToggleIcon = open ? ChevronDown : ChevronRight;
+  const deleteDisabled = isFixedRole(role);
   return (
     <>
       <tr className="bg-[#F8FAFB]">
         <td colSpan={6} className="p-0">
-          <button type="button" onClick={onToggleOpen} className="flex w-full items-center justify-between px-4 py-3 text-left">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
-              <ToggleIcon className="h-4 w-4 text-muted" />
-              {label}
-            </span>
-            <span className="rounded-md bg-white px-2 py-1 text-xs text-muted">{users.length} 人</span>
-          </button>
+          <div className="flex flex-col gap-2 px-4 py-3 md:flex-row md:items-center md:justify-between">
+            <button type="button" onClick={onToggleOpen} className="inline-flex items-center gap-2 text-left text-sm font-semibold text-ink">
+                <ToggleIcon className="h-4 w-4 text-muted" />
+                {label}
+                <span className="rounded-md bg-white px-2 py-1 text-xs font-normal text-muted">{users.length} 人</span>
+            </button>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={onAddUser} className="inline-flex h-8 items-center gap-1 rounded-md border border-line bg-white px-2 text-xs text-ink">
+                <Plus className="h-3.5 w-3.5" />
+                增加用户
+              </button>
+              <span title={deleteDisabled ? "系统基础角色不可删除" : "删除角色"}>
+                <button
+                  type="button"
+                  disabled={deleteDisabled}
+                  className="inline-flex h-8 items-center gap-1 rounded-md border border-line bg-white px-2 text-xs text-muted disabled:cursor-not-allowed disabled:border-[#E5E7EB] disabled:bg-[#F8FAFB] disabled:text-[#A0A7B2]"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                  删除角色
+                </button>
+              </span>
+              <button type="button" onClick={onManagePermissions} className="inline-flex h-8 items-center rounded-md border border-line bg-white px-2 text-xs text-ink">
+                权限管理
+              </button>
+              <button type="button" onClick={onShowRoleInfo} className="inline-flex h-8 items-center rounded-md border border-line bg-white px-2 text-xs text-ink">
+                角色说明
+              </button>
+            </div>
+          </div>
         </td>
       </tr>
       {open ? (
@@ -443,7 +546,7 @@ function RoleUserRows({
             <Td>{settingsLabels.role[user.role as keyof typeof settingsLabels.role] || user.role}</Td>
             <Td>{user.campus?.name || "总部"}</Td>
             <Td><StatusBadge active={user.status === "ACTIVE"} label={settingsLabels.userStatus[user.status as keyof typeof settingsLabels.userStatus]} /></Td>
-            <Td><RowActions active={user.status === "ACTIVE"} onEdit={() => onEdit(user)} onToggle={() => onToggle(user)} /></Td>
+            <Td><RowActions active={user.status === "ACTIVE"} onEdit={() => onEdit(user)} onToggle={() => onToggle(user)} onPermission={() => onManageUserPermissions(user)} /></Td>
           </tr>
         )) : null}
       {open && users.length === 0 ? (
@@ -528,7 +631,21 @@ function BaseModal({ open, title, children, onClose }: { open: boolean; title: s
   );
 }
 
-function UserModal({ open, value, campuses, onClose, onSaved }: { open: boolean; value: UserItem | null; campuses: CampusItem[]; onClose: () => void; onSaved: () => Promise<void> }) {
+function UserModal({
+  open,
+  value,
+  defaultRole,
+  campuses,
+  onClose,
+  onSaved
+}: {
+  open: boolean;
+  value: UserItem | null;
+  defaultRole?: string;
+  campuses: CampusItem[];
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
   const roleOptions: Array<{ value: string; label: string }> = settingsRoleOptions.map((item) => ({
     value: item.value,
     label: item.label
@@ -542,6 +659,10 @@ function UserModal({ open, value, campuses, onClose, onSaved }: { open: boolean;
       label: settingsLabels.role[value.role as keyof typeof settingsLabels.role] || value.role
     });
   }
+  const fixedNewRole = !value ? defaultRole || "ADMISSIONS_COUNSELOR" : "";
+  const fixedNewRoleLabel = fixedNewRole
+    ? settingsLabels.role[fixedNewRole as keyof typeof settingsLabels.role] || fixedNewRole
+    : "";
 
   return (
     <BaseModal open={open} title={value ? "编辑用户" : "新建用户"} onClose={onClose}>
@@ -550,11 +671,245 @@ function UserModal({ open, value, campuses, onClose, onSaved }: { open: boolean;
         <Field label="登录邮箱" name="email" type="email" required defaultValue={value?.email} />
         <Field label="手机号" name="phone" defaultValue={value?.phone} />
         {!value ? <Field label="初始密码" name="password" type="password" defaultValue="Admin@123456" /> : null}
-        <Select label="用户角色" name="role" options={roleOptions} defaultValue={value?.role || "ADMISSIONS_COUNSELOR"} />
+        {value ? (
+          <Select label="用户角色" name="role" options={roleOptions} defaultValue={value.role || "ADMISSIONS_COUNSELOR"} />
+        ) : (
+          <ReadonlyField label="用户角色" name="role" value={fixedNewRole} displayValue={fixedNewRoleLabel} />
+        )}
         <Select label="所属校区" name="campusId" options={[{ value: "", label: "总部/不绑定校区" }, ...campusOptions]} defaultValue={value?.campusId || ""} />
         <Select label="用户状态" name="status" options={userStatusOptions} defaultValue={value?.status || "ACTIVE"} />
       </EntityForm>
     </BaseModal>
+  );
+}
+
+function ReadonlyField({ label, name, value, displayValue }: { label: string; name: string; value: string; displayValue: string }) {
+  return (
+    <label>
+      <span className="text-sm font-medium text-ink">{label}</span>
+      <input type="hidden" name={name} value={value} />
+      <input
+        value={displayValue}
+        disabled
+        readOnly
+        className="mt-2 h-10 w-full cursor-not-allowed rounded-md border border-line bg-[#F8FAFB] px-3 text-sm text-muted"
+      />
+    </label>
+  );
+}
+
+function RolePlaceholderModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null;
+
+  function notifyUnavailable() {
+    alert("自定义角色功能将在后续版本开放");
+  }
+
+  return (
+    <BaseModal open={open} title="新建角色" onClose={onClose}>
+      <div className="grid gap-4 p-5 md:grid-cols-2">
+        <Field label="角色名称" name="roleName" />
+        <Field label="角色说明" name="roleDescription" />
+        <div className="md:col-span-2">
+          <div className="text-sm font-medium text-ink">权限选择</div>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            {permissionModules.map((item) => (
+              <label key={item.key} className="flex items-center gap-3 rounded-md border border-line bg-[#F8FAFB] px-3 py-2 text-sm text-muted">
+                <input type="checkbox" disabled className="h-4 w-4" />
+                {item.label}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-md bg-[#F8FAFB] p-3 text-sm leading-6 text-muted md:col-span-2">
+          当前版本使用固定基础角色；自定义角色将在后续权限模块中开放。
+        </div>
+        <div className="flex justify-end gap-3 md:col-span-2">
+          <button type="button" onClick={onClose} className="h-10 rounded-md border border-line px-4 text-sm text-muted">取消</button>
+          <button type="button" onClick={notifyUnavailable} className="h-10 rounded-md border border-line bg-[#F8FAFB] px-4 text-sm text-muted">
+            保存
+          </button>
+        </div>
+      </div>
+    </BaseModal>
+  );
+}
+
+const moduleNames: Record<string, string> = {
+  "/dashboard": "工作台",
+  "/crm": "招生中心",
+  "/student-service": "学员中心",
+  "/question-bank": "题库中心",
+  "/content": "教研中心",
+  "/analytics": "数据中心",
+  "/sop": "运营 SOP",
+  "/settings": "系统设置"
+};
+
+const roleInfoCopy: Record<string, { positioning: string; dataScope: string; scenario: string }> = {
+  ADMIN: {
+    positioning: "系统最高管理角色",
+    dataScope: "全部校区、全部数据",
+    scenario: "系统初始化、用户/校区/字典维护、全局管理"
+  },
+  HQ_OPERATIONS: {
+    positioning: "历史兼容角色",
+    dataScope: "按当前系统实现展示",
+    scenario: "历史账号兼容，不建议新建"
+  },
+  CAMPUS_MANAGER: {
+    positioning: "校区经营负责人",
+    dataScope: "以当前系统实现为准",
+    scenario: "校区日常运营管理"
+  },
+  ADMISSIONS_COUNSELOR: {
+    positioning: "线索跟进与转化人员",
+    dataScope: "以当前系统实现为准",
+    scenario: "录入线索、跟进线索、转化学员"
+  },
+  ACADEMIC_TEACHER: {
+    positioning: "学员服务与教学运营人员",
+    dataScope: "以当前系统实现为准",
+    scenario: "学员服务、排课、打卡、学习计划、教研辅助"
+  },
+  LECTURER: {
+    positioning: "授课与教研资料使用人员",
+    dataScope: "以当前系统实现为准",
+    scenario: "查看题库、使用教研内容、参与授课相关工作"
+  }
+};
+
+function getRoleModules(role: string) {
+  return Object.entries(modulePermissions)
+    .filter(([, roles]) => roles.some((item) => item === role))
+    .map(([path]) => moduleNames[path] || path);
+}
+
+function RoleInfoModal({ role, onClose }: { role: string | null; onClose: () => void }) {
+  if (!role) return null;
+  const label = settingsLabels.role[role as keyof typeof settingsLabels.role] || role;
+  const info = roleInfoCopy[role] || {
+    positioning: "自定义角色",
+    dataScope: "以当前系统实现为准",
+    scenario: "后续权限模块开放后配置"
+  };
+  const modules = getRoleModules(role);
+
+  return (
+    <BaseModal open={Boolean(role)} title="角色说明" onClose={onClose}>
+      <div className="space-y-4 p-5">
+        <InfoRow label="角色名称" value={label} />
+        <InfoRow label="角色定位" value={info.positioning} />
+        <InfoRow label="可访问模块" value={modules.length ? modules.join("、") : "暂无配置"} />
+        <InfoRow label="默认入口" value={moduleNames[roleHome[role as keyof typeof roleHome]] || roleHome[role as keyof typeof roleHome] || "-"} />
+        <InfoRow label="数据范围" value={info.dataScope} />
+        <InfoRow label="典型使用场景" value={info.scenario} />
+      </div>
+    </BaseModal>
+  );
+}
+
+function PermissionModal({
+  value,
+  onClose
+}: {
+  value: { type: "role"; id: string; title: string } | { type: "user"; id: string; title: string } | null;
+  onClose: () => void;
+}) {
+  const [modules, setModules] = useState<string[]>([]);
+  const [configured, setConfigured] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const endpoint = value ? `/api/settings/permissions/${value.type === "role" ? "roles" : "users"}/${value.id}` : "";
+
+  useEffect(() => {
+    if (!endpoint) return;
+    let active = true;
+    async function loadPermissions() {
+      setLoading(true);
+      const response = await fetch(endpoint);
+      const data = await response.json().catch(() => ({}));
+      if (!active) return;
+      if (!response.ok) {
+        alert(data.error || "权限加载失败");
+        setLoading(false);
+        return;
+      }
+      setModules(data.modules || []);
+      setConfigured(Boolean(data.configured));
+      setLoading(false);
+    }
+    loadPermissions();
+    return () => {
+      active = false;
+    };
+  }, [endpoint]);
+
+  async function savePermissions() {
+    if (!endpoint) return;
+    setSaving(true);
+    const response = await fetch(endpoint, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ modules })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      alert(data.error || "权限保存失败");
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
+    onClose();
+  }
+
+  function toggleModule(module: string) {
+    setModules((current) =>
+      current.includes(module) ? current.filter((item) => item !== module) : [...current, module]
+    );
+  }
+
+  if (!value) return null;
+
+  return (
+    <BaseModal open={Boolean(value)} title={value.title} onClose={onClose}>
+      <div className="space-y-4 p-5">
+        <div className="rounded-md bg-[#F8FAFB] p-3 text-sm leading-6 text-muted">
+          {value.type === "user" ? "用户权限优先于角色权限。保存后，该用户将按这里勾选的模块访问。" : "角色权限会影响该角色下未单独配置用户权限的账号。"}
+          {!configured ? " 当前展示为默认/继承权限。" : null}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {permissionModules.map((item) => (
+            <label key={item.key} className="flex items-center gap-3 rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={modules.includes(item.key)}
+                onChange={() => toggleModule(item.key)}
+                disabled={loading || saving}
+                className="h-4 w-4"
+              />
+              {item.label}
+            </label>
+          ))}
+        </div>
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="h-10 rounded-md border border-line px-4 text-sm text-muted">取消</button>
+          <button type="button" onClick={savePermissions} disabled={loading || saving} className="h-10 rounded-md bg-brand-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
+            {saving ? "保存中..." : "保存权限"}
+          </button>
+        </div>
+      </div>
+    </BaseModal>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-[#F8FAFB] p-3">
+      <div className="text-xs font-medium text-muted">{label}</div>
+      <div className="mt-1 text-sm leading-6 text-ink">{value}</div>
+    </div>
   );
 }
 

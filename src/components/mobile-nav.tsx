@@ -6,9 +6,9 @@ import type { UserRole } from "@prisma/client";
 import { getNavItems } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
-export function MobileNav({ role }: { role: UserRole }) {
+export function MobileNav({ role, allowedModules }: { role: UserRole; allowedModules: string[] }) {
   const pathname = usePathname();
-  const items = getNavItems(role);
+  const items = getNavItems(role, allowedModules);
 
   return (
     <div className="border-b border-line bg-white px-3 py-2 lg:hidden">

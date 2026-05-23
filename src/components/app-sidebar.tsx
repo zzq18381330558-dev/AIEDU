@@ -6,9 +6,9 @@ import type { UserRole } from "@prisma/client";
 import { getNavItems } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
-export function AppSidebar({ role }: { role: UserRole }) {
+export function AppSidebar({ role, allowedModules }: { role: UserRole; allowedModules: string[] }) {
   const pathname = usePathname();
-  const items = getNavItems(role);
+  const items = getNavItems(role, allowedModules);
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-line bg-white lg:block">

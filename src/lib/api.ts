@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canAccess } from "@/lib/roles";
+import { canAccessPath } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
 
 export async function requireApiUser(pathname: string) {
@@ -7,7 +7,7 @@ export async function requireApiUser(pathname: string) {
   if (!user) {
     return { response: NextResponse.json({ error: "未登录" }, { status: 401 }) };
   }
-  if (!canAccess(user.role, pathname)) {
+  if (!(await canAccessPath(user, pathname))) {
     return { response: NextResponse.json({ error: "无权限访问" }, { status: 403 }) };
   }
   return { user };
