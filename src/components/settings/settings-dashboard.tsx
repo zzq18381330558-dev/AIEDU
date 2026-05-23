@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Building2, LibraryBig, Pencil, Plus, RefreshCw, ShieldCheck, UserCog, X } from "lucide-react";
+import { Building2, ChevronDown, ChevronRight, LibraryBig, Pencil, Plus, RefreshCw, ShieldCheck, UserCog, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   campusStatusOptions,
@@ -65,11 +65,32 @@ export function SettingsDashboard({
   const [campusModal, setCampusModal] = useState<CampusItem | "new" | null>(null);
   const [dictionaryModal, setDictionaryModal] = useState<DictionaryItem | "new" | null>(null);
   const [category, setCategory] = useState("");
+  const [openUserGroups, setOpenUserGroups] = useState<Record<string, boolean>>({});
+  const [openDictionaryGroups, setOpenDictionaryGroups] = useState<Record<string, boolean>>({});
 
   const filteredDictionaries = useMemo(
     () => dictionaries.filter((item) => !category || item.category === category),
     [category, dictionaries]
   );
+  const dictionaryCategoryChoices = useMemo(() => {
+    const options = new Map<string, string>();
+    for (const item of dictionaryCategoryOptions) options.set(item.value, item.label);
+    for (const item of dictionaries) options.set(item.category, getDictionaryCategoryLabel(item.category));
+    return Array.from(options, ([value, label]) => ({ value, label }));
+  }, [dictionaries]);
+  const dictionaryGroups = useMemo(() => {
+    const groups = new Map<string, DictionaryItem[]>();
+    for (const item of filteredDictionaries) {
+      const current = groups.get(item.category) || [];
+      current.push(item);
+      groups.set(item.category, current);
+    }
+    return Array.from(groups, ([categoryName, items]) => ({
+      category: categoryName,
+      label: getDictionaryCategoryLabel(categoryName),
+      items
+    })).sort((a, b) => a.label.localeCompare(b.label, "zh-CN"));
+  }, [filteredDictionaries]);
   const userRoleGroups = useMemo(
     () =>
       (["ADMIN", "HQ_OPERATIONS", "CAMPUS_MANAGER", "ADMISSIONS_COUNSELOR", "ACADEMIC_TEACHER", "LECTURER"] as const).map(
@@ -96,6 +117,61 @@ export function SettingsDashboard({
     if (userResponse.ok) setUsers(userData.items || []);
     if (campusResponse.ok) setCampuses(campusData.items || []);
     if (dictionaryResponse.ok) setDictionaries(dictionaryData.items || []);
+  }
+
+  async function saveEntity(endpoint: string, payload: Record<string, unknown>) {
+    const response = await fetch(endpoint, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      alert(data.error || "保存失败");
+      return;
+    }
+    await reload();
+  }
+
+  async function toggleUser(user: UserItem) {
+    await saveEntity(`/api/settings/users/${user.id}`, {
+      name: user.name,
+      email: user.email,
+      phone: user.phone || "",
+      role: user.role,
+      campusId: user.campusId || "",
+      status: user.status === "ACTIVE" ? "DISABLED" : "ACTIVE"
+    });
+  }
+
+  async function toggleCampus(campus: CampusItem) {
+    await saveEntity(`/api/settings/campuses/${campus.id}`, {
+      name: campus.name,
+      code: campus.code,
+      city: campus.city,
+      managerId: campus.managerId || "",
+      contactPhone: campus.contactPhone || "",
+      address: campus.address || "",
+      status: campus.status === "ACTIVE" ? "DISABLED" : "ACTIVE"
+    });
+  }
+
+  async function toggleDictionary(item: DictionaryItem) {
+    await saveEntity(`/api/settings/dictionaries/${item.id}`, {
+      category: item.category,
+      name: item.name,
+      value: item.value || "",
+      sortOrder: String(item.sortOrder),
+      enabled: item.enabled ? "false" : "true"
+    });
+  }
+
+  function toggleUserGroup(role: string) {
+    setOpenUserGroups((current) => ({ ...current, [role]: !current[role] }));
+  }
+
+  function toggleDictionaryGroup(categoryName: string) {
+    setOpenDictionaryGroups((current) => ({ ...current, [categoryName]: !current[categoryName] }));
   }
 
   return (
@@ -129,19 +205,17 @@ export function SettingsDashboard({
           <PanelHeader icon={UserCog} title="用户管理" action="新建用户" onAction={() => setUserModal("new")} />
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
-              <thead className="bg-[#F8FAFB] text-muted">
-                <tr>
-                  <Th>姓名</Th>
-                  <Th>邮箱/手机</Th>
-                  <Th>角色</Th>
-                  <Th>校区</Th>
-                  <Th>状态</Th>
-                  <Th>操作</Th>
-                </tr>
-              </thead>
               <tbody className="divide-y divide-line">
                 {userRoleGroups.map((group) => (
-                  <RoleUserRows key={group.role} label={group.label} users={group.users} onEdit={setUserModal} />
+                  <RoleUserRows
+                    key={group.role}
+                    label={group.label}
+                    users={group.users}
+                    open={Boolean(openUserGroups[group.role])}
+                    onToggleOpen={() => toggleUserGroup(group.role)}
+                    onEdit={setUserModal}
+                    onToggle={toggleUser}
+                  />
                 ))}
                 {users.length === 0 ? (
                   <tr><td colSpan={6} className="px-4 py-10 text-center text-muted">暂无用户，可点击新建用户开通账号</td></tr>
@@ -153,6 +227,9 @@ export function SettingsDashboard({
 
         <div className="rounded-lg border border-line bg-white">
           <PanelHeader icon={ShieldCheck} title="角色管理" />
+          <div className="border-b border-line px-5 py-4 text-sm leading-6 text-muted">
+            当前版本使用固定 5 类基础角色；历史总部运营账号仅做兼容展示。自定义角色将在后续权限模块中实现，本轮不新增动态角色表。
+          </div>
           <div className="divide-y divide-line">
             {settingsRoleOptions.map((role) => (
               <div key={role.value} className="px-5 py-4">
@@ -181,14 +258,14 @@ export function SettingsDashboard({
             </thead>
             <tbody className="divide-y divide-line">
               {campuses.map((campus) => (
-                <tr key={campus.id} className="hover:bg-[#FAFBFC]">
+                <tr key={campus.id} className={campus.status === "ACTIVE" ? "hover:bg-[#FAFBFC]" : "bg-[#FAFBFC] text-muted"}>
                   <Td><span className="font-medium">{campus.name}</span><div className="text-xs text-muted">{campus.code}</div></Td>
                   <Td>{campus.city}</Td>
                   <Td>{getUserDisplayName(campus.manager)}</Td>
                   <Td>{campus.contactPhone || "-"}</Td>
                   <Td><StatusBadge active={campus.status === "ACTIVE"} label={settingsLabels.campusStatus[campus.status as keyof typeof settingsLabels.campusStatus]} /></Td>
                   <Td>{campus._count?.users || 0} 用户 / {campus._count?.students || 0} 学员</Td>
-                  <Td><EditButton onClick={() => setCampusModal(campus)} /></Td>
+                  <Td><RowActions active={campus.status === "ACTIVE"} onEdit={() => setCampusModal(campus)} onToggle={() => toggleCampus(campus)} /></Td>
                 </tr>
               ))}
               {campuses.length === 0 ? (
@@ -204,36 +281,27 @@ export function SettingsDashboard({
         <div className="border-b border-line p-4">
           <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-10 rounded-md border border-line bg-white px-3 text-sm">
             <option value="">全部分类</option>
-            {dictionaryCategoryOptions.map((item) => (
+            {dictionaryCategoryChoices.map((item) => (
               <option key={item.value} value={item.value}>{item.label}</option>
             ))}
           </select>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="bg-[#F8FAFB] text-muted">
-              <tr>
-                <Th>分类</Th>
-                <Th>名称</Th>
-                <Th>值</Th>
-                <Th>排序</Th>
-                <Th>状态</Th>
-                <Th>操作</Th>
-              </tr>
-            </thead>
             <tbody className="divide-y divide-line">
-              {filteredDictionaries.map((item) => (
-                <tr key={item.id} className="hover:bg-[#FAFBFC]">
-                  <Td>{settingsLabels.dictionaryCategory[item.category as keyof typeof settingsLabels.dictionaryCategory]}</Td>
-                  <Td className="font-medium">{item.name}</Td>
-                  <Td>{item.value || "-"}</Td>
-                  <Td>{item.sortOrder}</Td>
-                  <Td><StatusBadge active={item.enabled} label={item.enabled ? "启用" : "停用"} /></Td>
-                  <Td><EditButton onClick={() => setDictionaryModal(item)} /></Td>
-                </tr>
+              {dictionaryGroups.map((group) => (
+                <DictionaryRows
+                  key={group.category}
+                  label={group.label}
+                  items={group.items}
+                  open={Boolean(openDictionaryGroups[group.category])}
+                  onToggleOpen={() => toggleDictionaryGroup(group.category)}
+                  onEdit={setDictionaryModal}
+                  onToggle={toggleDictionary}
+                />
               ))}
-              {filteredDictionaries.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-muted">暂无字典项</td></tr>
+              {dictionaryGroups.length === 0 ? (
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-muted">暂无字典项</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -242,7 +310,13 @@ export function SettingsDashboard({
 
       <UserModal open={Boolean(userModal)} value={userModal === "new" ? null : userModal} campuses={campuses} onClose={() => setUserModal(null)} onSaved={reload} />
       <CampusModal open={Boolean(campusModal)} value={campusModal === "new" ? null : campusModal} managers={managers} onClose={() => setCampusModal(null)} onSaved={reload} />
-      <DictionaryModal open={Boolean(dictionaryModal)} value={dictionaryModal === "new" ? null : dictionaryModal} onClose={() => setDictionaryModal(null)} onSaved={reload} />
+      <DictionaryModal
+        open={Boolean(dictionaryModal)}
+        value={dictionaryModal === "new" ? null : dictionaryModal}
+        categories={dictionaryCategoryChoices}
+        onClose={() => setDictionaryModal(null)}
+        onSaved={reload}
+      />
     </div>
   );
 }
@@ -291,6 +365,23 @@ function EditButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+function ToggleButton({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="inline-flex h-8 items-center rounded-md border border-line px-2 text-xs">
+      {active ? "停用" : "启用"}
+    </button>
+  );
+}
+
+function RowActions({ active, onEdit, onToggle }: { active: boolean; onEdit: () => void; onToggle: () => void }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <EditButton onClick={onEdit} />
+      <ToggleButton active={active} onClick={onToggle} />
+    </div>
+  );
+}
+
 function Th({ children }: { children: React.ReactNode }) {
   return <th className="whitespace-nowrap px-4 py-3 font-medium">{children}</th>;
 }
@@ -299,33 +390,118 @@ function Td({ children, className = "" }: { children: React.ReactNode; className
   return <td className={`whitespace-nowrap px-4 py-3 text-ink ${className}`}>{children}</td>;
 }
 
+function getDictionaryCategoryLabel(categoryName: string) {
+  return settingsLabels.dictionaryCategory[categoryName as keyof typeof settingsLabels.dictionaryCategory] || categoryName;
+}
+
 function RoleUserRows({
   label,
   users,
-  onEdit
+  open,
+  onToggleOpen,
+  onEdit,
+  onToggle
 }: {
   label: string;
   users: UserItem[];
+  open: boolean;
+  onToggleOpen: () => void;
   onEdit: (user: UserItem) => void;
+  onToggle: (user: UserItem) => void;
 }) {
+  const ToggleIcon = open ? ChevronDown : ChevronRight;
   return (
     <>
       <tr className="bg-[#F8FAFB]">
-        <td colSpan={6} className="px-4 py-2 text-xs font-semibold text-muted">{label}</td>
+        <td colSpan={6} className="p-0">
+          <button type="button" onClick={onToggleOpen} className="flex w-full items-center justify-between px-4 py-3 text-left">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
+              <ToggleIcon className="h-4 w-4 text-muted" />
+              {label}
+            </span>
+            <span className="rounded-md bg-white px-2 py-1 text-xs text-muted">{users.length} 人</span>
+          </button>
+        </td>
       </tr>
-      {users.map((user) => (
-        <tr key={user.id} className="hover:bg-[#FAFBFC]">
-          <Td className="font-medium">{getUserDisplayName(user)}</Td>
-          <Td>{user.email || "-"}<div className="text-xs text-muted">{user.phone || "-"}</div></Td>
-          <Td>{settingsLabels.role[user.role as keyof typeof settingsLabels.role] || user.role}</Td>
-          <Td>{user.campus?.name || "总部"}</Td>
-          <Td><StatusBadge active={user.status === "ACTIVE"} label={settingsLabels.userStatus[user.status as keyof typeof settingsLabels.userStatus]} /></Td>
-          <Td><EditButton onClick={() => onEdit(user)} /></Td>
+      {open ? (
+        <tr className="bg-white text-xs text-muted">
+          <Th>姓名</Th>
+          <Th>邮箱/手机</Th>
+          <Th>角色</Th>
+          <Th>校区</Th>
+          <Th>状态</Th>
+          <Th>操作</Th>
         </tr>
-      ))}
-      {users.length === 0 ? (
+      ) : null}
+      {open ? users.map((user) => (
+          <tr key={user.id} className={user.status === "ACTIVE" ? "hover:bg-[#FAFBFC]" : "bg-[#FAFBFC] text-muted"}>
+            <Td className="font-medium">{getUserDisplayName(user)}</Td>
+            <Td>{user.email || "-"}<div className="text-xs text-muted">{user.phone || "-"}</div></Td>
+            <Td>{settingsLabels.role[user.role as keyof typeof settingsLabels.role] || user.role}</Td>
+            <Td>{user.campus?.name || "总部"}</Td>
+            <Td><StatusBadge active={user.status === "ACTIVE"} label={settingsLabels.userStatus[user.status as keyof typeof settingsLabels.userStatus]} /></Td>
+            <Td><RowActions active={user.status === "ACTIVE"} onEdit={() => onEdit(user)} onToggle={() => onToggle(user)} /></Td>
+          </tr>
+        )) : null}
+      {open && users.length === 0 ? (
         <tr>
           <td colSpan={6} className="px-4 py-3 text-sm text-muted">暂无{label}用户</td>
+        </tr>
+      ) : null}
+    </>
+  );
+}
+
+function DictionaryRows({
+  label,
+  items,
+  open,
+  onToggleOpen,
+  onEdit,
+  onToggle
+}: {
+  label: string;
+  items: DictionaryItem[];
+  open: boolean;
+  onToggleOpen: () => void;
+  onEdit: (item: DictionaryItem) => void;
+  onToggle: (item: DictionaryItem) => void;
+}) {
+  const ToggleIcon = open ? ChevronDown : ChevronRight;
+  return (
+    <>
+      <tr className="bg-[#F8FAFB]">
+        <td colSpan={5} className="p-0">
+          <button type="button" onClick={onToggleOpen} className="flex w-full items-center justify-between px-4 py-3 text-left">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
+              <ToggleIcon className="h-4 w-4 text-muted" />
+              {label}
+            </span>
+            <span className="rounded-md bg-white px-2 py-1 text-xs text-muted">{items.length} 项</span>
+          </button>
+        </td>
+      </tr>
+      {open ? (
+        <tr className="bg-white text-xs text-muted">
+          <Th>名称</Th>
+          <Th>值</Th>
+          <Th>排序</Th>
+          <Th>状态</Th>
+          <Th>操作</Th>
+        </tr>
+      ) : null}
+      {open ? items.map((item) => (
+          <tr key={item.id} className={item.enabled ? "hover:bg-[#FAFBFC]" : "bg-[#FAFBFC] text-muted"}>
+            <Td className="font-medium">{item.name}</Td>
+            <Td>{item.value || "-"}</Td>
+            <Td>{item.sortOrder}</Td>
+            <Td><StatusBadge active={item.enabled} label={item.enabled ? "启用" : "停用"} /></Td>
+            <Td><RowActions active={item.enabled} onEdit={() => onEdit(item)} onToggle={() => onToggle(item)} /></Td>
+          </tr>
+        )) : null}
+      {open && items.length === 0 ? (
+        <tr>
+          <td colSpan={5} className="px-4 py-3 text-sm text-muted">暂无{label}字典项</td>
         </tr>
       ) : null}
     </>
@@ -354,6 +530,9 @@ function UserModal({ open, value, campuses, onClose, onSaved }: { open: boolean;
     value: item.value,
     label: item.label
   }));
+  const campusOptions = campuses
+    .filter((item) => item.status === "ACTIVE" || item.id === value?.campusId)
+    .map((item) => ({ value: item.id, label: item.name || "-" }));
   if (value?.role && !roleOptions.some((item) => item.value === value.role)) {
     roleOptions.push({
       value: value.role,
@@ -369,7 +548,7 @@ function UserModal({ open, value, campuses, onClose, onSaved }: { open: boolean;
         <Field label="手机号" name="phone" defaultValue={value?.phone} />
         {!value ? <Field label="初始密码" name="password" type="password" defaultValue="Admin@123456" /> : null}
         <Select label="用户角色" name="role" options={roleOptions} defaultValue={value?.role || "ADMISSIONS_COUNSELOR"} />
-        <Select label="所属校区" name="campusId" options={[{ value: "", label: "总部/不绑定校区" }, ...campuses.map((item) => ({ value: item.id, label: item.name }))]} defaultValue={value?.campusId || ""} />
+        <Select label="所属校区" name="campusId" options={[{ value: "", label: "总部/不绑定校区" }, ...campusOptions]} defaultValue={value?.campusId || ""} />
         <Select label="用户状态" name="status" options={userStatusOptions} defaultValue={value?.status || "ACTIVE"} />
       </EntityForm>
     </BaseModal>
@@ -400,12 +579,24 @@ function CampusModal({ open, value, managers, onClose, onSaved }: { open: boolea
   );
 }
 
-function DictionaryModal({ open, value, onClose, onSaved }: { open: boolean; value: DictionaryItem | null; onClose: () => void; onSaved: () => Promise<void> }) {
+function DictionaryModal({
+  open,
+  value,
+  categories,
+  onClose,
+  onSaved
+}: {
+  open: boolean;
+  value: DictionaryItem | null;
+  categories: Array<{ value: string; label: string }>;
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
   return (
     <BaseModal open={open} title={value ? "编辑字典项" : "新建字典项"} onClose={onClose}>
       <EntityForm endpoint={value ? `/api/settings/dictionaries/${value.id}` : "/api/settings/dictionaries"} method={value ? "PUT" : "POST"} onClose={onClose} onSaved={onSaved}>
-        <Select label="分类" name="category" options={dictionaryCategoryOptions} defaultValue={value?.category || "SCHOOL"} />
-        <Field label="名称" name="name" required defaultValue={value?.name} />
+        <CategoryField options={categories} defaultValue={value?.category} />
+        <Field label="名称" name="name" defaultValue={value?.name} />
         <Field label="值" name="value" defaultValue={value?.value} />
         <Field label="排序" name="sortOrder" type="number" defaultValue={String(value?.sortOrder ?? 0)} />
         <Select label="状态" name="enabled" options={[{ value: "true", label: "启用" }, { value: "false", label: "停用" }]} defaultValue={String(value?.enabled ?? true)} />
@@ -414,10 +605,51 @@ function DictionaryModal({ open, value, onClose, onSaved }: { open: boolean; val
   );
 }
 
+function CategoryField({ options, defaultValue }: { options: Array<{ value: string; label: string }>; defaultValue?: string }) {
+  const [value, setValue] = useState(defaultValue || "");
+  const selectedOption = options.find((item) => item.value === value || item.label === value);
+
+  return (
+    <label>
+      <span className="text-sm font-medium text-ink">分类</span>
+      <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_180px]">
+        <input
+          name="category"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder="请输入分类名称"
+          className="h-10 w-full rounded-md border border-line px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        />
+        <select
+          value={selectedOption?.value || ""}
+          onChange={(event) => setValue(event.target.value)}
+          className="h-10 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        >
+          <option value="">快捷选择</option>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      </div>
+    </label>
+  );
+}
+
 function EntityForm({ endpoint, method, children, onClose, onSaved }: { endpoint: string; method: "POST" | "PUT"; children: React.ReactNode; onClose: () => void; onSaved: () => Promise<void> }) {
   const [saving, setSaving] = useState(false);
 
   async function submit(formData: FormData) {
+    if (endpoint.includes("/api/settings/dictionaries")) {
+      if (!String(formData.get("category") || "").trim()) {
+        alert("请输入字典分类");
+        return;
+      }
+      if (!String(formData.get("name") || "").trim()) {
+        alert("请输入字典名称");
+        return;
+      }
+    }
+
     setSaving(true);
     const response = await fetch(endpoint, {
       method,

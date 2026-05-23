@@ -48,9 +48,9 @@ export async function POST(request: NextRequest) {
 
     const campusWhere =
       auth.user.role === "ADMIN" || auth.user.role === "HQ_OPERATIONS"
-        ? { organizationId: auth.user.organizationId }
+        ? { organizationId: auth.user.organizationId, status: "ACTIVE" as const }
         : auth.user.campusId
-          ? { id: auth.user.campusId }
+          ? { id: auth.user.campusId, status: "ACTIVE" as const }
           : { id: "__none__" };
     const [rows, campuses, classes, academicUsers, salesUsers] = await Promise.all([
       rowsFromFile(file),

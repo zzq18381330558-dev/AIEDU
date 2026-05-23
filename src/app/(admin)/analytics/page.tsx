@@ -21,9 +21,9 @@ export default async function AnalyticsPage({
   const wrongQuestionWhere = buildWrongQuestionWhere(user, filters);
   const campusWhere =
     user.role === "ADMIN" || user.role === "HQ_OPERATIONS"
-      ? { organizationId: user.organizationId }
+      ? { organizationId: user.organizationId, status: "ACTIVE" as const }
       : user.campusId
-        ? { id: user.campusId }
+        ? { id: user.campusId, status: "ACTIVE" as const }
         : { id: "__none__" };
 
   const [leads, students, attendance, courseSessions, wrongQuestionRecords, campuses, counselors, reports] = await Promise.all([

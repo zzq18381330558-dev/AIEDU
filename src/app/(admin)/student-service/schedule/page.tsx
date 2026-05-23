@@ -9,9 +9,9 @@ export default async function SchedulePage() {
   const user = await requireUser("/student-service");
   const campusWhere =
     user.role === "ADMIN" || user.role === "HQ_OPERATIONS"
-      ? { organizationId: user.organizationId }
+      ? { organizationId: user.organizationId, status: "ACTIVE" as const }
       : user.campusId
-        ? { id: user.campusId }
+        ? { id: user.campusId, status: "ACTIVE" as const }
         : { id: "__none__" };
 
   const [sessions, campuses, classes, lecturers] = await Promise.all([

@@ -36,7 +36,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
       }
     }),
     prisma.campus.findMany({
-      where: sopCampusWhere(user),
+      where: { ...sopCampusWhere(user), status: "ACTIVE" },
       select: { id: true, name: true },
       orderBy: { name: "asc" }
     }),

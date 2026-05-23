@@ -18,7 +18,7 @@ export default async function ContentPage() {
       take: 100
     }),
     prisma.campus.findMany({
-      where: user.role === "ADMIN" || user.role === "HQ_OPERATIONS" ? { organizationId: user.organizationId } : user.campusId ? { id: user.campusId } : { id: "__none__" },
+      where: user.role === "ADMIN" || user.role === "HQ_OPERATIONS" ? { organizationId: user.organizationId, status: "ACTIVE" } : user.campusId ? { id: user.campusId, status: "ACTIVE" } : { id: "__none__" },
       select: { id: true, name: true },
       orderBy: { name: "asc" }
     }),

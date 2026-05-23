@@ -1,6 +1,7 @@
 import { SettingsDashboard } from "@/components/settings/settings-dashboard";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { listBusinessDictionaries } from "@/lib/settings-dictionary-db";
 
 export default async function SettingsPage() {
   const user = await requireUser("/settings");
@@ -19,10 +20,7 @@ export default async function SettingsPage() {
       },
       orderBy: [{ status: "asc" }, { name: "asc" }]
     }),
-    prisma.businessDictionary.findMany({
-      where: { organizationId: user.organizationId },
-      orderBy: [{ category: "asc" }, { sortOrder: "asc" }, { createdAt: "desc" }]
-    }),
+    listBusinessDictionaries(user.organizationId),
     prisma.user.findMany({
       where: {
         organizationId: user.organizationId,

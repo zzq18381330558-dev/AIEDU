@@ -10,9 +10,9 @@ export default async function CrmPage() {
 
   const campusWhere =
     user.role === "ADMIN" || user.role === "HQ_OPERATIONS"
-      ? { organizationId: user.organizationId }
+      ? { organizationId: user.organizationId, status: "ACTIVE" as const }
       : user.campusId
-        ? { id: user.campusId }
+        ? { id: user.campusId, status: "ACTIVE" as const }
         : { id: "__none__" };
 
   const [leads, campuses, counselors, statusGroups, sourceGroups, todayCount] = await Promise.all([

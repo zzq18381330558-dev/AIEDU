@@ -48,11 +48,17 @@ export const settingsLabels = {
   >
 };
 
+const dictionaryCategoryAlias = new Map<string, DictionaryCategory>(
+  dictionaryCategoryOptions.flatMap((item) => [
+    [item.value, item.value],
+    [item.label, item.value]
+  ])
+);
+
 const roleValues = new Set(settingsRoleOptions.map((item) => item.value));
 const legacyRoleValues = new Set<UserRole>([...settingsRoleOptions.map((item) => item.value), "HQ_OPERATIONS"]);
 const userStatusValues = new Set(userStatusOptions.map((item) => item.value));
 const campusStatusValues = new Set(campusStatusOptions.map((item) => item.value));
-const dictionaryCategoryValues = new Set(dictionaryCategoryOptions.map((item) => item.value));
 
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -112,15 +118,18 @@ export function normalizeCampusInput(input: Record<string, unknown>, defaults: {
 }
 
 export function normalizeDictionaryInput(input: Record<string, unknown>, defaults: { organizationId: string }) {
+  const categoryText = text(input.category);
   const name = text(input.name);
   if (!name) throw new Error("请输入字典名称");
+  if (!categoryText) throw new Error("请输入字典分类");
+  const category = dictionaryCategoryAlias.get(categoryText) || categoryText;
 
   return {
     organizationId: defaults.organizationId,
-    category: enumOr(input.category, dictionaryCategoryValues, "SCHOOL"),
+    category,
     name,
     value: nullableText(input.value),
     enabled: text(input.enabled) !== "false",
     sortOrder: Number.parseInt(text(input.sortOrder) || "0", 10) || 0
-  } satisfies Prisma.BusinessDictionaryUncheckedCreateInput;
+  };
 }
