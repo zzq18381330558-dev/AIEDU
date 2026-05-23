@@ -42,13 +42,15 @@ test("normalizeCampusInput validates required fields and status", () => {
       name: "杭州校区",
       code: " hz ",
       city: "杭州",
-      status: "DISABLED"
+      status: "DISABLED",
+      businessType: "FRANCHISE"
     },
     { organizationId: "org-1" }
   );
 
   assert.equal(result.code, "HZ");
   assert.equal(result.status, "DISABLED");
+  assert.equal(result.businessType, "FRANCHISE");
 });
 
 test("normalizeDictionaryInput validates name and enabled flag", () => {

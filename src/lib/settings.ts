@@ -1,4 +1,4 @@
-import type { CampusStatus, DictionaryCategory, Prisma, UserRole, UserStatus } from "@prisma/client";
+import type { CampusBusinessType, CampusStatus, DictionaryCategory, Prisma, UserRole, UserStatus } from "@prisma/client";
 import { roleLabels } from "@/lib/roles";
 
 export const settingsRoleOptions: Array<{ value: UserRole; label: string; description: string }> = [
@@ -17,6 +17,11 @@ export const userStatusOptions: Array<{ value: UserStatus; label: string }> = [
 export const campusStatusOptions: Array<{ value: CampusStatus; label: string }> = [
   { value: "ACTIVE", label: "启用" },
   { value: "DISABLED", label: "停用" }
+];
+
+export const campusBusinessTypeOptions: Array<{ value: CampusBusinessType; label: string }> = [
+  { value: "DIRECT", label: "直营" },
+  { value: "FRANCHISE", label: "加盟" }
 ];
 
 export const dictionaryCategoryOptions: Array<{ value: DictionaryCategory; label: string }> = [
@@ -42,6 +47,10 @@ export const settingsLabels = {
     CampusStatus,
     string
   >,
+  campusBusinessType: Object.fromEntries(campusBusinessTypeOptions.map((item) => [item.value, item.label])) as Record<
+    CampusBusinessType,
+    string
+  >,
   dictionaryCategory: Object.fromEntries(dictionaryCategoryOptions.map((item) => [item.value, item.label])) as Record<
     DictionaryCategory,
     string
@@ -59,6 +68,7 @@ const roleValues = new Set(settingsRoleOptions.map((item) => item.value));
 const legacyRoleValues = new Set<UserRole>([...settingsRoleOptions.map((item) => item.value), "HQ_OPERATIONS"]);
 const userStatusValues = new Set(userStatusOptions.map((item) => item.value));
 const campusStatusValues = new Set(campusStatusOptions.map((item) => item.value));
+const campusBusinessTypeValues = new Set(campusBusinessTypeOptions.map((item) => item.value));
 
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -113,6 +123,7 @@ export function normalizeCampusInput(input: Record<string, unknown>, defaults: {
     city,
     contactPhone: nullableText(input.contactPhone),
     status: enumOr(input.status, campusStatusValues, "ACTIVE"),
+    businessType: enumOr(input.businessType, campusBusinessTypeValues, "DIRECT"),
     address: nullableText(input.address)
   } satisfies Prisma.CampusUncheckedCreateInput;
 }

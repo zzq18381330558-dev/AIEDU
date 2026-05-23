@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Building2, ChevronDown, ChevronRight, LibraryBig, Pencil, Plus, RefreshCw, ShieldCheck, UserCog, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
+  campusBusinessTypeOptions,
   campusStatusOptions,
   dictionaryCategoryOptions,
   settingsLabels,
@@ -35,6 +36,7 @@ type CampusItem = {
   contactPhone?: string | null;
   address?: string | null;
   status: string;
+  businessType: string;
   _count?: { users: number; leads: number; students: number };
 };
 
@@ -152,6 +154,7 @@ export function SettingsDashboard({
       managerId: campus.managerId || "",
       contactPhone: campus.contactPhone || "",
       address: campus.address || "",
+      businessType: campus.businessType || "DIRECT",
       status: campus.status === "ACTIVE" ? "DISABLED" : "ACTIVE"
     });
   }
@@ -250,7 +253,7 @@ export function SettingsDashboard({
                 <Th>校区</Th>
                 <Th>城市</Th>
                 <Th>负责人</Th>
-                <Th>联系方式</Th>
+                <Th>校区类型</Th>
                 <Th>状态</Th>
                 <Th>数据</Th>
                 <Th>操作</Th>
@@ -262,7 +265,7 @@ export function SettingsDashboard({
                   <Td><span className="font-medium">{campus.name}</span><div className="text-xs text-muted">{campus.code}</div></Td>
                   <Td>{campus.city}</Td>
                   <Td>{getUserDisplayName(campus.manager)}</Td>
-                  <Td>{campus.contactPhone || "-"}</Td>
+                  <Td>{settingsLabels.campusBusinessType[campus.businessType as keyof typeof settingsLabels.campusBusinessType] || "直营"}</Td>
                   <Td><StatusBadge active={campus.status === "ACTIVE"} label={settingsLabels.campusStatus[campus.status as keyof typeof settingsLabels.campusStatus]} /></Td>
                   <Td>{campus._count?.users || 0} 用户 / {campus._count?.students || 0} 学员</Td>
                   <Td><RowActions active={campus.status === "ACTIVE"} onEdit={() => setCampusModal(campus)} onToggle={() => toggleCampus(campus)} /></Td>
@@ -568,6 +571,7 @@ function CampusModal({ open, value, managers, onClose, onSaved }: { open: boolea
         <Field label="校区编码" name="code" required defaultValue={value?.code} />
         <Field label="城市" name="city" required defaultValue={value?.city} />
         <Select label="负责人" name="managerId" options={[{ value: "", label: "暂不指定" }, ...managerOptions]} defaultValue={value?.managerId || ""} />
+        <Select label="校区类型" name="businessType" options={campusBusinessTypeOptions} defaultValue={value?.businessType || "DIRECT"} />
         <Field label="联系方式" name="contactPhone" defaultValue={value?.contactPhone} />
         <Select label="校区状态" name="status" options={campusStatusOptions} defaultValue={value?.status || "ACTIVE"} />
         <label className="md:col-span-2">

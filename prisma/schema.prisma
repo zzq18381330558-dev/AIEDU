@@ -26,6 +26,11 @@ enum CampusStatus {
   DISABLED
 }
 
+enum CampusBusinessType {
+  DIRECT
+  FRANCHISE
+}
+
 enum DictionaryCategory {
   SCHOOL
   MAJOR
@@ -227,6 +232,7 @@ model Campus {
   city           String
   contactPhone   String?
   status         CampusStatus    @default(ACTIVE)
+  businessType   CampusBusinessType @default(DIRECT)
   address        String?
   organization   Organization    @relation(fields: [organizationId], references: [id])
   manager        User?           @relation("CampusManager", fields: [managerId], references: [id])
@@ -245,6 +251,7 @@ model Campus {
   @@index([organizationId])
   @@index([managerId])
   @@index([status])
+  @@index([businessType])
 }
 
 model User {
