@@ -15,7 +15,7 @@ export default async function CrmPage() {
       where: scope,
       include: {
         campus: { select: { id: true, name: true } },
-        assignee: { select: { id: true, name: true, email: true, phone: true } },
+        assignee: { select: { id: true, name: true, phone: true } },
         _count: { select: { followUps: true } }
       },
       orderBy: [{ nextFollowUpAt: "asc" }, { updatedAt: "desc" }],

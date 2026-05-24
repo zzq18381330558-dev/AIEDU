@@ -84,18 +84,15 @@ export function normalizeUserInput(
   defaults: { organizationId: string }
 ) {
   const name = text(input.name);
-  const email = text(input.email).toLowerCase();
   const idNumber = nullableText(input.idNumber);
   const role = text(input.role);
   if (!name) throw new Error("请输入用户姓名");
-  if (!email) throw new Error("请输入登录邮箱");
   if (role && !roleValues.has(role as UserRole)) throw new Error("不能选择该用户角色");
 
   return {
     organizationId: defaults.organizationId,
     campusId: nullableText(input.campusId),
     name,
-    email,
     phone: nullableText(input.phone),
     idNumber,
     role: role ? (role as UserRole) : "ADMISSIONS_COUNSELOR",

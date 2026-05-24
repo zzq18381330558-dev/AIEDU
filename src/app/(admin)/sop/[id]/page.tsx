@@ -56,7 +56,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
         campus: { select: { id: true, name: true } },
         execution: { select: { id: true, owner: true } },
         checkIns: {
-          include: { user: { select: { name: true, email: true, phone: true } } },
+          include: { user: { select: { name: true, phone: true } } },
           orderBy: { createdAt: "desc" },
           take: 3
         }
@@ -66,7 +66,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
     prisma.sopInspection.findMany({
       where: { AND: [{ sopTemplateId: id }, sopScope.inspection] },
       include: {
-        inspector: { select: { name: true, email: true, phone: true } },
+        inspector: { select: { name: true, phone: true } },
         execution: { include: { campus: { select: { name: true } } } }
       },
       orderBy: { createdAt: "desc" },
@@ -76,7 +76,7 @@ export default async function SopDetailPage({ params }: { params: Promise<{ id: 
       where: { AND: [{ sopTemplateId: id }, sopScope.weeklyReport] },
       include: {
         campus: { select: { id: true, name: true } },
-        reporter: { select: { name: true, email: true, phone: true } },
+        reporter: { select: { name: true, phone: true } },
         execution: { select: { id: true, owner: true } }
       },
       orderBy: { weekStart: "desc" },

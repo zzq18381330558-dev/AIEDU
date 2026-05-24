@@ -29,7 +29,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         status: input.status,
         aiSuggestion: input.content
       },
-      include: { owner: { select: { id: true, name: true, email: true, phone: true } } }
+      include: { owner: { select: { id: true, name: true, phone: true } } }
     });
     return NextResponse.json({ item }, { status: 201 });
   } catch (error) {

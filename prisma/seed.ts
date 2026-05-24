@@ -31,28 +31,50 @@ async function main() {
   });
 
   const users = [
-    ["管理员", "admin@aiedu.local", "13800000000", null, UserRole.ADMIN],
-    ["校区校长", "campus@aiedu.local", "13800000001", "310101199001011001", UserRole.CAMPUS_MANAGER],
-    ["招生老师", "sales@aiedu.local", "13800000002", "310101199001011002", UserRole.ADMISSIONS_COUNSELOR],
-    ["教务老师", "academic@aiedu.local", "13800000003", "310101199001011003", UserRole.ACADEMIC_TEACHER],
-    ["授课老师", "lecturer@aiedu.local", "13800000004", "310101199001011004", UserRole.LECTURER]
+    ["管理员", "13800000000", null, UserRole.ADMIN],
+    ["校区校长", "13800000001", "310101199001011001", UserRole.CAMPUS_MANAGER],
+    ["招生老师", "13800000002", "310101199001011002", UserRole.ADMISSIONS_COUNSELOR],
+    ["教务老师", "13800000003", "310101199001011003", UserRole.ACADEMIC_TEACHER],
+    ["授课老师", "13800000004", "310101199001011004", UserRole.LECTURER]
   ] as const;
 
-  for (const [name, email, phone, idNumber, role] of users) {
+  async function upsertSeedUser(
+    name: string,
+    phone: string,
+    idNumber: string | null,
+    role: UserRole
+  ) {
     const initialPassword = idNumber ? idNumber.slice(-6) : "123456";
     const passwordHash = await bcrypt.hash(initialPassword, 10);
-    await prisma.user.upsert({
-      where: { email },
-      update: {
-        phone,
-        idNumber,
-        passwordHash
-      },
-      create: {
+    const existing = await prisma.user.findFirst({
+      where: {
+        organizationId: org.id,
+        OR: [
+          { phone },
+          ...(idNumber ? [{ idNumber }] : [])
+        ]
+      }
+    });
+
+    if (existing) {
+      return prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          name,
+          phone,
+          idNumber,
+          passwordHash,
+          role,
+          status: "ACTIVE"
+        }
+      });
+    }
+
+    return prisma.user.create({
+      data: {
         organizationId: org.id,
         campusId: campus.id,
         name,
-        email,
         phone,
         idNumber,
         passwordHash,
@@ -61,17 +83,21 @@ async function main() {
     });
   }
 
-  const admin = await prisma.user.findUniqueOrThrow({
-    where: { email: "admin@aiedu.local" }
+  for (const [name, phone, idNumber, role] of users) {
+    await upsertSeedUser(name, phone, idNumber, role);
+  }
+
+  const admin = await prisma.user.findFirstOrThrow({
+    where: { organizationId: org.id, phone: "13800000000" }
   });
-  const academic = await prisma.user.findUniqueOrThrow({
-    where: { email: "academic@aiedu.local" }
+  const academic = await prisma.user.findFirstOrThrow({
+    where: { organizationId: org.id, phone: "13800000003" }
   });
-  const lecturer = await prisma.user.findUniqueOrThrow({
-    where: { email: "lecturer@aiedu.local" }
+  const lecturer = await prisma.user.findFirstOrThrow({
+    where: { organizationId: org.id, phone: "13800000004" }
   });
-  const sales = await prisma.user.findUniqueOrThrow({
-    where: { email: "sales@aiedu.local" }
+  const sales = await prisma.user.findFirstOrThrow({
+    where: { organizationId: org.id, phone: "13800000002" }
   });
 
   await prisma.campus.update({

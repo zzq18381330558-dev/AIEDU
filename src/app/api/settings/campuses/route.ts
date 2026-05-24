@@ -5,8 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { normalizeCampusAssistantIds, normalizeCampusInput } from "@/lib/settings";
 
 const include = {
-  manager: { select: { id: true, name: true, email: true, phone: true } },
-  assistants: { include: { user: { select: { id: true, name: true, email: true, phone: true, role: true } } }, orderBy: { createdAt: "asc" as const } },
+  manager: { select: { id: true, name: true, phone: true } },
+  assistants: { include: { user: { select: { id: true, name: true, phone: true, role: true } } }, orderBy: { createdAt: "asc" as const } },
   _count: { select: { users: true, leads: true, students: true } }
 };
 

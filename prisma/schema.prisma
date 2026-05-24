@@ -259,7 +259,6 @@ model User {
   organizationId String
   campusId       String?
   name           String
-  email          String       @unique
   phone          String?
   idNumber       String?
   passwordHash   String

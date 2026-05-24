@@ -22,14 +22,14 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
     include: {
       campus: { select: { id: true, name: true } },
       class: { select: { id: true, name: true } },
-      academicOwner: { select: { id: true, name: true, email: true, phone: true } },
-      salesOwner: { select: { id: true, name: true, email: true, phone: true } },
+      academicOwner: { select: { id: true, name: true, phone: true } },
+      salesOwner: { select: { id: true, name: true, phone: true } },
       lead: { select: { id: true, sourceChannel: true, status: true, intentLevel: true, note: true, createdAt: true } },
-      tickets: { include: { owner: { select: { name: true, email: true, phone: true } } }, orderBy: { createdAt: "desc" } },
+      tickets: { include: { owner: { select: { name: true, phone: true } } }, orderBy: { createdAt: "desc" } },
       studyPlans: { orderBy: { createdAt: "desc" } },
       reminders: { orderBy: { scheduledAt: "desc" }, take: 20 },
       attendanceRecords: {
-        include: { courseSession: { select: { id: true, title: true, startsAt: true, homework: true } }, recorder: { select: { name: true, email: true, phone: true } } },
+        include: { courseSession: { select: { id: true, title: true, startsAt: true, homework: true } }, recorder: { select: { name: true, phone: true } } },
         orderBy: { createdAt: "desc" }
       }
     }

@@ -15,7 +15,7 @@ export default async function RemindersPage() {
     },
     include: {
       campus: { select: { name: true } },
-      assignee: { select: { name: true, email: true, phone: true } }
+      assignee: { select: { name: true, phone: true } }
     },
     orderBy: { nextFollowUpAt: "asc" }
   });

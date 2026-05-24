@@ -43,7 +43,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       },
       include: {
         campus: { select: { id: true, name: true } },
-        reporter: { select: { id: true, name: true, email: true, phone: true } },
+        reporter: { select: { id: true, name: true, phone: true } },
         execution: { select: { id: true, owner: true } }
       }
     });

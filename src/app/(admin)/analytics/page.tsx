@@ -26,8 +26,8 @@ export default async function AnalyticsPage({
     : await buildScopedUserWhere(user, "ADMISSIONS_COUNSELOR");
 
   const [leads, students, attendance, courseSessions, wrongQuestionRecords, campuses, counselors, reports] = await Promise.all([
-    prisma.lead.findMany({ where: leadWhere, include: { campus: { select: { name: true } }, assignee: { select: { name: true, email: true, phone: true } } } }),
-    prisma.student.findMany({ where: studentWhere, include: { campus: { select: { name: true } }, class: { select: { name: true } }, salesOwner: { select: { name: true, email: true, phone: true } } } }),
+    prisma.lead.findMany({ where: leadWhere, include: { campus: { select: { name: true } }, assignee: { select: { name: true, phone: true } } } }),
+    prisma.student.findMany({ where: studentWhere, include: { campus: { select: { name: true } }, class: { select: { name: true } }, salesOwner: { select: { name: true, phone: true } } } }),
     prisma.attendanceRecord.findMany({ where: attendanceWhere, include: { courseSession: { select: { homework: true, class: { select: { id: true, name: true } } } } } }),
     prisma.courseSession.findMany({ where: courseSessionWhere, select: { startsAt: true, endsAt: true } }),
     prisma.wrongQuestionRecord.findMany({
@@ -35,7 +35,7 @@ export default async function AnalyticsPage({
       include: { question: { select: { subject: true, chapter: true, knowledgePoint: true, difficulty: true } } }
     }),
     prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: counselorWhere, select: { id: true, name: true, email: true, phone: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: counselorWhere, select: { id: true, name: true, phone: true }, orderBy: { name: "asc" } }),
     prisma.analyticsDailyReport.findMany({ orderBy: { reportDate: "desc" }, take: 5 })
   ]);
 

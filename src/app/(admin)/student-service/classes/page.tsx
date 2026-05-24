@@ -15,15 +15,15 @@ export default async function ClassesPage() {
       where: await buildClassScopeWhere(user),
       include: {
         campus: { select: { name: true } },
-        academicOwner: { select: { name: true, email: true, phone: true } },
-        lecturer: { select: { name: true, email: true, phone: true } },
+        academicOwner: { select: { name: true, phone: true } },
+        lecturer: { select: { name: true, phone: true } },
         _count: { select: { students: true, sessions: true } }
       },
       orderBy: { startAt: "desc" }
     }),
     prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: await buildScopedUserWhere(user, "ACADEMIC_TEACHER"), select: { id: true, name: true, email: true, phone: true } }),
-    prisma.user.findMany({ where: await buildScopedUserWhere(user, "LECTURER"), select: { id: true, name: true, email: true, phone: true } })
+    prisma.user.findMany({ where: await buildScopedUserWhere(user, "ACADEMIC_TEACHER"), select: { id: true, name: true, phone: true } }),
+    prisma.user.findMany({ where: await buildScopedUserWhere(user, "LECTURER"), select: { id: true, name: true, phone: true } })
   ]);
 
   return (

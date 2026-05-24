@@ -12,7 +12,7 @@ export default async function ContentPage() {
   const [items, campuses, templates, keyPoints, draftCount, reviewingCount, publishedCount] = await Promise.all([
     prisma.teachingContent.findMany({
       include: {
-        author: { select: { name: true, email: true, phone: true } },
+        author: { select: { name: true, phone: true } },
         _count: { select: { versions: true, reviews: true, publications: true, exports: true } }
       },
       orderBy: { updatedAt: "desc" },

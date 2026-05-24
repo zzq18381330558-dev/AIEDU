@@ -15,12 +15,11 @@ import { permissionModules } from "@/lib/permission-modules";
 import { modulePermissions, roleHome } from "@/lib/roles";
 import { getUserDisplayName } from "@/lib/user-display";
 
-type Option = { id: string; name?: string | null; email?: string | null; phone?: string | null; role?: string | null };
+type Option = { id: string; name?: string | null; phone?: string | null; role?: string | null };
 
 type UserItem = {
   id: string;
   name: string;
-  email: string;
   phone?: string | null;
   hasIdNumber?: boolean;
   maskedIdNumber?: string | null;
@@ -182,7 +181,6 @@ export function SettingsDashboard({
   async function toggleUser(user: UserItem) {
     await saveEntity(`/api/settings/users/${user.id}`, {
       name: user.name,
-      email: user.email,
       phone: user.phone || "",
       role: user.role,
       campusId: user.campusId || "",
@@ -576,7 +574,7 @@ function RoleUserRows({
       {open ? (
         <tr className="bg-white text-xs text-muted">
           <Th>姓名</Th>
-          <Th>邮箱/手机</Th>
+          <Th>手机</Th>
           <Th>角色</Th>
           <Th>校区</Th>
           <Th>状态</Th>
@@ -586,7 +584,7 @@ function RoleUserRows({
       {open ? users.map((user) => (
           <tr key={user.id} className={user.status === "ACTIVE" ? "hover:bg-[#FAFBFC]" : "bg-[#FAFBFC] text-muted"}>
             <Td className="font-medium">{getUserDisplayName(user)}</Td>
-            <Td>{user.email || "-"}<div className="text-xs text-muted">{user.phone || "-"}</div></Td>
+            <Td>{user.phone || "-"}</Td>
             <Td>{settingsLabels.role[user.role as keyof typeof settingsLabels.role] || user.role}</Td>
             <Td>{user.campus?.name || "总部"}</Td>
             <Td><StatusBadge active={user.status === "ACTIVE"} label={settingsLabels.userStatus[user.status as keyof typeof settingsLabels.userStatus]} /></Td>
@@ -725,7 +723,6 @@ function UserModal({
     <BaseModal open={open} title={value ? "编辑用户" : "新建用户"} onClose={onClose}>
       <EntityForm endpoint={value ? `/api/settings/users/${value.id}` : "/api/settings/users"} method={value ? "PUT" : "POST"} onClose={onClose} onSaved={onSaved}>
         <Field label="姓名" name="name" required defaultValue={value?.name} />
-        <Field label="登录邮箱" name="email" type="email" required defaultValue={value?.email} />
         <Field label="手机号" name="phone" defaultValue={value?.phone} />
         {value ? (
           <ReadonlyField label="身份证号" name="maskedIdNumber" value={value.maskedIdNumber || "未填写"} displayValue={value.maskedIdNumber || "未填写"} />

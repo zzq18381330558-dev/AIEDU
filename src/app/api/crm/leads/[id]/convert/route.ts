@@ -35,7 +35,7 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
         },
         include: {
           campus: { select: { id: true, name: true } },
-          salesOwner: { select: { id: true, name: true, email: true, phone: true } }
+          salesOwner: { select: { id: true, name: true, phone: true } }
         }
       });
       await tx.lead.update({

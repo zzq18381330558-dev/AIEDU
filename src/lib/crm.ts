@@ -197,7 +197,7 @@ export function leadScopeWhere(user: { id: string; role: UserRole; campusId: str
 }
 
 export function buildPerformanceRows(
-  users: Array<{ id: string; name?: string | null; email?: string | null; phone?: string | null; campus?: { name: string } | null }>,
+  users: Array<{ id: string; name?: string | null; phone?: string | null; campus?: { name: string } | null }>,
   leads: Array<{ assigneeId: string | null; status: LeadStatus; createdAt: Date }>
 ) {
   return users.map((user) => {

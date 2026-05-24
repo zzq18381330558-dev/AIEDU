@@ -17,7 +17,7 @@ export async function GET() {
       },
       include: {
         campus: { select: { id: true, name: true } },
-        assignee: { select: { id: true, name: true, email: true, phone: true } }
+        assignee: { select: { id: true, name: true, phone: true } }
       },
       orderBy: { nextFollowUpAt: "asc" },
       take: 100

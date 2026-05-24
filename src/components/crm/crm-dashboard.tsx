@@ -13,7 +13,7 @@ import {
 import { LeadModal, type LeadModalValue } from "@/components/crm/lead-modal";
 import { getUserDisplayName } from "@/lib/user-display";
 
-type Option = { id: string; name?: string | null; email?: string | null; phone?: string | null };
+type Option = { id: string; name?: string | null; phone?: string | null };
 type LeadItem = LeadModalValue & {
   id: string;
   campus?: Option;

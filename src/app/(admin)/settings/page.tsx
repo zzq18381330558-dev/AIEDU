@@ -30,7 +30,6 @@ export default async function SettingsPage() {
         organizationId: true,
         campusId: true,
         name: true,
-        email: true,
         phone: true,
         idNumber: true,
         role: true,
@@ -44,8 +43,8 @@ export default async function SettingsPage() {
     prisma.campus.findMany({
       where: campusWhere,
       include: {
-        manager: { select: { id: true, name: true, email: true, phone: true } },
-        assistants: { include: { user: { select: { id: true, name: true, email: true, phone: true, role: true } } }, orderBy: { createdAt: "asc" } },
+        manager: { select: { id: true, name: true, phone: true } },
+        assistants: { include: { user: { select: { id: true, name: true, phone: true, role: true } } }, orderBy: { createdAt: "asc" } },
         _count: { select: { users: true, leads: true, students: true } }
       },
       orderBy: [{ status: "asc" }, { name: "asc" }]
@@ -59,7 +58,7 @@ export default async function SettingsPage() {
             status: "ACTIVE"
           }
         : { id: user.id },
-      select: { id: true, name: true, email: true, phone: true },
+      select: { id: true, name: true, phone: true },
       orderBy: { name: "asc" }
     }),
     isAdmin
@@ -69,7 +68,7 @@ export default async function SettingsPage() {
             status: "ACTIVE",
             role: { not: "ADMIN" }
           },
-          select: { id: true, name: true, email: true, phone: true, role: true },
+          select: { id: true, name: true, phone: true, role: true },
           orderBy: { name: "asc" }
         })
       : Promise.resolve([])

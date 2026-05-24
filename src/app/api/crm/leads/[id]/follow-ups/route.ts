@@ -18,7 +18,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
   const items = await prisma.leadFollowUp.findMany({
     where: { leadId: id },
     include: {
-      creator: { select: { id: true, name: true, email: true, phone: true } }
+      creator: { select: { id: true, name: true, phone: true } }
     },
     orderBy: { followAt: "desc" }
   });
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
           creatorId: auth.user.id,
           ...data
         },
-        include: { creator: { select: { id: true, name: true, email: true, phone: true } } }
+        include: { creator: { select: { id: true, name: true, phone: true } } }
       });
       await tx.lead.update({
         where: { id },

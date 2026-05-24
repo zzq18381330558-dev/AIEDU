@@ -14,7 +14,7 @@ export async function GET() {
       where,
       include: {
         campus: { select: { name: true } },
-        content: { include: { author: { select: { name: true, email: true, phone: true } } } }
+        content: { include: { author: { select: { name: true, phone: true } } } }
       },
       orderBy: { publishedAt: "desc" },
       take: 100

@@ -22,7 +22,7 @@ export async function loginAction(_state: LoginState, formData: FormData): Promi
   if (error) return { error };
 
   if (!user || user.status !== "ACTIVE") {
-    return { error: "账号不存在或已停用" };
+    return { error: "手机号或身份证号不存在，或账号已停用" };
   }
 
   const isValid = await bcrypt.compare(password, user.passwordHash);

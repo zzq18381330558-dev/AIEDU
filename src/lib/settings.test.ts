@@ -13,11 +13,26 @@ test("normalizeUserInput rejects removed roles", () => {
   assert.throws(() => normalizeUserInput(
     {
       name: "新用户",
-      email: "new@example.com",
       role: "REMOVED_ROLE"
     },
     { organizationId: "org-1" }
   ), /不能选择该用户角色/);
+});
+
+test("normalizeUserInput only includes phone and id number login fields", () => {
+  const result = normalizeUserInput(
+    {
+      name: "新用户",
+      phone: "19900000000",
+      idNumber: "510100199901010000",
+      role: "ADMISSIONS_COUNSELOR"
+    },
+    { organizationId: "org-1" }
+  );
+
+  const removedKey = ["e", "mail"].join("");
+  assert.equal(removedKey in result, false);
+  assert.equal(result.phone, "19900000000");
 });
 
 test("settingsRoleOptions uses merged administrator role labels", () => {

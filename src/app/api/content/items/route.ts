@@ -5,7 +5,7 @@ import { buildTemplateDrivenDraft, canManageTeachingContent, normalizeContentInp
 import { prisma } from "@/lib/prisma";
 
 const include = {
-  author: { select: { id: true, name: true, email: true, phone: true } },
+  author: { select: { id: true, name: true, phone: true } },
   _count: { select: { versions: true, reviews: true, publications: true, exports: true } }
 } satisfies Prisma.TeachingContentInclude;
 

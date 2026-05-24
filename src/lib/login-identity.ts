@@ -29,12 +29,5 @@ export async function findLoginUser(identifier: string): Promise<{ user: LoginUs
     return { user: null, error: "登录账号存在歧义，请联系管理员" };
   }
 
-  const emailUser = phoneUser || idNumberUser
-    ? null
-    : await prisma.user.findUnique({
-        where: { email: identifier.toLowerCase() },
-        select: { id: true, passwordHash: true, role: true, status: true }
-      });
-
-  return { user: phoneUser || idNumberUser || emailUser };
+  return { user: phoneUser || idNumberUser };
 }

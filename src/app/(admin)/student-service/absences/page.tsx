@@ -14,7 +14,7 @@ export default async function AbsencesPage() {
         AND: [await buildAttendanceScopeWhere(user), { status: "ABSENT" }]
       },
       include: {
-        student: { select: { name: true, phone: true, school: true, academicOwner: { select: { name: true, email: true, phone: true } } } },
+        student: { select: { name: true, phone: true, school: true, academicOwner: { select: { name: true, phone: true } } } },
         courseSession: { select: { title: true, startsAt: true, class: { select: { name: true } } } }
       },
       orderBy: { createdAt: "desc" },
@@ -28,7 +28,7 @@ export default async function AbsencesPage() {
             name: true,
             students: {
               where: await buildStudentScopeWhere(user),
-              select: { id: true, name: true, phone: true, school: true, enrolledAt: true, academicOwner: { select: { name: true, email: true, phone: true } } }
+              select: { id: true, name: true, phone: true, school: true, enrolledAt: true, academicOwner: { select: { name: true, phone: true } } }
             }
           }
         },

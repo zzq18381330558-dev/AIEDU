@@ -64,7 +64,7 @@ export default async function SopPage({
       where: sopScope.weeklyReport,
       include: {
         campus: { select: { name: true } },
-        reporter: { select: { name: true, email: true, phone: true } },
+        reporter: { select: { name: true, phone: true } },
         template: { select: { title: true } }
       },
       orderBy: { weekStart: "desc" },
@@ -73,7 +73,7 @@ export default async function SopPage({
     prisma.sopInspection.findMany({
       where: sopScope.inspection,
       include: {
-        inspector: { select: { name: true, email: true, phone: true } },
+        inspector: { select: { name: true, phone: true } },
         template: { select: { title: true } },
         execution: { include: { campus: { select: { name: true } } } }
       },

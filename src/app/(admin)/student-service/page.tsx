@@ -21,8 +21,8 @@ export default async function StudentServicePage() {
       include: {
         campus: { select: { name: true } },
         class: { select: { name: true } },
-        academicOwner: { select: { name: true, email: true, phone: true } },
-        salesOwner: { select: { name: true, email: true, phone: true } },
+        academicOwner: { select: { name: true, phone: true } },
+        salesOwner: { select: { name: true, phone: true } },
         _count: { select: { studyPlans: true, attendanceRecords: true } }
       },
       orderBy: { updatedAt: "desc" },
@@ -32,12 +32,12 @@ export default async function StudentServicePage() {
     prisma.studentClass.findMany({ where: classScope, select: { id: true, name: true }, orderBy: { startAt: "desc" } }),
     prisma.user.findMany({
       where: await buildScopedUserWhere(user, "ACADEMIC_TEACHER"),
-      select: { id: true, name: true, email: true, phone: true },
+      select: { id: true, name: true, phone: true },
       orderBy: { name: "asc" }
     }),
     prisma.user.findMany({
       where: await buildScopedUserWhere(user, "ADMISSIONS_COUNSELOR"),
-      select: { id: true, name: true, email: true, phone: true },
+      select: { id: true, name: true, phone: true },
       orderBy: { name: "asc" }
     }),
     prisma.studyPlan.count({ where: { student: scope } }),

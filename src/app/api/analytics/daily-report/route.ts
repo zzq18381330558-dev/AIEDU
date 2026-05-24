@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
     const filters = parseAnalyticsFilters(new URL(request.url).searchParams);
     const { leadWhere, studentWhere, attendanceWhere } = await buildAnalyticsWhere(auth.user, filters);
     const [leads, students, attendance, courseSessions, wrongQuestionRecords] = await Promise.all([
-      prisma.lead.findMany({ where: leadWhere, include: { campus: { select: { name: true } }, assignee: { select: { name: true, email: true, phone: true } } } }),
-      prisma.student.findMany({ where: studentWhere, include: { campus: { select: { name: true } }, class: { select: { name: true } }, salesOwner: { select: { name: true, email: true, phone: true } } } }),
+      prisma.lead.findMany({ where: leadWhere, include: { campus: { select: { name: true } }, assignee: { select: { name: true, phone: true } } } }),
+      prisma.student.findMany({ where: studentWhere, include: { campus: { select: { name: true } }, class: { select: { name: true } }, salesOwner: { select: { name: true, phone: true } } } }),
       prisma.attendanceRecord.findMany({ where: attendanceWhere, include: { courseSession: { select: { homework: true, class: { select: { id: true, name: true } } } } } }),
       prisma.courseSession.findMany({ where: await buildAnalyticsCourseSessionWhere(auth.user, filters), select: { startsAt: true, endsAt: true } }),
       prisma.wrongQuestionRecord.findMany({

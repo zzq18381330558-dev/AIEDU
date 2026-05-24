@@ -22,7 +22,7 @@ export function AnalyticsDashboard({
 }: {
   summary: Summary;
   campuses: Array<{ id: string; name: string }>;
-  counselors: Array<{ id: string; name?: string | null; email?: string | null; phone?: string | null }>;
+  counselors: Array<{ id: string; name?: string | null; phone?: string | null }>;
 }) {
   const router = useRouter();
   const params = useSearchParams();

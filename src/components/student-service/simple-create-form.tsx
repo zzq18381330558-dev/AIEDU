@@ -12,7 +12,7 @@ import {
 import { examTrackOptions } from "@/lib/crm";
 import { getUserDisplayName } from "@/lib/user-display";
 
-type Option = { id: string; name?: string | null; email?: string | null; phone?: string | null };
+type Option = { id: string; name?: string | null; phone?: string | null };
 
 export function StudentCreateForm({
   campuses,

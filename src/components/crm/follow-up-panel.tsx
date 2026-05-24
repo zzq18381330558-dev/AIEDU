@@ -13,7 +13,7 @@ type FollowUp = {
   intentLevel: string;
   followAt: string;
   nextAt?: string | null;
-  creator?: { name?: string | null; email?: string | null; phone?: string | null };
+  creator?: { name?: string | null; phone?: string | null };
 };
 
 function dateTimeLocalValue(value?: string | null) {

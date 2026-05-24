@@ -14,7 +14,7 @@ export default async function CheckInsPage() {
       include: {
         student: { select: { id: true, name: true, school: true } },
         courseSession: { select: { id: true, title: true, startsAt: true, class: { select: { name: true } } } },
-        recorder: { select: { name: true, email: true, phone: true } }
+        recorder: { select: { name: true, phone: true } }
       },
       orderBy: { createdAt: "desc" },
       take: 200

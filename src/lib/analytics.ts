@@ -33,7 +33,7 @@ export type AnalyticsInput = {
     status: LeadStatus;
     createdAt: Date;
     campus?: { name: string } | null;
-    assignee?: { name?: string | null; email?: string | null; phone?: string | null } | null;
+    assignee?: { name?: string | null; phone?: string | null } | null;
   }>;
   students: Array<{
     id: string;

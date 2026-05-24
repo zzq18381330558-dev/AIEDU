@@ -9,7 +9,6 @@ const safeUserSelect = {
   organizationId: true,
   campusId: true,
   name: true,
-  email: true,
   phone: true,
   idNumber: true,
   role: true,
@@ -60,7 +59,6 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
           organizationId: normalized.organizationId,
           campusId: normalized.campusId,
           name: normalized.name,
-          email: normalized.email,
           phone: normalized.phone,
           role: normalized.role,
           status: normalized.status

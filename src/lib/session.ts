@@ -13,7 +13,6 @@ const DEFAULT_SESSION_SECRET = "local-dev-session-secret-change-me";
 export type SessionUser = {
   id: string;
   name: string;
-  email: string;
   role: UserRole;
   campusId: string | null;
   organizationId: string;
@@ -83,7 +82,6 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     select: {
       id: true,
       name: true,
-      email: true,
       role: true,
       campusId: true,
       organizationId: true,
@@ -95,7 +93,6 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   return {
     id: user.id,
     name: user.name,
-    email: user.email,
     role: user.role,
     campusId: user.campusId,
     organizationId: user.organizationId

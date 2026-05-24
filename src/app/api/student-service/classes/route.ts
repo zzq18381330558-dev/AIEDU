@@ -12,8 +12,8 @@ export async function GET() {
     where: await buildClassScopeWhere(auth.user),
     include: {
       campus: { select: { id: true, name: true } },
-      academicOwner: { select: { id: true, name: true, email: true, phone: true } },
-      lecturer: { select: { id: true, name: true, email: true, phone: true } },
+      academicOwner: { select: { id: true, name: true, phone: true } },
+      lecturer: { select: { id: true, name: true, phone: true } },
       _count: { select: { students: true, sessions: true } }
     },
     orderBy: { startAt: "desc" }
@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
       data,
       include: {
         campus: { select: { id: true, name: true } },
-        academicOwner: { select: { id: true, name: true, email: true, phone: true } },
-        lecturer: { select: { id: true, name: true, email: true, phone: true } },
+        academicOwner: { select: { id: true, name: true, phone: true } },
+        lecturer: { select: { id: true, name: true, phone: true } },
         _count: { select: { students: true, sessions: true } }
       }
     });

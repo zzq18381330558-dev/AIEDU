@@ -13,7 +13,7 @@ export default async function ContentVersionsPage({ params }: { params: Promise<
     where: { id },
     include: {
       versions: { orderBy: { version: "desc" } },
-      reviews: { include: { reviewer: { select: { name: true, email: true, phone: true } } }, orderBy: { createdAt: "desc" } },
+      reviews: { include: { reviewer: { select: { name: true, phone: true } } }, orderBy: { createdAt: "desc" } },
       exports: { orderBy: { createdAt: "desc" } }
     }
   });

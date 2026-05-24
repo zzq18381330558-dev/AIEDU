@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         where: leadWhere,
         include: {
           campus: { select: { name: true } },
-          assignee: { select: { name: true, email: true, phone: true } }
+          assignee: { select: { name: true, phone: true } }
         }
       }),
       prisma.student.findMany({
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         include: {
           campus: { select: { name: true } },
           class: { select: { name: true } },
-          salesOwner: { select: { name: true, email: true, phone: true } }
+          salesOwner: { select: { name: true, phone: true } }
         }
       }),
       prisma.attendanceRecord.findMany({

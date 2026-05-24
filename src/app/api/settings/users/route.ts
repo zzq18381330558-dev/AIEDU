@@ -10,7 +10,6 @@ const safeUserSelect = {
   organizationId: true,
   campusId: true,
   name: true,
-  email: true,
   phone: true,
   idNumber: true,
   role: true,

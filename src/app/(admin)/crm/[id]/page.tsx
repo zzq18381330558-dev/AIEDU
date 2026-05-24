@@ -17,10 +17,10 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     where: { AND: [{ id }, await buildCrmLeadScopeWhere(user)] },
     include: {
       campus: { select: { name: true } },
-      assignee: { select: { name: true, email: true, phone: true } },
+      assignee: { select: { name: true, phone: true } },
       student: { select: { id: true } },
       followUps: {
-        include: { creator: { select: { name: true, email: true, phone: true } } },
+        include: { creator: { select: { name: true, phone: true } } },
         orderBy: { followAt: "desc" }
       }
     }

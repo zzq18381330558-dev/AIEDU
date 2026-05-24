@@ -16,7 +16,7 @@ export default async function SchedulePage() {
       include: {
         campus: { select: { name: true } },
         class: { select: { id: true, name: true } },
-        lecturer: { select: { name: true, email: true, phone: true } },
+        lecturer: { select: { name: true, phone: true } },
         _count: { select: { attendanceRecords: true, reminders: true } }
       },
       orderBy: { startsAt: "asc" },
@@ -24,7 +24,7 @@ export default async function SchedulePage() {
     }),
     prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.studentClass.findMany({ where: await buildClassScopeWhere(user), select: { id: true, name: true }, orderBy: { startAt: "desc" } }),
-    prisma.user.findMany({ where: await buildScopedUserWhere(user, "LECTURER"), select: { id: true, name: true, email: true, phone: true } })
+    prisma.user.findMany({ where: await buildScopedUserWhere(user, "LECTURER"), select: { id: true, name: true, phone: true } })
   ]);
 
   return (

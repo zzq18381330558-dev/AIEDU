@@ -11,7 +11,7 @@ export function Topbar({ user, campusNames }: { user: SessionUser; campusNames: 
     <header className="flex min-h-16 items-center justify-end border-b border-line bg-white px-4 py-3 sm:px-6">
       <div className="flex items-center gap-3">
         <div className="rounded-md border border-line px-3 py-2 text-sm text-muted">
-          <div className="font-semibold text-ink">{getUserDisplayName(user)}</div>
+          <div className="font-semibold text-ink">今日主理：{getUserDisplayName(user)}</div>
           <div className="mt-1 text-xs">所属角色：{roleLabels[user.role]}</div>
           <div className="mt-0.5 max-w-[52vw] truncate text-xs sm:max-w-96">所在校区：{campusText}</div>
         </div>
