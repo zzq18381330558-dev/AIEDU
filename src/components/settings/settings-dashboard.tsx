@@ -214,6 +214,18 @@ export function SettingsDashboard({
     });
   }
 
+  async function deleteCampus(campus: CampusItem) {
+    if (!window.confirm("删除后不可恢复，是否确认删除该校区？")) return;
+    const response = await fetch(`/api/settings/campuses/${campus.id}`, { method: "DELETE" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      alert(data.message || data.error || "删除失败");
+      return;
+    }
+    alert(data.message || "校区已删除");
+    await reload();
+  }
+
   async function toggleDictionary(item: DictionaryItem) {
     await saveEntity(`/api/settings/dictionaries/${item.id}`, {
       category: item.category,
@@ -324,7 +336,14 @@ export function SettingsDashboard({
                   <Td>{getUserDisplayName(campus.manager)}</Td>
                   <Td>{campus.assistants?.length ? campus.assistants.map((item) => getUserDisplayName(item.user)).join("、") : "未配置"}</Td>
                   <Td><StatusBadge active={campus.status === "ACTIVE"} label={settingsLabels.campusStatus[campus.status as keyof typeof settingsLabels.campusStatus]} /></Td>
-                  <Td><RowActions active={campus.status === "ACTIVE"} onEdit={() => setCampusModal(campus)} onToggle={isAdmin ? () => toggleCampus(campus) : undefined} /></Td>
+                  <Td>
+                    <RowActions
+                      active={campus.status === "ACTIVE"}
+                      onEdit={() => setCampusModal(campus)}
+                      onToggle={isAdmin ? () => toggleCampus(campus) : undefined}
+                      onDelete={isAdmin ? () => deleteCampus(campus) : undefined}
+                    />
+                  </Td>
                 </tr>
               ))}
               {campuses.length === 0 ? (
