@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { UserRole } from "@prisma/client";
-import { getNavItems } from "@/lib/nav";
+import { getAllowedNavItems } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
-export function AppSidebar({ role, allowedModules }: { role: UserRole; allowedModules: string[] }) {
+export function AppSidebar({ allowedModules }: { allowedModules: string[] }) {
   const pathname = usePathname();
-  const items = getNavItems(role, allowedModules);
+  const items = getAllowedNavItems(allowedModules);
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-line bg-white lg:block">

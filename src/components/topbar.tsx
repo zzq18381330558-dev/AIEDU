@@ -4,16 +4,16 @@ import { roleLabels } from "@/lib/roles";
 import type { SessionUser } from "@/lib/session";
 import { getUserDisplayName } from "@/lib/user-display";
 
-export function Topbar({ user }: { user: SessionUser }) {
+export function Topbar({ user, campusNames }: { user: SessionUser; campusNames: string[] }) {
+  const campusText = campusNames.length ? campusNames.join("、") : "未分配校区";
+
   return (
-    <header className="flex h-16 items-center justify-between border-b border-line bg-white px-4 sm:px-6">
-      <div>
-        <div className="text-sm text-muted">欢迎回来</div>
-        <div className="font-semibold text-ink">{getUserDisplayName(user)}</div>
-      </div>
+    <header className="flex min-h-16 items-center justify-end border-b border-line bg-white px-4 py-3 sm:px-6">
       <div className="flex items-center gap-3">
-        <div className="hidden rounded-md border border-line px-3 py-1.5 text-sm text-muted sm:block">
-          {roleLabels[user.role]}
+        <div className="rounded-md border border-line px-3 py-2 text-sm text-muted">
+          <div className="font-semibold text-ink">{getUserDisplayName(user)}</div>
+          <div className="mt-1 text-xs">所属角色：{roleLabels[user.role]}</div>
+          <div className="mt-0.5 max-w-[52vw] truncate text-xs sm:max-w-96">所在校区：{campusText}</div>
         </div>
         <form action={logoutAction}>
           <button

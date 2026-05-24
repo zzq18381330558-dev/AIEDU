@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { normalizeCampusInput, normalizeDictionaryInput, normalizeUserInput, settingsRoleOptions } from "./settings";
+import { getInitialUserPassword, maskIdNumber, normalizeCampusInput, normalizeDictionaryInput, normalizeResetPasswordInput, normalizeUserInput, settingsRoleOptions } from "./settings";
 
 test("settingsRoleOptions exposes only five base roles", () => {
   assert.deepEqual(
@@ -23,6 +23,27 @@ test("normalizeUserInput rejects removed roles", () => {
 test("settingsRoleOptions uses merged administrator role labels", () => {
   assert.equal(settingsRoleOptions[0].value, "ADMIN");
   assert.equal(settingsRoleOptions[0].label, "管理员");
+});
+
+test("initial user password follows id number fallback rule", () => {
+  assert.equal(getInitialUserPassword({ idNumber: "310101199001011234" }), "011234");
+  assert.equal(getInitialUserPassword({ idNumber: "  " }), "123456");
+  assert.equal(getInitialUserPassword({}), "123456");
+});
+
+test("normalizeResetPasswordInput validates reset password", () => {
+  assert.deepEqual(normalizeResetPasswordInput({ mode: "CUSTOM", password: " 123456 " }), { mode: "CUSTOM", password: "123456" });
+  assert.deepEqual(normalizeResetPasswordInput({ mode: "ID_NUMBER_SUFFIX" }), { mode: "ID_NUMBER_SUFFIX", password: null });
+  assert.deepEqual(normalizeResetPasswordInput({ mode: "DEFAULT_123456" }), { mode: "DEFAULT_123456", password: null });
+  assert.throws(() => normalizeResetPasswordInput({ mode: "CUSTOM", password: "" }), /请输入新密码/);
+  assert.throws(() => normalizeResetPasswordInput({ mode: "CUSTOM", password: "12345" }), /最短 6 位/);
+  assert.throws(() => normalizeResetPasswordInput({ mode: "BAD" }), /重置密码方式/);
+});
+
+test("maskIdNumber only keeps safe visible segments", () => {
+  assert.equal(maskIdNumber("310101199001011234"), "3101**********1234");
+  assert.equal(maskIdNumber("12345678"), "12****78");
+  assert.equal(maskIdNumber(null), null);
 });
 
 test("normalizeCampusInput validates required fields and status", () => {

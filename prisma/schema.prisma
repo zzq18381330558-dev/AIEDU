@@ -235,6 +235,7 @@ model Campus {
   address        String?
   organization   Organization    @relation(fields: [organizationId], references: [id])
   manager        User?           @relation("CampusManager", fields: [managerId], references: [id])
+  assistants     CampusAssistant[]
   users          User[]
   leads          Lead[]
   students       Student[]
@@ -260,6 +261,7 @@ model User {
   name           String
   email          String       @unique
   phone          String?
+  idNumber       String?
   passwordHash   String
   role           UserRole
   status         UserStatus   @default(ACTIVE)
@@ -279,6 +281,7 @@ model User {
   contents       TeachingContent[]
   contentReviews TeachingContentReview[]
   managedCampuses Campus[]      @relation("CampusManager")
+  assistantCampuses CampusAssistant[]
   sopCheckIns    SopTaskCheckIn[]
   sopInspections SopInspection[]
   sopWeeklyReports SopWeeklyReport[]
@@ -288,6 +291,8 @@ model User {
 
   @@index([organizationId])
   @@index([campusId])
+  @@index([phone])
+  @@index([idNumber])
   @@index([role])
 }
 
@@ -318,6 +323,20 @@ model UserPermission {
   @@index([userId])
   @@index([module])
   @@index([enabled])
+}
+
+model CampusAssistant {
+  id        String   @id @default(cuid())
+  campusId  String
+  userId    String
+  campus    Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([campusId, userId])
+  @@index([campusId])
+  @@index([userId])
 }
 
 model BusinessDictionary {

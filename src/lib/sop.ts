@@ -90,8 +90,9 @@ export function canInspectSop(role: UserRole) {
 
 export function sopCampusWhere(user: { id: string; role: UserRole; campusId: string | null; organizationId: string }) {
   if (user.role === "ADMIN") return { organizationId: user.organizationId };
-  if (user.role !== "CAMPUS_MANAGER") return { id: "__none__" };
-  return { organizationId: user.organizationId, OR: [{ id: user.campusId || "__none__" }, { managerId: user.id }] };
+  const assistantScope = { assistants: { some: { userId: user.id } } };
+  if (user.role !== "CAMPUS_MANAGER") return { organizationId: user.organizationId, OR: [assistantScope] };
+  return { organizationId: user.organizationId, OR: [{ id: user.campusId || "__none__" }, { managerId: user.id }, assistantScope] };
 }
 
 export function sopTaskScopeWhere(user: {
@@ -103,8 +104,9 @@ export function sopTaskScopeWhere(user: {
   if (user.role === "ADMIN") {
     return { campus: { organizationId: user.organizationId } };
   }
-  if (user.role !== "CAMPUS_MANAGER") return { id: "__none__" };
-  return { campus: { organizationId: user.organizationId, OR: [{ id: user.campusId || "__none__" }, { managerId: user.id }] } };
+  const assistantScope = { assistants: { some: { userId: user.id } } };
+  if (user.role !== "CAMPUS_MANAGER") return { campus: { organizationId: user.organizationId, OR: [assistantScope] } };
+  return { campus: { organizationId: user.organizationId, OR: [{ id: user.campusId || "__none__" }, { managerId: user.id }, assistantScope] } };
 }
 
 export function sopExecutionScopeWhere(user: {
@@ -116,8 +118,9 @@ export function sopExecutionScopeWhere(user: {
   if (user.role === "ADMIN") {
     return { campus: { organizationId: user.organizationId } };
   }
-  if (user.role !== "CAMPUS_MANAGER") return { id: "__none__" };
-  return { campus: { organizationId: user.organizationId, OR: [{ id: user.campusId || "__none__" }, { managerId: user.id }] } };
+  const assistantScope = { assistants: { some: { userId: user.id } } };
+  if (user.role !== "CAMPUS_MANAGER") return { campus: { organizationId: user.organizationId, OR: [assistantScope] } };
+  return { campus: { organizationId: user.organizationId, OR: [{ id: user.campusId || "__none__" }, { managerId: user.id }, assistantScope] } };
 }
 
 export function normalizeSopTemplateInput(input: Record<string, unknown>) {

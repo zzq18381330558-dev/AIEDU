@@ -21,13 +21,14 @@ function normalizeModules(value: unknown) {
 export async function GET(_request: NextRequest, context: { params: Promise<{ role: string }> }) {
   const auth = await requireApiUser("/settings");
   if ("response" in auth) return auth.response;
+  if (auth.user.role !== "ADMIN") return NextResponse.json({ error: "仅管理员可以管理权限" }, { status: 403 });
 
   try {
     const { role } = await context.params;
     const normalizedRole = normalizeRole(role);
     const modules = await getRolePermissions(normalizedRole);
     const configured = await prisma.rolePermission.count({ where: { role: normalizedRole } });
-    return NextResponse.json({ modules, configured: configured > 0 });
+    return NextResponse.json({ modules, configured: configured > 0, source: "role" });
   } catch (error) {
     return jsonError(error);
   }
@@ -36,6 +37,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ro
 export async function PUT(request: NextRequest, context: { params: Promise<{ role: string }> }) {
   const auth = await requireApiUser("/settings");
   if ("response" in auth) return auth.response;
+  if (auth.user.role !== "ADMIN") return NextResponse.json({ error: "仅管理员可以管理权限" }, { status: 403 });
 
   try {
     const { role } = await context.params;
@@ -53,7 +55,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ rol
       )
     );
 
-    return NextResponse.json({ modules: await getRolePermissions(normalizedRole), configured: true });
+    return NextResponse.json({ modules: await getRolePermissions(normalizedRole), configured: true, source: "role" });
   } catch (error) {
     return jsonError(error);
   }

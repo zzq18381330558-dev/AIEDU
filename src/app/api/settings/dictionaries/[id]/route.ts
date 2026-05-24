@@ -10,6 +10,7 @@ import { normalizeDictionaryInput } from "@/lib/settings";
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const auth = await requireApiUser("/settings");
   if ("response" in auth) return auth.response;
+  if (auth.user.role !== "ADMIN") return NextResponse.json({ error: "仅管理员可以管理字典" }, { status: 403 });
   const { id } = await context.params;
 
   try {

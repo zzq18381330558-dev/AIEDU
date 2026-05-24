@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
+import { canAccessCampusId } from "@/lib/data-scope";
 import { computeCompletionRate, normalizeSopTaskInput, sopCampusWhere, sopExecutionScopeWhere } from "@/lib/sop";
 import { prisma } from "@/lib/prisma";
 
@@ -11,6 +12,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   try {
     const body = await request.json();
     const input = normalizeSopTaskInput(body, { sopTemplateId: id });
+    if (!(await canAccessCampusId(auth.user, input.campusId, { activeOnly: true }))) {
+      return NextResponse.json({ error: "无权限操作该校区数据" }, { status: 403 });
+    }
     const campus = await prisma.campus.findFirst({
       where: { AND: [{ id: input.campusId }, sopCampusWhere(auth.user)] },
       select: { id: true }

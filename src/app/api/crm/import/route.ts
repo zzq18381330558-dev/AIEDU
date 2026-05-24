@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
 import { leadImportRequiredHeaders, normalizeImportRow, normalizeLeadInput } from "@/lib/crm";
+import { canAccessCampusId } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 const importEnumValues = {
@@ -59,6 +60,9 @@ export async function POST(request: NextRequest) {
 
     if (!(file instanceof File)) throw new Error("请上传 Excel 或 CSV 文件");
     if (!campusId) throw new Error("请选择导入线索所属校区");
+    if (!(await canAccessCampusId(auth.user, campusId, { activeOnly: true }))) {
+      return NextResponse.json({ error: "无权限操作该校区数据" }, { status: 403 });
+    }
 
     const rows = await rowsFromFile(file);
     assertRequiredHeaders(rows, [...leadImportRequiredHeaders]);

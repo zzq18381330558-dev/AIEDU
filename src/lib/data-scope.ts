@@ -14,6 +14,30 @@ export function isGlobalDataRole(role: UserRole) {
   return role === "ADMIN";
 }
 
+export async function getAssistantCampusIds(user: DataScopeUser, options: { activeOnly?: boolean } = {}) {
+  const statusWhere = options.activeOnly ? { status: "ACTIVE" as const } : {};
+  const rows = await prisma.campusAssistant.findMany({
+    where: {
+      userId: user.id,
+      campus: { organizationId: user.organizationId, ...statusWhere }
+    },
+    select: { campusId: true }
+  });
+  return rows.map((row) => row.campusId);
+}
+
+export async function hasAssistantCampus(user: DataScopeUser, options: { activeOnly?: boolean } = {}) {
+  const statusWhere = options.activeOnly ? { status: "ACTIVE" as const } : {};
+  const row = await prisma.campusAssistant.findFirst({
+    where: {
+      userId: user.id,
+      campus: { organizationId: user.organizationId, ...statusWhere }
+    },
+    select: { id: true }
+  });
+  return Boolean(row);
+}
+
 export async function getAccessibleCampusIds(user: DataScopeUser, options: { activeOnly?: boolean } = {}) {
   const statusWhere = options.activeOnly ? { status: "ACTIVE" as const } : {};
   const campuses = await prisma.campus.findMany({
@@ -22,11 +46,45 @@ export async function getAccessibleCampusIds(user: DataScopeUser, options: { act
       : {
           organizationId: user.organizationId,
           ...statusWhere,
-          OR: [{ id: user.campusId || "__none__" }, { managerId: user.id }]
+          OR: [
+            { id: user.campusId || "__none__" },
+            { managerId: user.id },
+            { assistants: { some: { userId: user.id } } }
+          ]
         },
     select: { id: true }
   });
   return campuses.map((campus) => campus.id);
+}
+
+export async function getUserCampusDisplayNames(user: DataScopeUser) {
+  const campuses = await prisma.campus.findMany({
+    where: {
+      organizationId: user.organizationId,
+      status: "ACTIVE",
+      OR: [
+        { id: user.campusId || "__none__" },
+        { managerId: user.id },
+        { assistants: { some: { userId: user.id } } }
+      ]
+    },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" }
+  });
+  return Array.from(new Map(campuses.map((campus) => [campus.id, campus.name])).values());
+}
+
+export async function canAccessCampusId(
+  user: DataScopeUser,
+  campusId: string | null | undefined,
+  options: { activeOnly?: boolean } = {}
+) {
+  if (!campusId) return false;
+  const campus = await prisma.campus.findFirst({
+    where: { AND: [{ id: campusId }, await buildAccessibleCampusWhere(user, options)] },
+    select: { id: true }
+  });
+  return Boolean(campus);
 }
 
 export async function buildAccessibleCampusWhere(
@@ -62,6 +120,10 @@ export async function buildScopedUserWhere(user: DataScopeUser, role: UserRole):
 export async function buildCrmLeadScopeWhere(user: DataScopeUser): Promise<Prisma.LeadWhereInput> {
   if (isGlobalDataRole(user.role)) return {};
   if (user.role === "CAMPUS_MANAGER") return buildCampusScopeWhere(user) as Promise<Prisma.LeadWhereInput>;
+  if (await hasAssistantCampus(user)) {
+    const campusIds = await getAssistantCampusIds(user);
+    return campusIds.length ? { campusId: { in: campusIds } } : none;
+  }
   if (user.role === "ADMISSIONS_COUNSELOR") {
     return { OR: [{ assigneeId: user.id }, { creatorId: user.id }] };
   }
@@ -71,6 +133,10 @@ export async function buildCrmLeadScopeWhere(user: DataScopeUser): Promise<Prism
 export async function buildStudentScopeWhere(user: DataScopeUser): Promise<Prisma.StudentWhereInput> {
   if (isGlobalDataRole(user.role)) return {};
   if (user.role === "CAMPUS_MANAGER") return buildCampusScopeWhere(user) as Promise<Prisma.StudentWhereInput>;
+  if (await hasAssistantCampus(user)) {
+    const campusIds = await getAssistantCampusIds(user);
+    return campusIds.length ? { campusId: { in: campusIds } } : none;
+  }
   if (user.role === "ADMISSIONS_COUNSELOR") {
     return { OR: [{ salesOwnerId: user.id }, { lead: { OR: [{ assigneeId: user.id }, { creatorId: user.id }] } }] };
   }
@@ -86,6 +152,10 @@ export async function buildStudentScopeWhere(user: DataScopeUser): Promise<Prism
 export async function buildClassScopeWhere(user: DataScopeUser): Promise<Prisma.StudentClassWhereInput> {
   if (isGlobalDataRole(user.role)) return {};
   if (user.role === "CAMPUS_MANAGER") return buildCampusScopeWhere(user) as Promise<Prisma.StudentClassWhereInput>;
+  if (await hasAssistantCampus(user)) {
+    const campusIds = await getAssistantCampusIds(user);
+    return campusIds.length ? { campusId: { in: campusIds } } : none;
+  }
   if (user.role === "ACADEMIC_TEACHER") {
     return { OR: [{ academicOwnerId: user.id }, { students: { some: { academicOwnerId: user.id } } }] };
   }
@@ -98,6 +168,10 @@ export async function buildClassScopeWhere(user: DataScopeUser): Promise<Prisma.
 export async function buildCourseSessionScopeWhere(user: DataScopeUser): Promise<Prisma.CourseSessionWhereInput> {
   if (isGlobalDataRole(user.role)) return {};
   if (user.role === "CAMPUS_MANAGER") return buildCampusScopeWhere(user) as Promise<Prisma.CourseSessionWhereInput>;
+  if (await hasAssistantCampus(user)) {
+    const campusIds = await getAssistantCampusIds(user);
+    return campusIds.length ? { campusId: { in: campusIds } } : none;
+  }
   if (user.role === "ACADEMIC_TEACHER") {
     return { class: { OR: [{ academicOwnerId: user.id }, { students: { some: { academicOwnerId: user.id } } }] } };
   }
@@ -134,10 +208,10 @@ export async function buildSopScopeWhere(user: DataScopeUser): Promise<{
       inspection: { OR: [{ sopExecutionId: null }, { execution: { campus } }] }
     };
   }
-  if (user.role !== "CAMPUS_MANAGER") {
+  if (user.role !== "CAMPUS_MANAGER" && !(await hasAssistantCampus(user))) {
     return { campus: none, execution: none, task: none, weeklyReport: none, inspection: { id: "__none__" } };
   }
-  const campusIds = await getAccessibleCampusIds(user);
+  const campusIds = user.role === "CAMPUS_MANAGER" ? await getAccessibleCampusIds(user) : await getAssistantCampusIds(user);
   const direct = campusIds.length ? { campusId: { in: campusIds } } : none;
   return {
     campus: campusIds.length ? { id: { in: campusIds } } : none,

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const auth = await requireApiUser("/content");
+    const auth = await requireApiUser("/content/campus-materials");
     if ("response" in auth) return auth.response;
 
     const where = await buildCampusMaterialScopeWhere(auth.user);

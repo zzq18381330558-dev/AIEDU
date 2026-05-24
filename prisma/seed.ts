@@ -4,8 +4,6 @@ import { PrismaClient, UserRole } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  const passwordHash = await bcrypt.hash("Admin@123456", 10);
-
   const org = await prisma.organization.upsert({
     where: { code: "AIEDU" },
     update: {},
@@ -33,22 +31,30 @@ async function main() {
   });
 
   const users = [
-    ["管理员", "admin@aiedu.local", UserRole.ADMIN],
-    ["校区校长", "campus@aiedu.local", UserRole.CAMPUS_MANAGER],
-    ["招生老师", "sales@aiedu.local", UserRole.ADMISSIONS_COUNSELOR],
-    ["教务老师", "academic@aiedu.local", UserRole.ACADEMIC_TEACHER],
-    ["授课老师", "lecturer@aiedu.local", UserRole.LECTURER]
+    ["管理员", "admin@aiedu.local", "13800000000", null, UserRole.ADMIN],
+    ["校区校长", "campus@aiedu.local", "13800000001", "310101199001011001", UserRole.CAMPUS_MANAGER],
+    ["招生老师", "sales@aiedu.local", "13800000002", "310101199001011002", UserRole.ADMISSIONS_COUNSELOR],
+    ["教务老师", "academic@aiedu.local", "13800000003", "310101199001011003", UserRole.ACADEMIC_TEACHER],
+    ["授课老师", "lecturer@aiedu.local", "13800000004", "310101199001011004", UserRole.LECTURER]
   ] as const;
 
-  for (const [name, email, role] of users) {
+  for (const [name, email, phone, idNumber, role] of users) {
+    const initialPassword = idNumber ? idNumber.slice(-6) : "123456";
+    const passwordHash = await bcrypt.hash(initialPassword, 10);
     await prisma.user.upsert({
       where: { email },
-      update: {},
+      update: {
+        phone,
+        idNumber,
+        passwordHash
+      },
       create: {
         organizationId: org.id,
         campusId: campus.id,
         name,
         email,
+        phone,
+        idNumber,
         passwordHash,
         role
       }

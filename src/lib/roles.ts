@@ -24,7 +24,7 @@ export const modulePermissions: Record<string, UserRole[]> = {
   "/content": ["ADMIN", "ACADEMIC_TEACHER", "LECTURER"],
   "/analytics": ["ADMIN", "CAMPUS_MANAGER"],
   "/sop": ["ADMIN", "CAMPUS_MANAGER"],
-  "/settings": ["ADMIN"]
+  "/settings": ["ADMIN", "CAMPUS_MANAGER"]
 };
 
 export function canAccess(role: UserRole, pathname: string) {

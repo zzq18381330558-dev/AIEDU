@@ -2,10 +2,14 @@ import "server-only";
 
 import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { resolvePermissionSource } from "@/lib/permission-resolution";
 import { isPermissionModule, permissionModules, type PermissionModule } from "@/lib/permission-modules";
 import { modulePermissions, roleHome } from "@/lib/roles";
 
 export type PermissionUser = { id: string; role: UserRole };
+export type PermissionSource = "admin" | "user" | "role" | "default";
+
+type PermissionRow = { module: string; enabled: boolean; updatedAt: Date };
 
 export function moduleFromPath(pathname: string) {
   const normalized = pathname.startsWith("/api/") ? pathname.slice(4) : pathname;
@@ -30,10 +34,18 @@ function enabledModules(rows: Array<{ module: string; enabled: boolean }>) {
   return rows.filter((item) => item.enabled && isPermissionModule(item.module)).map((item) => item.module as PermissionModule);
 }
 
+function latestUpdatedAt(rows: PermissionRow[]) {
+  if (!rows.length) return null;
+  return rows.reduce<Date | null>((latest, row) => {
+    if (!latest || row.updatedAt > latest) return row.updatedAt;
+    return latest;
+  }, null);
+}
+
 export async function getRolePermissions(role: UserRole) {
+  if (role === "ADMIN") return allModules();
   const rows = await prisma.rolePermission.findMany({ where: { role }, orderBy: { module: "asc" } });
   if (rows.length) return enabledModules(rows);
-  if (role === "ADMIN") return allModules();
   return legacyRoleModules(role);
 }
 
@@ -41,14 +53,68 @@ export async function getUserPermissions(userId: string) {
   const rows = await prisma.userPermission.findMany({ where: { userId }, orderBy: { module: "asc" } });
   return {
     configured: rows.length > 0,
-    modules: enabledModules(rows)
+    modules: enabledModules(rows),
+    latestUpdatedAt: latestUpdatedAt(rows)
+  };
+}
+
+export async function getEffectivePermissionState(user: PermissionUser) {
+  if (user.role === "ADMIN") {
+    return {
+      modules: allModules(),
+      source: "admin" as PermissionSource,
+      userConfigured: false,
+      roleConfigured: true
+    };
+  }
+
+  const [userRows, roleRows] = await Promise.all([
+    prisma.userPermission.findMany({ where: { userId: user.id }, orderBy: { module: "asc" } }),
+    prisma.rolePermission.findMany({ where: { role: user.role }, orderBy: { module: "asc" } })
+  ]);
+  const userLatestUpdatedAt = latestUpdatedAt(userRows);
+  const roleLatestUpdatedAt = latestUpdatedAt(roleRows);
+  const source = resolvePermissionSource({
+    userConfigured: userRows.length > 0,
+    roleConfigured: roleRows.length > 0,
+    userLatestUpdatedAt,
+    roleLatestUpdatedAt
+  });
+
+  if (source === "user") {
+    return {
+      modules: enabledModules(userRows),
+      source: "user" as PermissionSource,
+      userConfigured: true,
+      roleConfigured: roleRows.length > 0,
+      userLatestUpdatedAt,
+      roleLatestUpdatedAt
+    };
+  }
+
+  if (source === "role") {
+    return {
+      modules: enabledModules(roleRows),
+      source: "role" as PermissionSource,
+      userConfigured: userRows.length > 0,
+      roleConfigured: true,
+      userLatestUpdatedAt,
+      roleLatestUpdatedAt
+    };
+  }
+
+  return {
+    modules: legacyRoleModules(user.role),
+    source: "default" as PermissionSource,
+    userConfigured: userRows.length > 0,
+    roleConfigured: false,
+    userLatestUpdatedAt,
+    roleLatestUpdatedAt
   };
 }
 
 export async function getEffectivePermissions(user: PermissionUser) {
-  const userPermissions = await getUserPermissions(user.id);
-  if (userPermissions.configured) return userPermissions.modules;
-  return getRolePermissions(user.role);
+  return (await getEffectivePermissionState(user)).modules;
 }
 
 export async function canAccessModule(user: PermissionUser, permissionModule: PermissionModule) {

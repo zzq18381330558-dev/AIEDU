@@ -28,3 +28,8 @@ export function getNavItems(role: UserRole, allowedModules?: readonly string[]) 
   if (allowedModules) return navItems.filter((item) => allowedModules.includes(item.module));
   return navItems.filter((item) => modulePermissions[item.href]?.includes(role));
 }
+
+export function getAllowedNavItems(allowedModules: readonly string[]) {
+  const allowed = new Set(allowedModules);
+  return navItems.filter((item) => allowed.has(item.module));
+}

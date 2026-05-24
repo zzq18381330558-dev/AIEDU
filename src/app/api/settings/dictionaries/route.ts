@@ -10,6 +10,7 @@ import { normalizeDictionaryInput } from "@/lib/settings";
 export async function GET() {
   const auth = await requireApiUser("/settings");
   if ("response" in auth) return auth.response;
+  if (auth.user.role !== "ADMIN") return NextResponse.json({ error: "仅管理员可以管理字典" }, { status: 403 });
 
   const items = await listBusinessDictionaries(auth.user.organizationId);
 
@@ -19,6 +20,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const auth = await requireApiUser("/settings");
   if ("response" in auth) return auth.response;
+  if (auth.user.role !== "ADMIN") return NextResponse.json({ error: "仅管理员可以管理字典" }, { status: 403 });
 
   try {
     const body = await request.json();

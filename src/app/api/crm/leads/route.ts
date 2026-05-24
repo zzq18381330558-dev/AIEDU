@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { jsonError, requireApiUser } from "@/lib/api";
 import { normalizeLeadInput, getTodayRange } from "@/lib/crm";
-import { buildAccessibleCampusWhere, buildCrmLeadScopeWhere, buildScopedUserWhere } from "@/lib/data-scope";
+import { buildAccessibleCampusWhere, buildCrmLeadScopeWhere, buildScopedUserWhere, canAccessCampusId } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 const leadInclude = {
@@ -91,6 +91,9 @@ export async function POST(request: NextRequest) {
       creatorId: auth.user.id,
       campusId: defaultCampusId
     });
+    if (!(await canAccessCampusId(auth.user, data.campusId, { activeOnly: true }))) {
+      return NextResponse.json({ error: "无权限操作该校区数据" }, { status: 403 });
+    }
     const campusScope = await buildAccessibleCampusWhere(auth.user, { activeOnly: true });
     const campus = await prisma.campus.findFirst({
       where: { AND: [{ id: data.campusId }, campusScope] },

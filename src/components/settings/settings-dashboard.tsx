@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Building2, ChevronDown, ChevronRight, LibraryBig, Minus, Pencil, Plus, RefreshCw, ShieldCheck, UserCog, X } from "lucide-react";
+import { Building2, ChevronDown, ChevronRight, LibraryBig, Minus, Pencil, Plus, RefreshCw, UserCog, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   campusBusinessTypeOptions,
@@ -15,13 +15,15 @@ import { permissionModules } from "@/lib/permission-modules";
 import { modulePermissions, roleHome } from "@/lib/roles";
 import { getUserDisplayName } from "@/lib/user-display";
 
-type Option = { id: string; name?: string | null; email?: string | null; phone?: string | null };
+type Option = { id: string; name?: string | null; email?: string | null; phone?: string | null; role?: string | null };
 
 type UserItem = {
   id: string;
   name: string;
   email: string;
   phone?: string | null;
+  hasIdNumber?: boolean;
+  maskedIdNumber?: string | null;
   role: string;
   status: string;
   campusId?: string | null;
@@ -35,6 +37,7 @@ type CampusItem = {
   city: string;
   managerId?: string | null;
   manager?: Option | null;
+  assistants?: Array<{ user: Option }>;
   contactPhone?: string | null;
   address?: string | null;
   status: string;
@@ -51,21 +54,52 @@ type DictionaryItem = {
   sortOrder: number;
 };
 
+const preferredDictionaryCategories = [
+  { value: "LEAD_SOURCE", label: "线索来源" },
+  { value: "EXAM_TRACK", label: "教资方向" },
+  { value: "CLASS_TYPE", label: "课程类型" },
+  { value: "QUESTION_TYPE", label: "题目类型" },
+  { value: "DIFFICULTY", label: "难度等级" },
+  { value: "SCHOOL", label: "院校名称" },
+  { value: "MAJOR", label: "专业名称" }
+];
+
+const dictionaryCategoryDisplayNames: Record<string, string> = {
+  LEAD_SOURCE: "线索来源",
+  EXAM_TRACK: "教资方向",
+  CLASS_TYPE: "课程类型",
+  QUESTION_TYPE: "题目类型",
+  DIFFICULTY: "难度等级",
+  SCHOOL: "院校名称",
+  MAJOR: "专业名称",
+  题型: "题目类型",
+  难度: "难度等级",
+  班型: "课程类型",
+  学校: "院校名称",
+  专业: "专业名称"
+};
+
 export function SettingsDashboard({
   initialUsers,
   initialCampuses,
   initialDictionaries,
-  managers
+  managers,
+  assistantUsers,
+  currentUserRole
 }: {
   initialUsers: UserItem[];
   initialCampuses: CampusItem[];
   initialDictionaries: DictionaryItem[];
   managers: Option[];
+  assistantUsers: Option[];
+  currentUserRole: string;
 }) {
+  const isAdmin = currentUserRole === "ADMIN";
   const [users, setUsers] = useState(initialUsers);
   const [campuses, setCampuses] = useState(initialCampuses);
   const [dictionaries, setDictionaries] = useState(initialDictionaries);
   const [userModal, setUserModal] = useState<UserItem | "new" | null>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<UserItem | null>(null);
   const [newUserRole, setNewUserRole] = useState("");
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [roleInfo, setRoleInfo] = useState<string | null>(null);
@@ -76,23 +110,21 @@ export function SettingsDashboard({
   >(null);
   const [campusModal, setCampusModal] = useState<CampusItem | "new" | null>(null);
   const [dictionaryModal, setDictionaryModal] = useState<DictionaryItem | "new" | null>(null);
-  const [category, setCategory] = useState("");
   const [openUserGroups, setOpenUserGroups] = useState<Record<string, boolean>>({});
   const [openDictionaryGroups, setOpenDictionaryGroups] = useState<Record<string, boolean>>({});
 
-  const filteredDictionaries = useMemo(
-    () => dictionaries.filter((item) => !category || item.category === category),
-    [category, dictionaries]
-  );
   const dictionaryCategoryChoices = useMemo(() => {
     const options = new Map<string, string>();
-    for (const item of dictionaryCategoryOptions) options.set(item.value, item.label);
+    for (const item of preferredDictionaryCategories) options.set(item.value, item.label);
+    for (const item of dictionaryCategoryOptions) {
+      if (!options.has(item.value)) options.set(item.value, getDictionaryCategoryLabel(item.value));
+    }
     for (const item of dictionaries) options.set(item.category, getDictionaryCategoryLabel(item.category));
     return Array.from(options, ([value, label]) => ({ value, label }));
   }, [dictionaries]);
   const dictionaryGroups = useMemo(() => {
     const groups = new Map<string, DictionaryItem[]>();
-    for (const item of filteredDictionaries) {
+    for (const item of dictionaries) {
       const current = groups.get(item.category) || [];
       current.push(item);
       groups.set(item.category, current);
@@ -102,7 +134,7 @@ export function SettingsDashboard({
       label: getDictionaryCategoryLabel(categoryName),
       items
     })).sort((a, b) => a.label.localeCompare(b.label, "zh-CN"));
-  }, [filteredDictionaries]);
+  }, [dictionaries]);
   const userRoleGroups = useMemo(
     () =>
       (["ADMIN", "CAMPUS_MANAGER", "ADMISSIONS_COUNSELOR", "ACADEMIC_TEACHER", "LECTURER"] as const).map(
@@ -111,20 +143,22 @@ export function SettingsDashboard({
           label: settingsLabels.role[role],
           users: users.filter((item) => item.role === role)
         })
-      ),
-    [users]
+      ).filter((group) => isAdmin || group.role !== "ADMIN"),
+    [isAdmin, users]
   );
 
   async function reload() {
-    const [userResponse, campusResponse, dictionaryResponse] = await Promise.all([
+    const requests = [
       fetch("/api/settings/users"),
-      fetch("/api/settings/campuses"),
-      fetch("/api/settings/dictionaries")
-    ]);
+      fetch("/api/settings/campuses")
+    ];
+    const [userResponse, campusResponse, dictionaryResponse] = await Promise.all(
+      isAdmin ? [...requests, fetch("/api/settings/dictionaries")] : requests
+    );
     const [userData, campusData, dictionaryData] = await Promise.all([
       userResponse.json(),
       campusResponse.json(),
-      dictionaryResponse.json()
+      dictionaryResponse?.json() || Promise.resolve({})
     ]);
     if (userResponse.ok) setUsers(userData.items || []);
     if (campusResponse.ok) setCampuses(campusData.items || []);
@@ -162,6 +196,7 @@ export function SettingsDashboard({
       code: campus.code,
       city: campus.city,
       managerId: campus.managerId || "",
+      assistantIds: campus.assistants?.map((item) => item.user.id) || [],
       contactPhone: campus.contactPhone || "",
       address: campus.address || "",
       businessType: campus.businessType || "DIRECT",
@@ -212,19 +247,19 @@ export function SettingsDashboard({
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className={`grid gap-4 ${isAdmin ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
         <Metric label="用户" value={String(users.length)} hint={`${users.filter((item) => item.status === "ACTIVE").length} 个启用账号`} />
         <Metric label="校区" value={String(campuses.length)} hint={`${campuses.filter((item) => item.status === "ACTIVE").length} 个启用校区`} />
-        <Metric label="字典项" value={String(dictionaries.length)} hint={`${dictionaries.filter((item) => item.enabled).length} 个启用项`} />
+        {isAdmin ? <Metric label="字典项" value={String(dictionaries.length)} hint={`${dictionaries.filter((item) => item.enabled).length} 个启用项`} /> : null}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+      <section>
         <div className="rounded-lg border border-line bg-white">
           <PanelHeader
             icon={UserCog}
             title="用户管理"
-            action="新建角色"
-            onAction={() => setRoleModalOpen(true)}
+            action={isAdmin ? "新建角色" : undefined}
+            onAction={isAdmin ? () => setRoleModalOpen(true) : undefined}
           />
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
@@ -238,11 +273,13 @@ export function SettingsDashboard({
                     open={Boolean(openUserGroups[group.role])}
                     onToggleOpen={() => toggleUserGroup(group.role)}
                     onAddUser={() => openNewUser(group.role)}
-                    onManagePermissions={() => setPermissionModal({ type: "role", id: group.role, title: `${group.label}权限管理` })}
+                    onManagePermissions={isAdmin ? () => setPermissionModal({ type: "role", id: group.role, title: `${group.label}权限管理` }) : undefined}
                     onShowRoleInfo={() => setRoleInfo(group.role)}
                     onEdit={setUserModal}
                     onToggle={toggleUser}
-                    onManageUserPermissions={(user) => setPermissionModal({ type: "user", id: user.id, title: `${getUserDisplayName(user)}权限管理` })}
+                    onManageUserPermissions={isAdmin ? (user) => setPermissionModal({ type: "user", id: user.id, title: `${getUserDisplayName(user)}权限管理` }) : undefined}
+                    onResetPassword={isAdmin ? setResetPasswordUser : undefined}
+                    canDeleteRole={isAdmin}
                   />
                 ))}
                 {users.length === 0 ? (
@@ -252,35 +289,19 @@ export function SettingsDashboard({
             </table>
           </div>
         </div>
-
-        <div className="rounded-lg border border-line bg-white">
-          <PanelHeader icon={ShieldCheck} title="角色管理" />
-          <div className="border-b border-line px-5 py-4 text-sm leading-6 text-muted">
-            当前版本使用固定 5 类基础角色。自定义角色将在后续权限模块中实现，本轮不新增动态角色表。
-          </div>
-          <div className="divide-y divide-line">
-            {settingsRoleOptions.map((role) => (
-              <div key={role.value} className="px-5 py-4">
-                <div className="font-medium text-ink">{role.label}</div>
-                <div className="mt-1 text-xs leading-5 text-muted">{role.description}</div>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
 
       <section className="rounded-lg border border-line bg-white">
-        <PanelHeader icon={Building2} title="校区管理" action="新建校区" onAction={() => setCampusModal("new")} />
+        <PanelHeader icon={Building2} title="校区管理" action={isAdmin ? "新建校区" : undefined} onAction={isAdmin ? () => setCampusModal("new") : undefined} />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px] text-left text-sm">
             <thead className="bg-[#F8FAFB] text-muted">
               <tr>
-                <Th>校区</Th>
-                <Th>城市</Th>
-                <Th>负责人</Th>
+                <Th>校区名称</Th>
                 <Th>校区类型</Th>
+                <Th>校长</Th>
+                <Th>校长助理</Th>
                 <Th>状态</Th>
-                <Th>数据</Th>
                 <Th>操作</Th>
               </tr>
             </thead>
@@ -288,32 +309,28 @@ export function SettingsDashboard({
               {campuses.map((campus) => (
                 <tr key={campus.id} className={campus.status === "ACTIVE" ? "hover:bg-[#FAFBFC]" : "bg-[#FAFBFC] text-muted"}>
                   <Td><span className="font-medium">{campus.name}</span><div className="text-xs text-muted">{campus.code}</div></Td>
-                  <Td>{campus.city}</Td>
-                  <Td>{getUserDisplayName(campus.manager)}</Td>
                   <Td>{settingsLabels.campusBusinessType[campus.businessType as keyof typeof settingsLabels.campusBusinessType] || "直营"}</Td>
+                  <Td>{getUserDisplayName(campus.manager)}</Td>
+                  <Td>{campus.assistants?.length ? campus.assistants.map((item) => getUserDisplayName(item.user)).join("、") : "未配置"}</Td>
                   <Td><StatusBadge active={campus.status === "ACTIVE"} label={settingsLabels.campusStatus[campus.status as keyof typeof settingsLabels.campusStatus]} /></Td>
-                  <Td>{campus._count?.users || 0} 用户 / {campus._count?.students || 0} 学员</Td>
-                  <Td><RowActions active={campus.status === "ACTIVE"} onEdit={() => setCampusModal(campus)} onToggle={() => toggleCampus(campus)} /></Td>
+                  <Td><RowActions active={campus.status === "ACTIVE"} onEdit={() => setCampusModal(campus)} onToggle={isAdmin ? () => toggleCampus(campus) : undefined} /></Td>
                 </tr>
               ))}
               {campuses.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-muted">暂无校区，可点击新建校区完善基础信息</td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-muted">暂无校区，可点击新建校区完善基础信息</td></tr>
               ) : null}
             </tbody>
           </table>
         </div>
       </section>
 
-      <section className="rounded-lg border border-line bg-white">
-        <PanelHeader icon={LibraryBig} title="业务字典" action="新建字典项" onAction={() => setDictionaryModal("new")} />
-        <div className="border-b border-line p-4">
-          <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-10 rounded-md border border-line bg-white px-3 text-sm">
-            <option value="">全部分类</option>
-            {dictionaryCategoryChoices.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
-            ))}
-          </select>
-        </div>
+      {isAdmin ? <section className="rounded-lg border border-line bg-white">
+        <PanelHeader
+          icon={LibraryBig}
+          title="业务字典"
+          action="新建字典"
+          onAction={() => setDictionaryModal("new")}
+        />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <tbody className="divide-y divide-line">
@@ -334,20 +351,25 @@ export function SettingsDashboard({
             </tbody>
           </table>
         </div>
-      </section>
+      </section> : null}
 
       <UserModal
         open={Boolean(userModal)}
         value={userModal === "new" ? null : userModal}
         defaultRole={userModal === "new" ? newUserRole : ""}
         campuses={campuses}
+        isAdmin={isAdmin}
         onClose={() => setUserModal(null)}
         onSaved={reload}
+      />
+      <ResetPasswordModal
+        user={resetPasswordUser}
+        onClose={() => setResetPasswordUser(null)}
       />
       <RolePlaceholderModal open={roleModalOpen} onClose={() => setRoleModalOpen(false)} />
       <RoleInfoModal role={roleInfo} onClose={() => setRoleInfo(null)} />
       <PermissionModal value={permissionModal} onClose={() => setPermissionModal(null)} />
-      <CampusModal open={Boolean(campusModal)} value={campusModal === "new" ? null : campusModal} managers={managers} onClose={() => setCampusModal(null)} onSaved={reload} />
+      <CampusModal open={Boolean(campusModal)} value={campusModal === "new" ? null : campusModal} managers={managers} assistantUsers={assistantUsers} isAdmin={isAdmin} onClose={() => setCampusModal(null)} onSaved={reload} />
       <DictionaryModal
         open={Boolean(dictionaryModal)}
         value={dictionaryModal === "new" ? null : dictionaryModal}
@@ -375,7 +397,8 @@ function PanelHeader({
   action,
   onAction,
   secondaryAction,
-  onSecondaryAction
+  onSecondaryAction,
+  tools
 }: {
   icon: LucideIcon;
   title: string;
@@ -383,6 +406,7 @@ function PanelHeader({
   onAction?: () => void;
   secondaryAction?: string;
   onSecondaryAction?: () => void;
+  tools?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
@@ -390,7 +414,8 @@ function PanelHeader({
         <Icon className="h-4 w-4 text-brand-600" />
         {title}
       </div>
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {tools}
         {secondaryAction ? (
           <button onClick={onSecondaryAction} className="inline-flex h-9 items-center gap-2 rounded-md border border-line px-3 text-sm text-ink">
             <Plus className="h-4 w-4" />
@@ -433,14 +458,31 @@ function ToggleButton({ active, onClick }: { active: boolean; onClick: () => voi
   );
 }
 
-function RowActions({ active, onEdit, onToggle, onPermission }: { active: boolean; onEdit: () => void; onToggle: () => void; onPermission?: () => void }) {
+function RowActions({
+  active,
+  onEdit,
+  onToggle,
+  onPermission,
+  onResetPassword
+}: {
+  active: boolean;
+  onEdit: () => void;
+  onToggle?: () => void;
+  onPermission?: () => void;
+  onResetPassword?: () => void;
+}) {
   return (
     <div className="flex flex-wrap gap-2">
       <EditButton onClick={onEdit} />
-      <ToggleButton active={active} onClick={onToggle} />
+      {onToggle ? <ToggleButton active={active} onClick={onToggle} /> : null}
       {onPermission ? (
         <button onClick={onPermission} className="inline-flex h-8 items-center rounded-md border border-line px-2 text-xs">
           权限管理
+        </button>
+      ) : null}
+      {onResetPassword ? (
+        <button onClick={onResetPassword} className="inline-flex h-8 items-center rounded-md border border-line px-2 text-xs">
+          重置密码
         </button>
       ) : null}
     </div>
@@ -456,7 +498,7 @@ function Td({ children, className = "" }: { children: React.ReactNode; className
 }
 
 function getDictionaryCategoryLabel(categoryName: string) {
-  return settingsLabels.dictionaryCategory[categoryName as keyof typeof settingsLabels.dictionaryCategory] || categoryName;
+  return dictionaryCategoryDisplayNames[categoryName] || settingsLabels.dictionaryCategory[categoryName as keyof typeof settingsLabels.dictionaryCategory] || categoryName;
 }
 
 function isFixedRole(role: string) {
@@ -474,7 +516,9 @@ function RoleUserRows({
   onShowRoleInfo,
   onEdit,
   onToggle,
-  onManageUserPermissions
+  onManageUserPermissions,
+  onResetPassword,
+  canDeleteRole
 }: {
   role: string;
   label: string;
@@ -482,14 +526,16 @@ function RoleUserRows({
   open: boolean;
   onToggleOpen: () => void;
   onAddUser: () => void;
-  onManagePermissions: () => void;
+  onManagePermissions?: () => void;
   onShowRoleInfo: () => void;
   onEdit: (user: UserItem) => void;
   onToggle: (user: UserItem) => void;
-  onManageUserPermissions: (user: UserItem) => void;
+  onManageUserPermissions?: (user: UserItem) => void;
+  onResetPassword?: (user: UserItem) => void;
+  canDeleteRole?: boolean;
 }) {
   const ToggleIcon = open ? ChevronDown : ChevronRight;
-  const deleteDisabled = isFixedRole(role);
+  const deleteDisabled = !canDeleteRole || isFixedRole(role);
   return (
     <>
       <tr className="bg-[#F8FAFB]">
@@ -515,9 +561,11 @@ function RoleUserRows({
                   删除角色
                 </button>
               </span>
-              <button type="button" onClick={onManagePermissions} className="inline-flex h-8 items-center rounded-md border border-line bg-white px-2 text-xs text-ink">
-                权限管理
-              </button>
+              {onManagePermissions ? (
+                <button type="button" onClick={onManagePermissions} className="inline-flex h-8 items-center rounded-md border border-line bg-white px-2 text-xs text-ink">
+                  权限管理
+                </button>
+              ) : null}
               <button type="button" onClick={onShowRoleInfo} className="inline-flex h-8 items-center rounded-md border border-line bg-white px-2 text-xs text-ink">
                 角色说明
               </button>
@@ -542,7 +590,15 @@ function RoleUserRows({
             <Td>{settingsLabels.role[user.role as keyof typeof settingsLabels.role] || user.role}</Td>
             <Td>{user.campus?.name || "总部"}</Td>
             <Td><StatusBadge active={user.status === "ACTIVE"} label={settingsLabels.userStatus[user.status as keyof typeof settingsLabels.userStatus]} /></Td>
-            <Td><RowActions active={user.status === "ACTIVE"} onEdit={() => onEdit(user)} onToggle={() => onToggle(user)} onPermission={() => onManageUserPermissions(user)} /></Td>
+            <Td>
+              <RowActions
+                active={user.status === "ACTIVE"}
+                onEdit={() => onEdit(user)}
+                onToggle={() => onToggle(user)}
+                onPermission={onManageUserPermissions ? () => onManageUserPermissions(user) : undefined}
+                onResetPassword={onResetPassword ? () => onResetPassword(user) : undefined}
+              />
+            </Td>
           </tr>
         )) : null}
       {open && users.length === 0 ? (
@@ -632,6 +688,7 @@ function UserModal({
   value,
   defaultRole,
   campuses,
+  isAdmin,
   onClose,
   onSaved
 }: {
@@ -639,13 +696,16 @@ function UserModal({
   value: UserItem | null;
   defaultRole?: string;
   campuses: CampusItem[];
+  isAdmin: boolean;
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
-  const roleOptions: Array<{ value: string; label: string }> = settingsRoleOptions.map((item) => ({
-    value: item.value,
-    label: item.label
-  }));
+  const roleOptions: Array<{ value: string; label: string }> = settingsRoleOptions
+    .filter((item) => isAdmin || item.value !== "ADMIN")
+    .map((item) => ({
+      value: item.value,
+      label: item.label
+    }));
   const campusOptions = campuses
     .filter((item) => item.status === "ACTIVE" || item.id === value?.campusId)
     .map((item) => ({ value: item.id, label: item.name || "-" }));
@@ -656,8 +716,9 @@ function UserModal({
     });
   }
   const fixedNewRole = !value ? defaultRole || "ADMISSIONS_COUNSELOR" : "";
-  const fixedNewRoleLabel = fixedNewRole
-    ? settingsLabels.role[fixedNewRole as keyof typeof settingsLabels.role] || fixedNewRole
+  const readonlyRole = value ? value.role : fixedNewRole;
+  const readonlyRoleLabel = readonlyRole
+    ? settingsLabels.role[readonlyRole as keyof typeof settingsLabels.role] || readonlyRole
     : "";
 
   return (
@@ -666,16 +727,134 @@ function UserModal({
         <Field label="姓名" name="name" required defaultValue={value?.name} />
         <Field label="登录邮箱" name="email" type="email" required defaultValue={value?.email} />
         <Field label="手机号" name="phone" defaultValue={value?.phone} />
-        {!value ? <Field label="初始密码" name="password" type="password" defaultValue="Admin@123456" /> : null}
         {value ? (
+          <ReadonlyField label="身份证号" name="maskedIdNumber" value={value.maskedIdNumber || "未填写"} displayValue={value.maskedIdNumber || "未填写"} />
+        ) : (
+          <Field label="身份证号" name="idNumber" />
+        )}
+        {!value ? <Field label="初始密码" name="password" type="password" /> : null}
+        {value && isAdmin ? (
           <Select label="用户角色" name="role" options={roleOptions} defaultValue={value.role || "ADMISSIONS_COUNSELOR"} />
         ) : (
-          <ReadonlyField label="用户角色" name="role" value={fixedNewRole} displayValue={fixedNewRoleLabel} />
+          <ReadonlyField label="用户角色" name="role" value={readonlyRole} displayValue={readonlyRoleLabel} />
         )}
-        <Select label="所属校区" name="campusId" options={[{ value: "", label: "总部/不绑定校区" }, ...campusOptions]} defaultValue={value?.campusId || ""} />
+        <Select label="所属校区" name="campusId" options={[...(isAdmin ? [{ value: "", label: "总部/不绑定校区" }] : []), ...campusOptions]} defaultValue={value?.campusId || campusOptions[0]?.value || ""} />
         <Select label="用户状态" name="status" options={userStatusOptions} defaultValue={value?.status || "ACTIVE"} />
       </EntityForm>
     </BaseModal>
+  );
+}
+
+function ResetPasswordModal({ user, onClose }: { user: UserItem | null; onClose: () => void }) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const canUseIdNumberSuffix = Boolean(user?.hasIdNumber);
+
+  useEffect(() => {
+    setPassword("");
+    setConfirmPassword("");
+    setSaving(false);
+  }, [user?.id]);
+
+  if (!user) return null;
+  const targetUser = user;
+
+  async function resetPassword(payload: { mode: "CUSTOM"; password: string } | { mode: "ID_NUMBER_SUFFIX" | "DEFAULT_123456" }) {
+    setSaving(true);
+    const response = await fetch(`/api/settings/users/${targetUser.id}/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      alert(data.error || "密码重置失败");
+      setSaving(false);
+      return;
+    }
+    alert(data.message || "密码已重置");
+    setSaving(false);
+    onClose();
+  }
+
+  async function submit() {
+    if (!password) {
+      alert("请输入新密码");
+      return;
+    }
+    if (password.length < 6) {
+      alert("新密码最短 6 位");
+      return;
+    }
+    if (password !== confirmPassword) {
+      alert("两次输入的密码不一致");
+      return;
+    }
+
+    await resetPassword({ mode: "CUSTOM", password });
+  }
+
+  return (
+    <BaseModal open={Boolean(user)} title="重置密码" onClose={onClose}>
+      <div className="space-y-4 p-5">
+        <div className="grid gap-3 rounded-md bg-[#F8FAFB] p-4 text-sm md:grid-cols-3">
+          <InfoRow label="用户姓名" value={getUserDisplayName(user)} />
+          <InfoRow label="手机号" value={user.phone || "-"} />
+          <InfoRow label="身份证号" value={user.maskedIdNumber || "-"} />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <PasswordInput label="新密码" value={password} onChange={setPassword} />
+          <PasswordInput label="确认新密码" value={confirmPassword} onChange={setConfirmPassword} />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span title={canUseIdNumberSuffix ? "使用身份证号后六位" : "该用户未填写身份证号"}>
+            <button
+              type="button"
+              disabled={!canUseIdNumberSuffix || saving}
+              onClick={() => resetPassword({ mode: "ID_NUMBER_SUFFIX" })}
+              className="h-9 rounded-md border border-line px-3 text-sm text-ink disabled:cursor-not-allowed disabled:bg-[#F8FAFB] disabled:text-muted"
+            >
+              使用身份证后六位
+            </button>
+          </span>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => resetPassword({ mode: "DEFAULT_123456" })}
+            className="h-9 rounded-md border border-line px-3 text-sm text-ink"
+          >
+            使用默认密码 123456
+          </button>
+          {!canUseIdNumberSuffix ? <span className="self-center text-xs text-muted">该用户未填写身份证号</span> : null}
+        </div>
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="h-10 rounded-md border border-line px-4 text-sm text-muted">取消</button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={saving}
+            className="h-10 rounded-md bg-brand-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? "保存中..." : "保存"}
+          </button>
+        </div>
+      </div>
+    </BaseModal>
+  );
+}
+
+function PasswordInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <label>
+      <span className="text-sm font-medium text-ink">{label}</span>
+      <input
+        type="password"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 h-10 w-full rounded-md border border-line px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+      />
+    </label>
   );
 }
 
@@ -690,6 +869,49 @@ function ReadonlyField({ label, name, value, displayValue }: { label: string; na
         readOnly
         className="mt-2 h-10 w-full cursor-not-allowed rounded-md border border-line bg-[#F8FAFB] px-3 text-sm text-muted"
       />
+    </label>
+  );
+}
+
+function DisplayField({ label, displayValue }: { label: string; displayValue: string }) {
+  return (
+    <label>
+      <span className="text-sm font-medium text-ink">{label}</span>
+      <input
+        value={displayValue}
+        disabled
+        readOnly
+        className="mt-2 h-10 w-full cursor-not-allowed rounded-md border border-line bg-[#F8FAFB] px-3 text-sm text-muted"
+      />
+    </label>
+  );
+}
+
+function MultiSelect({
+  label,
+  name,
+  options,
+  defaultValues
+}: {
+  label: string;
+  name: string;
+  options: Array<{ value: string; label: string }>;
+  defaultValues: string[];
+}) {
+  return (
+    <label>
+      <span className="text-sm font-medium text-ink">{label}</span>
+      <input type="hidden" name={name} value="" />
+      <select
+        name={name}
+        multiple
+        defaultValue={defaultValues}
+        className="mt-2 min-h-28 w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </select>
     </label>
   );
 }
@@ -749,7 +971,7 @@ const roleInfoCopy: Record<string, { positioning: string; dataScope: string; sce
     scenario: "系统初始化、用户/校区/字典维护、全局管理"
   },
   CAMPUS_MANAGER: {
-    positioning: "校区经营负责人",
+    positioning: "校区经营校长",
     dataScope: "以当前系统实现为准",
     scenario: "校区日常运营管理"
   },
@@ -809,10 +1031,13 @@ function PermissionModal({
 }) {
   const [modules, setModules] = useState<string[]>([]);
   const [configured, setConfigured] = useState(false);
+  const [source, setSource] = useState<"admin" | "user" | "role" | "default">("default");
+  const [userConfigured, setUserConfigured] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const endpoint = value ? `/api/settings/permissions/${value.type === "role" ? "roles" : "users"}/${value.id}` : "";
+  const modalType = value?.type;
 
   useEffect(() => {
     if (!endpoint) return;
@@ -829,13 +1054,15 @@ function PermissionModal({
       }
       setModules(data.modules || []);
       setConfigured(Boolean(data.configured));
+      setSource(data.source || (modalType === "role" ? "role" : data.configured ? "user" : "role"));
+      setUserConfigured(Boolean(data.userConfigured ?? data.configured));
       setLoading(false);
     }
     loadPermissions();
     return () => {
       active = false;
     };
-  }, [endpoint]);
+  }, [endpoint, modalType]);
 
   async function savePermissions() {
     if (!endpoint) return;
@@ -855,6 +1082,25 @@ function PermissionModal({
     onClose();
   }
 
+  async function clearUserPermissions() {
+    if (!endpoint || value?.type !== "user") return;
+    if (!window.confirm("确定清除该用户的个人权限，并恢复使用角色权限吗？")) return;
+    setSaving(true);
+    const response = await fetch(endpoint, { method: "DELETE" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      alert(data.error || "清除个人权限失败");
+      setSaving(false);
+      return;
+    }
+    setModules(data.modules || []);
+    setConfigured(false);
+    setSource(data.source || "role");
+    setUserConfigured(false);
+    setSaving(false);
+    alert(data.message || "已恢复使用角色权限");
+  }
+
   function toggleModule(module: string) {
     setModules((current) =>
       current.includes(module) ? current.filter((item) => item !== module) : [...current, module]
@@ -862,12 +1108,19 @@ function PermissionModal({
   }
 
   if (!value) return null;
+  const sourceLabel = source === "user" ? "个人权限" : source === "admin" ? "管理员全部权限" : source === "default" ? "角色权限（默认）" : "角色权限";
 
   return (
     <BaseModal open={Boolean(value)} title={value.title} onClose={onClose}>
       <div className="space-y-4 p-5">
         <div className="rounded-md bg-[#F8FAFB] p-3 text-sm leading-6 text-muted">
-          {value.type === "user" ? "用户权限优先于角色权限。保存后，该用户将按这里勾选的模块访问。" : "角色权限会影响该角色下未单独配置用户权限的账号。"}
+          <div>当前生效来源：{sourceLabel}</div>
+          <div>
+            {value.type === "user"
+              ? "用户个人权限和角色权限都存在时，最新一次权限设置生效。保存后，个人权限将作为最新设置生效。"
+              : "修改角色权限后，将覆盖早于本次修改的个人权限。"}
+          </div>
+          {value.type === "user" && userConfigured ? <div className="font-medium text-amber-700">该用户已配置个人权限；若个人权限更新时间晚于角色权限，将按个人权限生效。</div> : null}
           {!configured ? " 当前展示为默认/继承权限。" : null}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -885,6 +1138,11 @@ function PermissionModal({
           ))}
         </div>
         <div className="flex justify-end gap-3">
+          {value.type === "user" && userConfigured ? (
+            <button type="button" onClick={clearUserPermissions} disabled={loading || saving} className="h-10 rounded-md border border-line px-4 text-sm text-ink disabled:cursor-not-allowed disabled:opacity-60">
+              清除个人权限，恢复使用角色权限
+            </button>
+          ) : null}
           <button type="button" onClick={onClose} className="h-10 rounded-md border border-line px-4 text-sm text-muted">取消</button>
           <button type="button" onClick={savePermissions} disabled={loading || saving} className="h-10 rounded-md bg-brand-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
             {saving ? "保存中..." : "保存权限"}
@@ -904,8 +1162,25 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CampusModal({ open, value, managers, onClose, onSaved }: { open: boolean; value: CampusItem | null; managers: Option[]; onClose: () => void; onSaved: () => Promise<void> }) {
+function CampusModal({
+  open,
+  value,
+  managers,
+  assistantUsers,
+  isAdmin,
+  onClose,
+  onSaved
+}: {
+  open: boolean;
+  value: CampusItem | null;
+  managers: Option[];
+  assistantUsers: Option[];
+  isAdmin: boolean;
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
   const managerOptions = managers.map((item) => ({ value: item.id, label: getUserDisplayName(item) }));
+  const selectedAssistantIds = value?.assistants?.map((item) => item.user.id) || [];
   if (value?.managerId && value.manager && !managerOptions.some((item) => item.value === value.managerId)) {
     managerOptions.push({ value: value.managerId, label: getUserDisplayName(value.manager) });
   }
@@ -916,10 +1191,34 @@ function CampusModal({ open, value, managers, onClose, onSaved }: { open: boolea
         <Field label="校区名称" name="name" required defaultValue={value?.name} />
         <Field label="校区编码" name="code" required defaultValue={value?.code} />
         <Field label="城市" name="city" required defaultValue={value?.city} />
-        <Select label="负责人" name="managerId" options={[{ value: "", label: "暂不指定" }, ...managerOptions]} defaultValue={value?.managerId || ""} />
+        {isAdmin ? (
+          <Select label="校长" name="managerId" options={[{ value: "", label: "暂不指定" }, ...managerOptions]} defaultValue={value?.managerId || ""} />
+        ) : (
+          <ReadonlyField label="校长" name="managerId" value={value?.managerId || ""} displayValue={getUserDisplayName(value?.manager, "暂不指定")} />
+        )}
+        {isAdmin ? (
+          <MultiSelect
+            label="校长助理"
+            name="assistantIds"
+            options={assistantUsers.map((item) => ({
+              value: item.id,
+              label: `${getUserDisplayName(item)} · ${settingsLabels.role[item.role as keyof typeof settingsLabels.role] || item.role || "-"}${item.phone ? ` · ${item.phone}` : ""}`
+            }))}
+            defaultValues={selectedAssistantIds}
+          />
+        ) : (
+          <DisplayField
+            label="校长助理"
+            displayValue={value?.assistants?.length ? value.assistants.map((item) => getUserDisplayName(item.user)).join("、") : "未配置"}
+          />
+        )}
         <Select label="校区类型" name="businessType" options={campusBusinessTypeOptions} defaultValue={value?.businessType || "DIRECT"} />
         <Field label="联系方式" name="contactPhone" defaultValue={value?.contactPhone} />
-        <Select label="校区状态" name="status" options={campusStatusOptions} defaultValue={value?.status || "ACTIVE"} />
+        {isAdmin ? (
+          <Select label="校区状态" name="status" options={campusStatusOptions} defaultValue={value?.status || "ACTIVE"} />
+        ) : (
+          <ReadonlyField label="校区状态" name="status" value={value?.status || "ACTIVE"} displayValue={settingsLabels.campusStatus[value?.status as keyof typeof settingsLabels.campusStatus] || "启用"} />
+        )}
         <label className="md:col-span-2">
           <span className="text-sm font-medium text-ink">地址</span>
           <textarea name="address" defaultValue={value?.address || ""} rows={3} className="mt-2 w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
@@ -1001,10 +1300,14 @@ function EntityForm({ endpoint, method, children, onClose, onSaved }: { endpoint
     }
 
     setSaving(true);
+    const payload: Record<string, FormDataEntryValue | FormDataEntryValue[]> = Object.fromEntries(formData.entries());
+    if (endpoint.includes("/api/settings/campuses") && formData.has("assistantIds")) {
+      payload.assistantIds = formData.getAll("assistantIds");
+    }
     const response = await fetch(endpoint, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(Object.fromEntries(formData.entries()))
+      body: JSON.stringify(payload)
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {

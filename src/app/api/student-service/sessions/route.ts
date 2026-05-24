@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
 import { normalizeSessionInput } from "@/lib/student-service";
-import { buildClassScopeWhere, buildCourseSessionScopeWhere, buildScopedUserWhere } from "@/lib/data-scope";
+import { buildClassScopeWhere, buildCourseSessionScopeWhere, buildScopedUserWhere, canAccessCampusId } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -32,6 +32,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const data = normalizeSessionInput(body, { campusId: auth.user.campusId || String(body.campusId || "") });
+    if (!(await canAccessCampusId(auth.user, data.campusId, { activeOnly: true }))) {
+      return NextResponse.json({ error: "无权限操作该校区数据" }, { status: 403 });
+    }
     const studentClass = await prisma.studentClass.findFirst({
       where: { AND: [{ id: data.classId }, await buildClassScopeWhere(auth.user)] },
       select: { id: true, campusId: true }

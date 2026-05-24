@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 export default async function CampusMaterialsPage() {
-  const user = await requireUser("/content");
+  const user = await requireUser("/content/campus-materials");
   const where = await buildCampusMaterialScopeWhere(user);
   const publications = await prisma.teachingContentPublication.findMany({
     where,

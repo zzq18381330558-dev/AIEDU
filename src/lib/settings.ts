@@ -85,6 +85,7 @@ export function normalizeUserInput(
 ) {
   const name = text(input.name);
   const email = text(input.email).toLowerCase();
+  const idNumber = nullableText(input.idNumber);
   const role = text(input.role);
   if (!name) throw new Error("请输入用户姓名");
   if (!email) throw new Error("请输入登录邮箱");
@@ -96,9 +97,37 @@ export function normalizeUserInput(
     name,
     email,
     phone: nullableText(input.phone),
+    idNumber,
     role: role ? (role as UserRole) : "ADMISSIONS_COUNSELOR",
     status: enumOr(input.status, userStatusValues, "ACTIVE")
   } satisfies Omit<Prisma.UserUncheckedCreateInput, "passwordHash">;
+}
+
+export function getInitialUserPassword(input: { idNumber?: string | null }) {
+  const idNumber = nullableText(input.idNumber);
+  return idNumber ? idNumber.slice(-6) : "123456";
+}
+
+export function maskIdNumber(idNumber?: string | null) {
+  const normalized = nullableText(idNumber);
+  if (!normalized) return null;
+  if (normalized.length <= 8) return `${normalized.slice(0, 2)}****${normalized.slice(-2)}`;
+  return `${normalized.slice(0, 4)}**********${normalized.slice(-4)}`;
+}
+
+export type ResetPasswordMode = "CUSTOM" | "ID_NUMBER_SUFFIX" | "DEFAULT_123456";
+
+export function normalizeResetPasswordInput(input: Record<string, unknown>) {
+  const mode = text(input.mode) || (text(input.password) ? "CUSTOM" : "");
+  if (mode !== "CUSTOM" && mode !== "ID_NUMBER_SUFFIX" && mode !== "DEFAULT_123456") {
+    throw new Error("请选择有效的重置密码方式");
+  }
+  if (mode !== "CUSTOM") return { mode: mode as ResetPasswordMode, password: null };
+
+  const password = text(input.password);
+  if (!password) throw new Error("请输入新密码");
+  if (password.length < 6) throw new Error("新密码最短 6 位");
+  return { mode: "CUSTOM" as const, password };
 }
 
 export function normalizeCampusInput(input: Record<string, unknown>, defaults: { organizationId: string }) {
@@ -120,6 +149,11 @@ export function normalizeCampusInput(input: Record<string, unknown>, defaults: {
     businessType: enumOr(input.businessType, campusBusinessTypeValues, "DIRECT"),
     address: nullableText(input.address)
   } satisfies Prisma.CampusUncheckedCreateInput;
+}
+
+export function normalizeCampusAssistantIds(input: Record<string, unknown>) {
+  const raw = Array.isArray(input.assistantIds) ? input.assistantIds : [input.assistantIds];
+  return Array.from(new Set(raw.map(text).filter(Boolean)));
 }
 
 export function normalizeDictionaryInput(input: Record<string, unknown>, defaults: { organizationId: string }) {
