@@ -27,6 +27,79 @@ function toSafeUserDto<T extends { idNumber?: string | null }>(user: T) {
   };
 }
 
+function deleteResponse(message: string, status: number) {
+  return NextResponse.json({ success: false, message, error: message }, { status });
+}
+
+async function getUserDeleteBlockReason(userId: string) {
+  const [managedCampuses, assistantRows, userPermissions] = await Promise.all([
+    prisma.campus.count({ where: { managerId: userId } }),
+    prisma.campusAssistant.count({ where: { userId } }),
+    prisma.userPermission.count({ where: { userId } })
+  ]);
+
+  if (managedCampuses > 0) return "该用户仍担任校区校长";
+  if (assistantRows > 0) return "该用户仍担任校长助理";
+  if (userPermissions > 0) return "该用户存在个人权限配置，无法删除";
+
+  const [
+    createdLeads,
+    assignedLeads,
+    leadFollowUps,
+    academicStudents,
+    salesStudents,
+    managedClasses,
+    taughtClasses,
+    courseSessions,
+    attendanceRecords,
+    studentReminders,
+    serviceTickets,
+    teachingContents,
+    teachingContentReviews,
+    sopTaskCheckIns,
+    sopInspections,
+    sopWeeklyReports
+  ] = await Promise.all([
+    prisma.lead.count({ where: { creatorId: userId } }),
+    prisma.lead.count({ where: { assigneeId: userId } }),
+    prisma.leadFollowUp.count({ where: { creatorId: userId } }),
+    prisma.student.count({ where: { academicOwnerId: userId } }),
+    prisma.student.count({ where: { salesOwnerId: userId } }),
+    prisma.studentClass.count({ where: { academicOwnerId: userId } }),
+    prisma.studentClass.count({ where: { lecturerId: userId } }),
+    prisma.courseSession.count({ where: { lecturerId: userId } }),
+    prisma.attendanceRecord.count({ where: { recorderId: userId } }),
+    prisma.studentReminder.count({ where: { creatorId: userId } }),
+    prisma.serviceTicket.count({ where: { ownerId: userId } }),
+    prisma.teachingContent.count({ where: { authorId: userId } }),
+    prisma.teachingContentReview.count({ where: { reviewerId: userId } }),
+    prisma.sopTaskCheckIn.count({ where: { userId } }),
+    prisma.sopInspection.count({ where: { inspectorId: userId } }),
+    prisma.sopWeeklyReport.count({ where: { reporterId: userId } })
+  ]);
+
+  const businessReferenceCount =
+    createdLeads +
+    assignedLeads +
+    leadFollowUps +
+    academicStudents +
+    salesStudents +
+    managedClasses +
+    taughtClasses +
+    courseSessions +
+    attendanceRecords +
+    studentReminders +
+    serviceTickets +
+    teachingContents +
+    teachingContentReviews +
+    sopTaskCheckIns +
+    sopInspections +
+    sopWeeklyReports;
+
+  if (businessReferenceCount > 0) return "该用户存在业务数据，无法删除";
+  return null;
+}
+
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const auth = await requireApiUser("/settings");
   if ("response" in auth) return auth.response;
@@ -71,5 +144,42 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     return NextResponse.json({ item: toSafeUserDto(item) });
   } catch (error) {
     return jsonError(error);
+  }
+}
+
+export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireApiUser("/settings");
+  if ("response" in auth) return auth.response;
+  if (auth.user.role !== "ADMIN") return deleteResponse("仅管理员可删除用户", 403);
+
+  const { id } = await context.params;
+  if (id === auth.user.id) return deleteResponse("当前登录账号不可删除", 400);
+
+  try {
+    const user = await prisma.user.findFirst({
+      where: { id, organizationId: auth.user.organizationId },
+      select: { id: true, name: true, phone: true, role: true }
+    });
+    if (!user) return deleteResponse("用户不存在", 404);
+    if (user.role === "ADMIN") return deleteResponse("管理员账号不可删除", 400);
+    if (user.name === "周自强" || user.phone === "18381330558") {
+      return deleteResponse("周自强账号不可删除", 400);
+    }
+
+    const blockReason = await getUserDeleteBlockReason(id);
+    if (blockReason) return deleteResponse(blockReason, 400);
+
+    await prisma.$transaction([
+      prisma.userPermission.deleteMany({ where: { userId: id } }),
+      prisma.campusAssistant.deleteMany({ where: { userId: id } }),
+      prisma.user.delete({ where: { id } })
+    ]);
+
+    return NextResponse.json({ success: true, message: "用户已删除" });
+  } catch (error) {
+    if (error instanceof Error && /Foreign key constraint|P2003/i.test(error.message)) {
+      return deleteResponse("该用户存在业务数据，无法删除", 400);
+    }
+    return deleteResponse("删除用户失败，请稍后重试", 500);
   }
 }

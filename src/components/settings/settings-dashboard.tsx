@@ -188,6 +188,18 @@ export function SettingsDashboard({
     });
   }
 
+  async function deleteUser(user: UserItem) {
+    if (!window.confirm("删除后不可恢复，是否确认删除该用户？")) return;
+    const response = await fetch(`/api/settings/users/${user.id}`, { method: "DELETE" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      alert(data.message || data.error || "删除失败");
+      return;
+    }
+    alert(data.message || "用户已删除");
+    await reload();
+  }
+
   async function toggleCampus(campus: CampusItem) {
     await saveEntity(`/api/settings/campuses/${campus.id}`, {
       name: campus.name,
@@ -275,6 +287,7 @@ export function SettingsDashboard({
                     onShowRoleInfo={() => setRoleInfo(group.role)}
                     onEdit={setUserModal}
                     onToggle={toggleUser}
+                    onDelete={isAdmin ? deleteUser : undefined}
                     onManageUserPermissions={isAdmin ? (user) => setPermissionModal({ type: "user", id: user.id, title: `${getUserDisplayName(user)}权限管理` }) : undefined}
                     onResetPassword={isAdmin ? setResetPasswordUser : undefined}
                     canDeleteRole={isAdmin}
@@ -460,12 +473,14 @@ function RowActions({
   active,
   onEdit,
   onToggle,
+  onDelete,
   onPermission,
   onResetPassword
 }: {
   active: boolean;
   onEdit: () => void;
   onToggle?: () => void;
+  onDelete?: () => void;
   onPermission?: () => void;
   onResetPassword?: () => void;
 }) {
@@ -473,6 +488,11 @@ function RowActions({
     <div className="flex flex-wrap gap-2">
       <EditButton onClick={onEdit} />
       {onToggle ? <ToggleButton active={active} onClick={onToggle} /> : null}
+      {onDelete ? (
+        <button onClick={onDelete} className="inline-flex h-8 items-center rounded-md border border-red-200 bg-red-50 px-2 text-xs font-medium text-red-700 hover:bg-red-100">
+          删除
+        </button>
+      ) : null}
       {onPermission ? (
         <button onClick={onPermission} className="inline-flex h-8 items-center rounded-md border border-line px-2 text-xs">
           权限管理
@@ -514,6 +534,7 @@ function RoleUserRows({
   onShowRoleInfo,
   onEdit,
   onToggle,
+  onDelete,
   onManageUserPermissions,
   onResetPassword,
   canDeleteRole
@@ -528,6 +549,7 @@ function RoleUserRows({
   onShowRoleInfo: () => void;
   onEdit: (user: UserItem) => void;
   onToggle: (user: UserItem) => void;
+  onDelete?: (user: UserItem) => void;
   onManageUserPermissions?: (user: UserItem) => void;
   onResetPassword?: (user: UserItem) => void;
   canDeleteRole?: boolean;
@@ -593,6 +615,7 @@ function RoleUserRows({
                 active={user.status === "ACTIVE"}
                 onEdit={() => onEdit(user)}
                 onToggle={() => onToggle(user)}
+                onDelete={onDelete ? () => onDelete(user) : undefined}
                 onPermission={onManageUserPermissions ? () => onManageUserPermissions(user) : undefined}
                 onResetPassword={onResetPassword ? () => onResetPassword(user) : undefined}
               />
