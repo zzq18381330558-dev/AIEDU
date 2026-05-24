@@ -165,6 +165,12 @@ export async function buildClassScopeWhere(user: DataScopeUser): Promise<Prisma.
   return none;
 }
 
+export async function buildCourseScopeWhere(user: DataScopeUser): Promise<Prisma.CourseWhereInput> {
+  if (isGlobalDataRole(user.role)) return { organizationId: user.organizationId };
+  const campusIds = await getAccessibleCampusIds(user);
+  return campusIds.length ? { campusId: { in: campusIds } } : none;
+}
+
 export async function buildCourseSessionScopeWhere(user: DataScopeUser): Promise<Prisma.CourseSessionWhereInput> {
   if (isGlobalDataRole(user.role)) return {};
   if (user.role === "CAMPUS_MANAGER") return buildCampusScopeWhere(user) as Promise<Prisma.CourseSessionWhereInput>;

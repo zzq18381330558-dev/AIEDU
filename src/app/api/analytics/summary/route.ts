@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { buildAnalyticsCourseSessionWhere, buildAnalyticsWhere, buildAnalyticsWrongQuestionWhere, buildTrendRows, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
+import { analyticsStudentSelect, buildAnalyticsCourseSessionWhere, buildAnalyticsWhere, buildAnalyticsWrongQuestionWhere, buildTrendRows, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -20,11 +20,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.student.findMany({
         where: studentWhere,
-        include: {
-          campus: { select: { name: true } },
-          class: { select: { name: true } },
-          salesOwner: { select: { name: true, phone: true } }
-        }
+        select: analyticsStudentSelect
       }),
       prisma.attendanceRecord.findMany({
         where: attendanceWhere,

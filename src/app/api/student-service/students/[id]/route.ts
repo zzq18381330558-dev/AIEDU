@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { normalizeStudentInput, normalizeStudentStatusInput } from "@/lib/student-service";
+import { normalizeStudentInput, normalizeStudentStatusInput, toStudentDto } from "@/lib/student-service";
 import { buildAccessibleCampusWhere, buildClassScopeWhere, buildScopedUserWhere, buildStudentScopeWhere, canAccessCampusId } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         salesOwner: { select: { id: true, name: true, phone: true } }
       }
     });
-    return NextResponse.json({ item });
+    return NextResponse.json({ item: toStudentDto(item) });
   } catch (error) {
     return jsonError(error);
   }

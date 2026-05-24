@@ -28,6 +28,7 @@ const FORMAL_QUESTION_COUNT = 503;
 const MODULES = [
   "dashboard",
   "crm",
+  "courses",
   "student-service",
   "question-bank",
   "content",
@@ -37,10 +38,10 @@ const MODULES = [
 ] as const;
 
 const ROLE_MODULES: Record<Exclude<UserRole, "ADMIN">, Array<(typeof MODULES)[number]>> = {
-  CAMPUS_MANAGER: ["dashboard", "crm", "student-service", "analytics", "sop", "content"],
+  CAMPUS_MANAGER: ["dashboard", "crm", "courses", "student-service", "analytics", "sop", "content"],
   ADMISSIONS_COUNSELOR: ["dashboard", "crm", "student-service"],
-  ACADEMIC_TEACHER: ["dashboard", "student-service", "question-bank", "content"],
-  LECTURER: ["dashboard", "question-bank", "content"]
+  ACADEMIC_TEACHER: ["dashboard", "courses", "student-service", "question-bank", "content"],
+  LECTURER: ["dashboard", "courses", "question-bank", "content"]
 };
 
 const CAMPUS_IDS = {
@@ -372,9 +373,36 @@ async function executeSeed() {
 
   await upsertRolePermissions();
 
+  const courses = [
+    { id: fixedId("course_cd"), campusId: CAMPUS_IDS.cd, createdById: userMap.cdManager, name: `${PREFIX}成都课程`, code: `${PREFIX}CD_COURSE` },
+    { id: fixedId("course_ls"), campusId: CAMPUS_IDS.ls, createdById: userMap.lsManager, name: `${PREFIX}乐山课程`, code: `${PREFIX}LS_COURSE` }
+  ];
+  for (const item of courses) {
+    await prisma.course.upsert({
+      where: { id: item.id },
+      update: {
+        campusId: item.campusId,
+        createdById: item.createdById,
+        name: item.name,
+        code: item.code,
+        category: `${PREFIX}测试课程`,
+        status: "ACTIVE",
+        isPublished: true
+      },
+      create: {
+        ...item,
+        organizationId: org.id,
+        category: `${PREFIX}测试课程`,
+        examTrack: "PRIMARY",
+        status: "ACTIVE",
+        isPublished: true
+      }
+    });
+  }
+
   const classes = [
-    { id: fixedId("class_cd"), campusId: CAMPUS_IDS.cd, name: `${PREFIX}成都班级`, academicOwnerId: userMap.cdAcademic, lecturerId: userMap.cdLecturer },
-    { id: fixedId("class_ls"), campusId: CAMPUS_IDS.ls, name: `${PREFIX}乐山班级`, academicOwnerId: userMap.lsAcademic, lecturerId: userMap.lsLecturer }
+    { id: fixedId("class_cd"), campusId: CAMPUS_IDS.cd, courseId: fixedId("course_cd"), name: `${PREFIX}成都班级`, academicOwnerId: userMap.cdAcademic, lecturerId: userMap.cdLecturer },
+    { id: fixedId("class_ls"), campusId: CAMPUS_IDS.ls, courseId: fixedId("course_ls"), name: `${PREFIX}乐山班级`, academicOwnerId: userMap.lsAcademic, lecturerId: userMap.lsLecturer }
   ];
   for (const item of classes) {
     await prisma.studentClass.upsert({

@@ -5,6 +5,7 @@ import {
   buildReservedPushPayload,
   buildServiceScript,
   normalizeAttendanceInput,
+  normalizeClassInput,
   normalizeStudentImportRow,
   normalizeServiceRecordInput,
   normalizeStudentInput,
@@ -31,6 +32,19 @@ test("normalizeStudentInput validates and normalizes student profile", () => {
   assert.equal(result.campusId, "campus-1");
   assert.equal(result.examTrack, "MIDDLE");
   assert.equal(result.studyStatus, "STUDYING");
+});
+
+test("normalizeClassInput requires courseId for class editing", () => {
+  assert.throws(
+    () => normalizeClassInput({ name: "周末班", campusId: "campus-1", startAt: "2026-06-01T09:00" }, { campusId: "" }),
+    /请选择课程/
+  );
+
+  const result = normalizeClassInput(
+    { name: "周末班", campusId: "campus-1", courseId: "course-1", startAt: "2026-06-01T09:00" },
+    { campusId: "" }
+  );
+  assert.equal(result.courseId, "course-1");
 });
 
 test("normalizeStudentInput allows empty ID number and rejects invalid format", () => {

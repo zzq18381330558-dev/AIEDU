@@ -8,6 +8,7 @@ import {
   paperTypeOptions,
   subjectOptions
 } from "@/lib/question-bank";
+import { RequiredLabel } from "@/components/ui/required-label";
 
 export type PaperValue = {
   id?: string;
@@ -51,7 +52,10 @@ export function PaperForm({ value }: { value?: PaperValue | null }) {
         {editing ? "编辑试卷" : "新建试卷"}
       </div>
       <form action={submit} className="grid gap-3">
-        <input name="name" required defaultValue={value?.title || ""} placeholder="试卷名称" className="h-10 rounded-md border border-line px-3 text-sm" />
+        <label>
+          <RequiredLabel>试卷名称</RequiredLabel>
+          <input name="name" required defaultValue={value?.title || ""} className="mt-2 h-10 w-full rounded-md border border-line px-3 text-sm" />
+        </label>
         <select name="type" defaultValue={value?.paperType || "REAL_EXAM"} className="h-10 rounded-md border border-line bg-white px-3 text-sm">
           {paperTypeOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>

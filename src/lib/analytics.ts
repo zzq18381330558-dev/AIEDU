@@ -67,6 +67,18 @@ export type AnalyticsInput = {
   }>;
 };
 
+export const analyticsStudentSelect = {
+  id: true,
+  campusId: true,
+  classId: true,
+  salesOwnerId: true,
+  studyStatus: true,
+  enrolledAt: true,
+  campus: { select: { name: true } },
+  class: { select: { name: true } },
+  salesOwner: { select: { name: true, phone: true } }
+} satisfies Prisma.StudentSelect;
+
 export const financeDefaults = {
   tuitionPerStudent: 2980,
   universityShareRate: 0.18,

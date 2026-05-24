@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { buildAnalyticsCourseSessionWhere, buildAnalyticsWhere, buildAnalyticsWrongQuestionWhere, buildDailyReport, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
+import { analyticsStudentSelect, buildAnalyticsCourseSessionWhere, buildAnalyticsWhere, buildAnalyticsWrongQuestionWhere, buildDailyReport, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const { leadWhere, studentWhere, attendanceWhere } = await buildAnalyticsWhere(auth.user, filters);
     const [leads, students, attendance, courseSessions, wrongQuestionRecords] = await Promise.all([
       prisma.lead.findMany({ where: leadWhere, include: { campus: { select: { name: true } }, assignee: { select: { name: true, phone: true } } } }),
-      prisma.student.findMany({ where: studentWhere, include: { campus: { select: { name: true } }, class: { select: { name: true } }, salesOwner: { select: { name: true, phone: true } } } }),
+      prisma.student.findMany({ where: studentWhere, select: analyticsStudentSelect }),
       prisma.attendanceRecord.findMany({ where: attendanceWhere, include: { courseSession: { select: { homework: true, class: { select: { id: true, name: true } } } } } }),
       prisma.courseSession.findMany({ where: await buildAnalyticsCourseSessionWhere(auth.user, filters), select: { startsAt: true, endsAt: true } }),
       prisma.wrongQuestionRecord.findMany({

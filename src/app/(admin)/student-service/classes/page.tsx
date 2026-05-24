@@ -1,7 +1,7 @@
 import { ServiceTabs } from "@/components/student-service/service-tabs";
-import { ClassCreateForm } from "@/components/student-service/simple-create-form";
+import { ClassCreateForm, ClassEditForm } from "@/components/student-service/simple-create-form";
 import { studentServiceLabels } from "@/lib/student-service";
-import { buildAccessibleCampusWhere, buildClassScopeWhere, buildScopedUserWhere } from "@/lib/data-scope";
+import { buildAccessibleCampusWhere, buildClassScopeWhere, buildCourseScopeWhere, buildScopedUserWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { getUserDisplayName } from "@/lib/user-display";
@@ -10,18 +10,29 @@ export default async function ClassesPage() {
   const user = await requireUser("/student-service");
   const campusWhere = await buildAccessibleCampusWhere(user, { activeOnly: true });
 
-  const [classes, campuses, academicUsers, lecturers] = await Promise.all([
+  const [classes, campuses, courses, academicUsers, lecturers] = await Promise.all([
     prisma.studentClass.findMany({
       where: await buildClassScopeWhere(user),
       include: {
         campus: { select: { name: true } },
-        academicOwner: { select: { name: true, phone: true } },
-        lecturer: { select: { name: true, phone: true } },
+        course: { select: { name: true, code: true } },
+        academicOwner: { select: { id: true, name: true, phone: true } },
+        lecturer: { select: { id: true, name: true, phone: true } },
         _count: { select: { students: true, sessions: true } }
       },
       orderBy: { startAt: "desc" }
     }),
     prisma.campus.findMany({ where: campusWhere, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.course.findMany({
+      where: {
+        AND: [
+          user.role === "ADMIN" ? { organizationId: user.organizationId } : { OR: [await buildCourseScopeWhere(user), { campusId: null, organizationId: user.organizationId }] },
+          { status: "ACTIVE", deletedAt: null }
+        ]
+      },
+      select: { id: true, name: true, code: true, campusId: true },
+      orderBy: { name: "asc" }
+    }),
     prisma.user.findMany({ where: await buildScopedUserWhere(user, "ACADEMIC_TEACHER"), select: { id: true, name: true, phone: true } }),
     prisma.user.findMany({ where: await buildScopedUserWhere(user, "LECTURER"), select: { id: true, name: true, phone: true } })
   ]);
@@ -36,6 +47,7 @@ export default async function ClassesPage() {
             <thead className="bg-[#F8FAFB] text-muted">
               <tr>
                 <Th>班级名称</Th>
+                <Th>课程</Th>
                 <Th>校区</Th>
                 <Th>开课时间</Th>
                 <Th>班主任/教务</Th>
@@ -43,12 +55,14 @@ export default async function ClassesPage() {
                 <Th>方向</Th>
                 <Th>学员人数</Th>
                 <Th>课程数</Th>
+                {user.role !== "ADMISSIONS_COUNSELOR" ? <Th>操作</Th> : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {classes.map((item) => (
                 <tr key={item.id}>
                   <Td className="font-semibold">{item.name}</Td>
+                  <Td>{item.course.name}</Td>
                   <Td>{item.campus.name}</Td>
                   <Td>{item.startAt.toLocaleString("zh-CN")}</Td>
                   <Td>{getUserDisplayName(item.academicOwner)}</Td>
@@ -56,18 +70,29 @@ export default async function ClassesPage() {
                   <Td>{studentServiceLabels.examTrack[item.examTrack]}</Td>
                   <Td>{item._count.students}</Td>
                   <Td>{item._count.sessions}</Td>
+                  {user.role !== "ADMISSIONS_COUNSELOR" ? (
+                    <Td>
+                      <ClassEditForm
+                        value={item}
+                        campuses={campuses}
+                        courses={courses.map((course) => ({ id: course.id, name: `${course.name}（${course.code}）`, campusId: course.campusId }))}
+                        academicUsers={academicUsers}
+                        lecturers={lecturers}
+                      />
+                    </Td>
+                  ) : null}
                 </tr>
               ))}
               {classes.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-muted">暂无班级。新建班级后可关联学员并排课。</td>
+                  <td colSpan={user.role !== "ADMISSIONS_COUNSELOR" ? 10 : 9} className="px-4 py-12 text-center text-muted">暂无班级。新建班级后可关联学员并排课。</td>
                 </tr>
               ) : null}
             </tbody>
           </table>
         </div>
         {user.role !== "ADMISSIONS_COUNSELOR" ? (
-          <ClassCreateForm campuses={campuses} academicUsers={academicUsers} lecturers={lecturers} />
+          <ClassCreateForm campuses={campuses} courses={courses.map((item) => ({ id: item.id, name: `${item.name}（${item.code}）`, campusId: item.campusId }))} academicUsers={academicUsers} lecturers={lecturers} />
         ) : null}
       </section>
     </div>

@@ -8,7 +8,9 @@ import type {
   StudentStudyStatus,
   UserRole
 } from "@prisma/client";
+import { getAccessibleCampusIds, isGlobalDataRole, type DataScopeUser } from "@/lib/data-scope";
 import { maskIdNumber, normalizeOptionalIdNumber } from "@/lib/id-number";
+import { prisma } from "@/lib/prisma";
 
 export const studyStatusOptions: Array<{ value: StudentStudyStatus; label: string }> = [
   { value: "NOT_STARTED", label: "未开学" },
@@ -251,16 +253,28 @@ export function getStudentMaskedIdNumber(input: { idNumber?: string | null }) {
   return maskIdNumber(input.idNumber);
 }
 
+export function toStudentDto<T extends { idNumber?: string | null }>(student: T) {
+  const { idNumber, ...rest } = student;
+  return {
+    ...rest,
+    hasIdNumber: Boolean(idNumber),
+    maskedIdNumber: maskIdNumber(idNumber)
+  };
+}
+
 export function normalizeClassInput(input: Record<string, unknown>, defaults: { campusId: string }) {
   const name = text(input.name);
   const campusId = text(input.campusId) || defaults.campusId;
+  const courseId = text(input.courseId);
   const startAt = nullableDate(input.startAt);
   if (!name) throw new Error("请输入班级名称");
+  if (!courseId) throw new Error("请选择课程");
   if (!campusId) throw new Error("请选择校区");
   if (!startAt) throw new Error("请选择开课时间");
 
   return {
     campusId,
+    courseId,
     name,
     startAt,
     academicOwnerId: nullableText(input.academicOwnerId),
@@ -268,6 +282,26 @@ export function normalizeClassInput(input: Record<string, unknown>, defaults: { 
     classType: nullableText(input.classType),
     examTrack: enumOr(input.examTrack, ["INFANT", "PRIMARY", "MIDDLE"] as const, "PRIMARY")
   } satisfies Prisma.StudentClassUncheckedCreateInput;
+}
+
+export async function validateClassCourse(user: DataScopeUser, campusId: string, courseId: string) {
+  if (!courseId) throw new Error("请选择课程");
+  const course = await prisma.course.findFirst({
+    where: {
+      id: courseId,
+      organizationId: user.organizationId,
+      status: "ACTIVE",
+      deletedAt: null
+    },
+    select: { id: true, campusId: true }
+  });
+  if (!course) throw new Error("课程不存在或已停用");
+  if (course.campusId && course.campusId !== campusId) {
+    throw new Error("班级课程必须属于所选校区，或选择总部课程");
+  }
+  if (isGlobalDataRole(user.role) || !course.campusId) return;
+  const campusIds = await getAccessibleCampusIds(user, { activeOnly: true });
+  if (!campusIds.includes(course.campusId)) throw new Error("无权限使用该课程");
 }
 
 export function normalizeSessionInput(input: Record<string, unknown>, defaults: { campusId: string }) {

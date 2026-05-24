@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { getStudentMaskedIdNumber, normalizeStudentInput } from "@/lib/student-service";
+import { normalizeStudentInput, toStudentDto } from "@/lib/student-service";
 import { buildAccessibleCampusWhere, buildClassScopeWhere, buildScopedUserWhere, buildStudentScopeWhere, canAccessCampusId } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
@@ -42,12 +42,7 @@ export async function GET(request: NextRequest) {
     take: 100
   });
 
-  return NextResponse.json({
-    items: items.map((item) => {
-      const { idNumber, ...rest } = item;
-      return { ...rest, hasIdNumber: Boolean(idNumber), maskedIdNumber: getStudentMaskedIdNumber(item) };
-    })
-  });
+  return NextResponse.json({ items: items.map(toStudentDto) });
 }
 
 export async function POST(request: NextRequest) {
@@ -95,7 +90,7 @@ export async function POST(request: NextRequest) {
       data,
       include
     });
-    return NextResponse.json({ item }, { status: 201 });
+    return NextResponse.json({ item: toStudentDto(item) }, { status: 201 });
   } catch (error) {
     return jsonError(error);
   }

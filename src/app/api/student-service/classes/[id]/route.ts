@@ -1,37 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { normalizeClassInput, validateClassCourse } from "@/lib/student-service";
 import { buildAccessibleCampusWhere, buildClassScopeWhere, buildScopedUserWhere, canAccessCampusId } from "@/lib/data-scope";
+import { normalizeClassInput, validateClassCourse } from "@/lib/student-service";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
-  const auth = await requireApiUser("/student-service");
-  if ("response" in auth) return auth.response;
+const classInclude = {
+  campus: { select: { id: true, name: true } },
+  course: { select: { id: true, name: true, code: true } },
+  academicOwner: { select: { id: true, name: true, phone: true } },
+  lecturer: { select: { id: true, name: true, phone: true } },
+  _count: { select: { students: true, sessions: true } }
+};
 
-  const items = await prisma.studentClass.findMany({
-    where: await buildClassScopeWhere(auth.user),
-    include: {
-      campus: { select: { id: true, name: true } },
-      course: { select: { id: true, name: true, code: true } },
-      academicOwner: { select: { id: true, name: true, phone: true } },
-      lecturer: { select: { id: true, name: true, phone: true } },
-      _count: { select: { students: true, sessions: true } }
-    },
-    orderBy: { startAt: "desc" }
-  });
-  return NextResponse.json({ items });
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  return updateClass(request, context);
 }
 
-export async function POST(request: NextRequest) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  return updateClass(request, context);
+}
+
+async function updateClass(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const auth = await requireApiUser("/student-service");
   if ("response" in auth) return auth.response;
   if (auth.user.role === "ADMISSIONS_COUNSELOR") {
-    return NextResponse.json({ error: "招生老师无权新建班级" }, { status: 403 });
+    return NextResponse.json({ error: "招生老师无权编辑班级" }, { status: 403 });
   }
+  const { id } = await context.params;
 
   try {
+    const exists = await prisma.studentClass.findFirst({
+      where: { AND: [{ id }, await buildClassScopeWhere(auth.user)] },
+      select: { id: true, campusId: true }
+    });
+    if (!exists) return NextResponse.json({ error: "班级不存在或无权限" }, { status: 404 });
+
     const body = await request.json();
-    const data = normalizeClassInput(body, { campusId: auth.user.campusId || String(body.campusId || "") });
+    const data = normalizeClassInput(body, { campusId: exists.campusId });
     if (!(await canAccessCampusId(auth.user, data.campusId, { activeOnly: true }))) {
       return NextResponse.json({ error: "无权限操作该校区数据" }, { status: 403 });
     }
@@ -40,6 +45,7 @@ export async function POST(request: NextRequest) {
       select: { id: true }
     });
     if (!campus) return NextResponse.json({ error: "校区不存在或无权限" }, { status: 404 });
+
     await validateClassCourse(auth.user, data.campusId, data.courseId);
     if (data.academicOwnerId) {
       const academicOwner = await prisma.user.findFirst({
@@ -57,17 +63,13 @@ export async function POST(request: NextRequest) {
       if (!lecturer) throw new Error("授课老师不存在或无权限");
       if (lecturer.campusId && lecturer.campusId !== data.campusId) throw new Error("授课老师不属于所选校区");
     }
-    const item = await prisma.studentClass.create({
+
+    const item = await prisma.studentClass.update({
+      where: { id },
       data,
-      include: {
-        campus: { select: { id: true, name: true } },
-        course: { select: { id: true, name: true, code: true } },
-        academicOwner: { select: { id: true, name: true, phone: true } },
-        lecturer: { select: { id: true, name: true, phone: true } },
-        _count: { select: { students: true, sessions: true } }
-      }
+      include: classInclude
     });
-    return NextResponse.json({ item }, { status: 201 });
+    return NextResponse.json({ item });
   } catch (error) {
     return jsonError(error);
   }

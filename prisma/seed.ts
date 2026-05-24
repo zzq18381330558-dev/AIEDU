@@ -87,6 +87,20 @@ async function main() {
     await upsertSeedUser(name, phone, idNumber, role);
   }
 
+  const roleCoursePermissions = [
+    [UserRole.CAMPUS_MANAGER, true],
+    [UserRole.ADMISSIONS_COUNSELOR, false],
+    [UserRole.ACADEMIC_TEACHER, true],
+    [UserRole.LECTURER, true]
+  ] as const;
+  for (const [role, enabled] of roleCoursePermissions) {
+    await prisma.rolePermission.upsert({
+      where: { role_module: { role, module: "courses" } },
+      update: { enabled },
+      create: { role, module: "courses", enabled }
+    });
+  }
+
   const admin = await prisma.user.findFirstOrThrow({
     where: { organizationId: org.id, phone: "13800000000" }
   });
@@ -251,6 +265,51 @@ async function main() {
     create: { contentId: seedContent.id, campusId: campus.id }
   });
 
+  const seedCourse = await prisma.course.upsert({
+    where: { organizationId_code: { organizationId: org.id, code: "PRIMARY-FOUNDATION" } },
+    update: {
+      campusId: campus.id,
+      createdById: admin.id,
+      name: "小学教资系统班",
+      description: "围绕综合素质、教育教学知识与能力组织章节、课时、讲义和练习卷。",
+      examTrack: "PRIMARY",
+      category: "教师资格证",
+      price: 2980,
+      status: "ACTIVE",
+      isPublished: true
+    },
+    create: {
+      organizationId: org.id,
+      campusId: campus.id,
+      createdById: admin.id,
+      name: "小学教资系统班",
+      code: "PRIMARY-FOUNDATION",
+      description: "围绕综合素质、教育教学知识与能力组织章节、课时、讲义和练习卷。",
+      examTrack: "PRIMARY",
+      category: "教师资格证",
+      price: 2980,
+      status: "ACTIVE",
+      isPublished: true
+    }
+  });
+
+  const seedChapter = await prisma.courseChapter.upsert({
+    where: { id: "seed-course-chapter-001" },
+    update: {
+      courseId: seedCourse.id,
+      title: "综合素质基础",
+      description: "职业理念、法律法规、职业道德与文化素养。",
+      sortOrder: 1
+    },
+    create: {
+      id: "seed-course-chapter-001",
+      courseId: seedCourse.id,
+      title: "综合素质基础",
+      description: "职业理念、法律法规、职业道德与文化素养。",
+      sortOrder: 1
+    }
+  });
+
   const seedSop = await prisma.sopTemplate.upsert({
     where: { id: "seed-sop" },
     update: {
@@ -383,10 +442,11 @@ async function main() {
 
   const studentClass = await prisma.studentClass.upsert({
     where: { id: "seed-student-class-primary" },
-    update: {},
+    update: { courseId: seedCourse.id },
     create: {
       id: "seed-student-class-primary",
       campusId: campus.id,
+      courseId: seedCourse.id,
       name: "小学教资周末冲刺班",
       startAt: new Date("2026-06-01T09:00:00+08:00"),
       academicOwnerId: academic.id,
@@ -514,6 +574,29 @@ async function main() {
       questionId: question3.id,
       sortOrder: 3,
       score: 5
+    }
+  });
+
+  await prisma.courseLesson.upsert({
+    where: { id: "seed-course-lesson-001" },
+    update: {
+      chapterId: seedChapter.id,
+      teachingContentId: seedContent.id,
+      questionPaperId: paper.id,
+      title: "材料分析专项课",
+      summary: "结合综合素质课程大纲和高频考点练习卷完成材料分析训练。",
+      durationMinutes: 120,
+      sortOrder: 1
+    },
+    create: {
+      id: "seed-course-lesson-001",
+      chapterId: seedChapter.id,
+      teachingContentId: seedContent.id,
+      questionPaperId: paper.id,
+      title: "材料分析专项课",
+      summary: "结合综合素质课程大纲和高频考点练习卷完成材料分析训练。",
+      durationMinutes: 120,
+      sortOrder: 1
     }
   });
 }

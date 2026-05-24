@@ -1,6 +1,6 @@
 import { BarChart3 } from "lucide-react";
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
-import { buildAnalyticsCourseSessionWhere, buildAnalyticsWhere, buildAnalyticsWrongQuestionWhere, buildTrendRows, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
+import { analyticsStudentSelect, buildAnalyticsCourseSessionWhere, buildAnalyticsWhere, buildAnalyticsWrongQuestionWhere, buildTrendRows, computeAnalytics, parseAnalyticsFilters } from "@/lib/analytics";
 import { buildAccessibleCampusWhere, buildScopedUserWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -27,7 +27,7 @@ export default async function AnalyticsPage({
 
   const [leads, students, attendance, courseSessions, wrongQuestionRecords, campuses, counselors, reports] = await Promise.all([
     prisma.lead.findMany({ where: leadWhere, include: { campus: { select: { name: true } }, assignee: { select: { name: true, phone: true } } } }),
-    prisma.student.findMany({ where: studentWhere, include: { campus: { select: { name: true } }, class: { select: { name: true } }, salesOwner: { select: { name: true, phone: true } } } }),
+    prisma.student.findMany({ where: studentWhere, select: analyticsStudentSelect }),
     prisma.attendanceRecord.findMany({ where: attendanceWhere, include: { courseSession: { select: { homework: true, class: { select: { id: true, name: true } } } } } }),
     prisma.courseSession.findMany({ where: courseSessionWhere, select: { startsAt: true, endsAt: true } }),
     prisma.wrongQuestionRecord.findMany({

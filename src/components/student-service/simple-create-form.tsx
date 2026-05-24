@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Download, FileUp, Plus } from "lucide-react";
+import { Download, FileUp, Pencil, Plus, Save, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import {
   attendanceStatusOptions,
   sessionTypeOptions,
@@ -15,6 +16,18 @@ import { getUserDisplayName } from "@/lib/user-display";
 import { RequiredLabel } from "@/components/ui/required-label";
 
 type Option = { id: string; name?: string | null; phone?: string | null };
+type CourseOption = Option & { campusId?: string | null };
+type ClassValue = {
+  id: string;
+  name: string;
+  campusId: string;
+  courseId: string;
+  startAt: Date | string;
+  academicOwnerId?: string | null;
+  lecturerId?: string | null;
+  classType?: string | null;
+  examTrack: string;
+};
 
 export function StudentCreateForm({
   campuses,
@@ -123,14 +136,18 @@ function StudentImportForm() {
 
 export function ClassCreateForm({
   campuses,
+  courses,
   academicUsers,
   lecturers
 }: {
   campuses: Option[];
+  courses: CourseOption[];
   academicUsers: Option[];
   lecturers: Option[];
 }) {
   const router = useRouter();
+  const [campusId, setCampusId] = useState(campuses[0]?.id || "");
+  const filteredCourses = useMemo(() => filterCoursesByCampus(courses, campusId), [courses, campusId]);
   async function submit(formData: FormData) {
     const response = await fetch("/api/student-service/classes", {
       method: "POST",
@@ -149,13 +166,78 @@ export function ClassCreateForm({
         <Input name="name" label="班级名称" required />
         <Input name="startAt" label="开课时间" type="datetime-local" required />
         <Input name="classType" label="班型" />
-        <Select name="campusId" label="校区" required options={campuses} />
+        <Select name="campusId" label="校区" required options={campuses} value={campusId} onChange={setCampusId} />
+        <Select key={`course-${campusId}`} name="courseId" label="课程" required options={filteredCourses} />
         <Select name="academicOwnerId" label="教务老师" options={[{ id: "", name: "暂不分配教务" }, ...academicUsers]} />
         <Select name="lecturerId" label="授课老师" options={[{ id: "", name: "暂不分配授课老师" }, ...lecturers]} />
         <NativeSelect name="examTrack" label="教资方向" options={examTrackOptions} />
         <Submit />
       </form>
     </FormShell>
+  );
+}
+
+export function ClassEditForm({
+  value,
+  campuses,
+  courses,
+  academicUsers,
+  lecturers
+}: {
+  value: ClassValue;
+  campuses: Option[];
+  courses: CourseOption[];
+  academicUsers: Option[];
+  lecturers: Option[];
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [campusId, setCampusId] = useState(value.campusId);
+  const filteredCourses = useMemo(() => filterCoursesByCampus(courses, campusId), [courses, campusId]);
+
+  async function submit(formData: FormData) {
+    const response = await fetch(`/api/student-service/classes/${value.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.fromEntries(formData.entries()))
+    });
+    if (!response.ok) {
+      alert((await response.json()).error || "班级保存失败");
+      return;
+    }
+    setOpen(false);
+    router.refresh();
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2 text-xs text-ink">
+        <Pencil className="h-3.5 w-3.5" />
+        编辑
+      </button>
+    );
+  }
+  return (
+    <form action={submit} className="grid min-w-72 gap-3 rounded-md border border-line bg-[#F8FAFB] p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-semibold text-ink">编辑班级</div>
+        <button type="button" onClick={() => setOpen(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-line bg-white text-muted">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <Input name="name" label="班级名称" required defaultValue={value.name} />
+      <Input name="startAt" label="开课时间" type="datetime-local" required defaultValue={formatDateTimeLocal(value.startAt)} />
+      <Input name="classType" label="班型" defaultValue={value.classType || ""} />
+      <Select name="campusId" label="校区" required options={campuses} value={campusId} onChange={setCampusId} />
+      <Select key={`course-${campusId}`} name="courseId" label="课程" required options={filteredCourses} defaultValue={filteredCourses.some((course) => course.id === value.courseId) ? value.courseId : ""} />
+      <Select name="academicOwnerId" label="教务老师" options={[{ id: "", name: "暂不分配教务" }, ...academicUsers]} defaultValue={value.academicOwnerId || ""} />
+      <Select name="lecturerId" label="授课老师" options={[{ id: "", name: "暂不分配授课老师" }, ...lecturers]} defaultValue={value.lecturerId || ""} />
+      <NativeSelect name="examTrack" label="教资方向" options={examTrackOptions} defaultValue={value.examTrack} />
+      <button type="submit" className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-brand-600 px-3 text-sm font-semibold text-white">
+        <Save className="h-4 w-4" />
+        保存
+      </button>
+    </form>
   );
 }
 
@@ -252,12 +334,14 @@ function Input({
   name,
   label,
   type = "text",
-  required
+  required,
+  defaultValue
 }: {
   name: string;
   label: string;
   type?: string;
   required?: boolean;
+  defaultValue?: string;
 }) {
   return (
     <label>
@@ -266,17 +350,41 @@ function Input({
         name={name}
         type={type}
         required={required}
+        defaultValue={defaultValue || ""}
         className="mt-2 h-10 w-full rounded-md border border-line px-3 text-sm outline-none focus:border-brand-500"
       />
     </label>
   );
 }
 
-function Select({ name, label, required, options }: { name: string; label: string; required?: boolean; options: Option[] }) {
+function Select({
+  name,
+  label,
+  required,
+  options,
+  defaultValue,
+  value,
+  onChange
+}: {
+  name: string;
+  label: string;
+  required?: boolean;
+  options: Option[];
+  defaultValue?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+}) {
   return (
     <label>
       <RequiredLabel required={required}>{label}</RequiredLabel>
-      <select name={name} required={required} className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
+      <select
+        name={name}
+        required={required}
+        value={value}
+        defaultValue={value === undefined ? defaultValue : undefined}
+        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
+        className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm"
+      >
         {options.map((option) => (
           <option key={option.id || "empty"} value={option.id}>
             {getUserDisplayName(option, option.name || "-")}
@@ -287,11 +395,11 @@ function Select({ name, label, required, options }: { name: string; label: strin
   );
 }
 
-function NativeSelect({ name, label, options }: { name: string; label: string; options: Array<{ value: string; label: string }> }) {
+function NativeSelect({ name, label, options, defaultValue }: { name: string; label: string; options: Array<{ value: string; label: string }>; defaultValue?: string }) {
   return (
     <label>
       <RequiredLabel required={false}>{label}</RequiredLabel>
-      <select name={name} className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
+      <select name={name} defaultValue={defaultValue} className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -300,6 +408,17 @@ function NativeSelect({ name, label, options }: { name: string; label: string; o
       </select>
     </label>
   );
+}
+
+function filterCoursesByCampus(courses: CourseOption[], campusId: string) {
+  return courses.filter((course) => !course.campusId || course.campusId === campusId);
+}
+
+function formatDateTimeLocal(value: Date | string) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (number: number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function Submit({ label = "新建" }: { label?: string }) {

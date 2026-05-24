@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  BookOpen,
   BookOpenCheck,
   BrainCircuit,
   ClipboardList,
@@ -16,6 +17,7 @@ import { modulePermissions } from "@/lib/roles";
 export const navItems = [
   { href: "/dashboard", label: "工作台", icon: LayoutDashboard, module: "dashboard" },
   { href: "/crm", label: "招生中心", icon: UsersRound, module: "crm" },
+  { href: "/courses", label: "课程中心", icon: BookOpen, module: "courses" },
   { href: "/student-service", label: "学员中心", icon: BrainCircuit, module: "student-service" },
   { href: "/question-bank", label: "题库中心", icon: BookOpenCheck, module: "question-bank" },
   { href: "/content", label: "教研中心", icon: GraduationCap, module: "content" },

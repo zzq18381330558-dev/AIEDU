@@ -25,7 +25,8 @@ test("normalizeUserInput only includes phone and id number login fields", () => 
       name: "新用户",
       phone: "19900000000",
       idNumber: "510100199901010000",
-      role: "ADMISSIONS_COUNSELOR"
+      role: "ADMISSIONS_COUNSELOR",
+      campusId: "campus-1"
     },
     { organizationId: "org-1" }
   );
@@ -33,6 +34,16 @@ test("normalizeUserInput only includes phone and id number login fields", () => 
   const removedKey = ["e", "mail"].join("");
   assert.equal(removedKey in result, false);
   assert.equal(result.phone, "19900000000");
+});
+
+test("normalizeUserInput allows admin without campus and requires campus for campus roles", () => {
+  const admin = normalizeUserInput({ name: "总部管理员", role: "ADMIN", campusId: "" }, { organizationId: "org-1" });
+  assert.equal(admin.campusId, null);
+  assert.equal(admin.role, "ADMIN");
+  assert.throws(
+    () => normalizeUserInput({ name: "校区老师", role: "ACADEMIC_TEACHER", campusId: "" }, { organizationId: "org-1" }),
+    /所属校区/
+  );
 });
 
 test("settingsRoleOptions uses merged administrator role labels", () => {

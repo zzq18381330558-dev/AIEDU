@@ -19,6 +19,7 @@ export const roleHome: Record<UserRole, string> = {
 export const modulePermissions: Record<string, UserRole[]> = {
   "/dashboard": ["ADMIN", "CAMPUS_MANAGER"],
   "/crm": ["ADMIN", "CAMPUS_MANAGER", "ADMISSIONS_COUNSELOR"],
+  "/courses": ["ADMIN", "CAMPUS_MANAGER", "ACADEMIC_TEACHER", "LECTURER"],
   "/student-service": ["ADMIN", "CAMPUS_MANAGER", "ADMISSIONS_COUNSELOR", "ACADEMIC_TEACHER"],
   "/question-bank": ["ADMIN", "ACADEMIC_TEACHER", "LECTURER"],
   "/content": ["ADMIN", "ACADEMIC_TEACHER", "LECTURER"],

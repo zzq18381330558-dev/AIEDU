@@ -73,6 +73,11 @@ enum LeadSourceChannel {
   OTHER
 }
 
+enum CourseStatus {
+  ACTIVE
+  DISABLED
+}
+
 enum ServiceTicketStatus {
   OPEN
   IN_PROGRESS
@@ -216,6 +221,7 @@ model Organization {
   name      String
   code      String   @unique
   campuses  Campus[]
+  courses   Course[]
   users     User[]
   dictionaries BusinessDictionary[]
   createdAt DateTime @default(now())
@@ -238,6 +244,7 @@ model Campus {
   assistants     CampusAssistant[]
   users          User[]
   leads          Lead[]
+  courses        Course[]
   students       Student[]
   classes        StudentClass[]
   courseSessions CourseSession[]
@@ -269,6 +276,7 @@ model User {
   assignedLeads  Lead[]       @relation("LeadAssignee")
   createdLeads   Lead[]       @relation("LeadCreator")
   leadFollowUps   LeadFollowUp[]
+  createdCourses  Course[]      @relation("CourseCreator")
   academicStudents Student[]     @relation("StudentAcademicOwner")
   salesStudents    Student[]     @relation("StudentSalesOwner")
   managedClasses   StudentClass[] @relation("ClassAcademicOwner")
@@ -420,6 +428,74 @@ model LeadFollowUp {
   @@index([nextAt])
 }
 
+model Course {
+  id             String          @id @default(cuid())
+  organizationId String
+  campusId       String?
+  createdById    String
+  name           String
+  code           String
+  description    String?
+  examTrack      LeadExamTrack   @default(PRIMARY)
+  category       String
+  price          Decimal         @default(0) @db.Decimal(10, 2)
+  status         CourseStatus    @default(ACTIVE)
+  isPublished    Boolean         @default(false)
+  deletedAt      DateTime?
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  campus         Campus?         @relation(fields: [campusId], references: [id])
+  createdBy      User            @relation("CourseCreator", fields: [createdById], references: [id])
+  chapters       CourseChapter[]
+  classes        StudentClass[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([campusId])
+  @@index([createdById])
+  @@index([examTrack])
+  @@index([status])
+  @@index([isPublished])
+  @@index([deletedAt])
+}
+
+model CourseChapter {
+  id          String         @id @default(cuid())
+  courseId    String
+  title       String
+  description String?
+  sortOrder   Int            @default(0)
+  course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     CourseLesson[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([courseId])
+  @@index([sortOrder])
+}
+
+model CourseLesson {
+  id                String           @id @default(cuid())
+  chapterId         String
+  title             String
+  summary           String?
+  durationMinutes   Int              @default(0)
+  sortOrder         Int              @default(0)
+  teachingContentId String?
+  questionPaperId   String?
+  chapter           CourseChapter    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  teachingContent   TeachingContent? @relation(fields: [teachingContentId], references: [id])
+  questionPaper     ExamPaper?       @relation(fields: [questionPaperId], references: [id])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([chapterId])
+  @@index([teachingContentId])
+  @@index([questionPaperId])
+  @@index([sortOrder])
+}
+
 model Student {
   id              String             @id @default(cuid())
   campusId        String
@@ -477,6 +553,7 @@ model StudyPlan {
 model StudentClass {
   id              String          @id @default(cuid())
   campusId        String
+  courseId        String
   name            String
   startAt         DateTime
   academicOwnerId String?
@@ -484,6 +561,7 @@ model StudentClass {
   classType       String?
   examTrack       LeadExamTrack   @default(PRIMARY)
   campus          Campus          @relation(fields: [campusId], references: [id])
+  course          Course          @relation(fields: [courseId], references: [id])
   academicOwner   User?           @relation("ClassAcademicOwner", fields: [academicOwnerId], references: [id])
   lecturer        User?           @relation("ClassLecturer", fields: [lecturerId], references: [id])
   students        Student[]
@@ -493,6 +571,7 @@ model StudentClass {
   updatedAt       DateTime        @updatedAt
 
   @@index([campusId])
+  @@index([courseId])
   @@index([academicOwnerId])
   @@index([lecturerId])
 }
@@ -659,6 +738,7 @@ model ExamPaper {
   bank           QuestionBank? @relation(fields: [questionBankId], references: [id])
   questions      ExamPaperQuestion[]
   paperQuestions Question[]    @relation("PaperQuestions")
+  courseLessons  CourseLesson[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -718,6 +798,7 @@ model TeachingContent {
   reviews        TeachingContentReview[]
   publications   TeachingContentPublication[]
   exports        TeachingContentExport[]
+  courseLessons  CourseLesson[]
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 

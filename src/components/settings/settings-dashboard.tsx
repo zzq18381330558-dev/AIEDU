@@ -837,6 +837,11 @@ function UserModal({
   const readonlyRoleLabel = readonlyRole
     ? settingsLabels.role[readonlyRole as keyof typeof settingsLabels.role] || readonlyRole
     : "";
+  const [selectedRole, setSelectedRole] = useState(readonlyRole || "ADMISSIONS_COUNSELOR");
+  useEffect(() => {
+    setSelectedRole(readonlyRole || "ADMISSIONS_COUNSELOR");
+  }, [readonlyRole]);
+  const campusRequired = selectedRole !== "ADMIN";
 
   return (
     <BaseModal open={open} title={value ? "编辑用户" : "新建用户"} onClose={onClose}>
@@ -850,11 +855,18 @@ function UserModal({
         )}
         {!value ? <Field label="初始密码" name="password" type="password" /> : null}
         {value && isAdmin ? (
-          <Select label="用户角色" name="role" required options={roleOptions} defaultValue={value.role || "ADMISSIONS_COUNSELOR"} />
+          <Select
+            label="用户角色"
+            name="role"
+            required
+            options={roleOptions}
+            defaultValue={value.role || "ADMISSIONS_COUNSELOR"}
+            onChange={setSelectedRole}
+          />
         ) : (
           <ReadonlyField label="用户角色" name="role" value={readonlyRole} displayValue={readonlyRoleLabel} />
         )}
-        <Select label="所属校区" name="campusId" required options={[...(isAdmin ? [{ value: "", label: "总部/不绑定校区" }] : []), ...campusOptions]} defaultValue={value?.campusId || campusOptions[0]?.value || ""} />
+        <Select label="所属校区" name="campusId" required={campusRequired} options={[...(isAdmin ? [{ value: "", label: "总部/不绑定校区" }] : []), ...campusOptions]} defaultValue={value?.campusId || campusOptions[0]?.value || ""} />
         <Select label="用户状态" name="status" required options={userStatusOptions} defaultValue={value?.status || "ACTIVE"} />
       </EntityForm>
     </BaseModal>
@@ -1072,6 +1084,7 @@ function RolePlaceholderModal({ open, onClose }: { open: boolean; onClose: () =>
 const moduleNames: Record<string, string> = {
   "/dashboard": "工作台",
   "/crm": "招生中心",
+  "/courses": "课程中心",
   "/student-service": "学员中心",
   "/question-bank": "题库中心",
   "/content": "教研中心",
@@ -1460,11 +1473,17 @@ function Field({ label, name, defaultValue, type = "text", required, autoFocus }
   );
 }
 
-function Select({ label, name, options, defaultValue, required }: { label: string; name: string; options: Array<{ value: string; label: string }>; defaultValue?: string; required?: boolean }) {
+function Select({ label, name, options, defaultValue, required, onChange }: { label: string; name: string; options: Array<{ value: string; label: string }>; defaultValue?: string; required?: boolean; onChange?: (value: string) => void }) {
   return (
     <label>
       <RequiredLabel required={required}>{label}</RequiredLabel>
-      <select name={name} required={required} defaultValue={defaultValue} className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+      <select
+        name={name}
+        required={required}
+        defaultValue={defaultValue}
+        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
+        className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+      >
         {options.map((option) => (
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}
