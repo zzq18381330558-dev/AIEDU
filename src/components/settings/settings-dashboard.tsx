@@ -236,6 +236,18 @@ export function SettingsDashboard({
     });
   }
 
+  async function deleteDictionary(item: DictionaryItem) {
+    if (!window.confirm("删除后不可恢复，是否确认删除该字典项？")) return;
+    const response = await fetch(`/api/settings/dictionaries/${item.id}`, { method: "DELETE" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      alert(data.message || data.error || "删除失败");
+      return;
+    }
+    alert(data.message || "字典项已删除");
+    await reload();
+  }
+
   function toggleUserGroup(role: string) {
     setOpenUserGroups((current) => ({ ...current, [role]: !current[role] }));
   }
@@ -370,11 +382,12 @@ export function SettingsDashboard({
                   label={group.label}
                   items={group.items}
                   open={Boolean(openDictionaryGroups[group.category])}
-                  onToggleOpen={() => toggleDictionaryGroup(group.category)}
-                  onEdit={setDictionaryModal}
-                  onToggle={toggleDictionary}
-                />
-              ))}
+                    onToggleOpen={() => toggleDictionaryGroup(group.category)}
+                    onEdit={setDictionaryModal}
+                    onToggle={toggleDictionary}
+                    onDelete={deleteDictionary}
+                  />
+                ))}
               {dictionaryGroups.length === 0 ? (
                 <tr><td colSpan={5} className="px-4 py-10 text-center text-muted">暂无字典项</td></tr>
               ) : null}
@@ -656,7 +669,8 @@ function DictionaryRows({
   open,
   onToggleOpen,
   onEdit,
-  onToggle
+  onToggle,
+  onDelete
 }: {
   label: string;
   items: DictionaryItem[];
@@ -664,6 +678,7 @@ function DictionaryRows({
   onToggleOpen: () => void;
   onEdit: (item: DictionaryItem) => void;
   onToggle: (item: DictionaryItem) => void;
+  onDelete: (item: DictionaryItem) => void;
 }) {
   const ToggleIcon = open ? ChevronDown : ChevronRight;
   return (
@@ -694,7 +709,7 @@ function DictionaryRows({
             <Td>{item.value || "-"}</Td>
             <Td>{item.sortOrder}</Td>
             <Td><StatusBadge active={item.enabled} label={item.enabled ? "启用" : "停用"} /></Td>
-            <Td><RowActions active={item.enabled} onEdit={() => onEdit(item)} onToggle={() => onToggle(item)} /></Td>
+            <Td><RowActions active={item.enabled} onEdit={() => onEdit(item)} onToggle={() => onToggle(item)} onDelete={() => onDelete(item)} /></Td>
           </tr>
         )) : null}
       {open && items.length === 0 ? (
