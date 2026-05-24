@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import { contentTypeOptions } from "@/lib/teaching-content";
+import { RequiredLabel } from "@/components/ui/required-label";
 
 type TemplateOption = { id: string; name: string; subject: string; chapter: string; type: string };
 type KeyPointOption = { id: string; name: string; subject: string; chapter: string; frequency: number };
@@ -30,7 +31,7 @@ export function ContentCreateForm({ templates, keyPoints }: { templates: Templat
   return (
     <form action={(formData) => submit(formData)} className="grid gap-4 rounded-lg border border-line bg-white p-5 shadow-soft">
       <label>
-        <span className="text-sm font-medium text-ink">标题</span>
+        <RequiredLabel>标题</RequiredLabel>
         <input name="title" required className="mt-2 h-10 w-full rounded-md border border-line px-3 text-sm" />
       </label>
       <div className="grid gap-4 md:grid-cols-2">

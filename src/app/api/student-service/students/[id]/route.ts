@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { normalizeStudentStatusInput } from "@/lib/student-service";
-import { buildStudentScopeWhere } from "@/lib/data-scope";
+import { normalizeStudentInput, normalizeStudentStatusInput } from "@/lib/student-service";
+import { buildAccessibleCampusWhere, buildClassScopeWhere, buildScopedUserWhere, buildStudentScopeWhere, canAccessCampusId } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -35,14 +35,53 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
   try {
     const exists = await prisma.student.findFirst({
       where: { AND: [{ id }, await buildStudentScopeWhere(auth.user)] },
-      select: { id: true }
+      select: { id: true, campusId: true }
     });
     if (!exists) return NextResponse.json({ error: "学员不存在" }, { status: 404 });
 
     const body = await request.json();
+    const isProfileUpdate = Object.prototype.hasOwnProperty.call(body, "name") || Object.prototype.hasOwnProperty.call(body, "phone");
+    let data;
+    if (isProfileUpdate) {
+      const profileData = normalizeStudentInput(body, { campusId: exists.campusId });
+      if (!(await canAccessCampusId(auth.user, profileData.campusId, { activeOnly: true }))) {
+        return NextResponse.json({ error: "无权限操作该校区数据" }, { status: 403 });
+      }
+      const campus = await prisma.campus.findFirst({
+        where: { AND: [{ id: profileData.campusId }, await buildAccessibleCampusWhere(auth.user, { activeOnly: true })] },
+        select: { id: true }
+      });
+      if (!campus) return NextResponse.json({ error: "校区不存在或无权限" }, { status: 404 });
+      if (profileData.classId) {
+        const studentClass = await prisma.studentClass.findFirst({
+          where: { AND: [{ id: profileData.classId, campusId: profileData.campusId }, await buildClassScopeWhere(auth.user)] },
+          select: { id: true }
+        });
+        if (!studentClass) throw new Error("所选班级不属于该学员校区");
+      }
+      if (profileData.academicOwnerId) {
+        const academicOwner = await prisma.user.findFirst({
+          where: { AND: [{ id: profileData.academicOwnerId }, await buildScopedUserWhere(auth.user, "ACADEMIC_TEACHER")] },
+          select: { id: true, campusId: true }
+        });
+        if (!academicOwner) throw new Error("教务老师不存在或无权限");
+        if (academicOwner.campusId && academicOwner.campusId !== profileData.campusId) throw new Error("教务老师不属于所选校区");
+      }
+      if (profileData.salesOwnerId) {
+        const salesOwner = await prisma.user.findFirst({
+          where: { AND: [{ id: profileData.salesOwnerId }, await buildScopedUserWhere(auth.user, "ADMISSIONS_COUNSELOR")] },
+          select: { id: true, campusId: true }
+        });
+        if (!salesOwner) throw new Error("招生老师不存在或无权限");
+        if (salesOwner.campusId && salesOwner.campusId !== profileData.campusId) throw new Error("招生老师不属于所选校区");
+      }
+      data = profileData;
+    } else {
+      data = normalizeStudentStatusInput(body);
+    }
     const item = await prisma.student.update({
       where: { id },
-      data: normalizeStudentStatusInput(body),
+      data,
       include: {
         campus: { select: { id: true, name: true } },
         class: { select: { id: true, name: true } },

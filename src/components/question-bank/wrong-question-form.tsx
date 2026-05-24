@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { NotebookPen } from "lucide-react";
+import { RequiredLabel } from "@/components/ui/required-label";
 
 type StudentOption = {
   id: string;
@@ -48,7 +49,7 @@ export function WrongQuestionForm({
       ) : (
         <form action={submit} className="grid gap-3">
           <label>
-            <span className="text-sm font-medium text-ink">学员</span>
+            <RequiredLabel>学员</RequiredLabel>
             <select name="studentId" required className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
               <option value="">请选择学员</option>
               {students.map((student) => (

@@ -429,6 +429,7 @@ model Student {
   salesOwnerId    String?
   name            String
   phone           String
+  idNumber        String?
   school          String?
   grade           String?
   major           String?
@@ -454,6 +455,7 @@ model Student {
   @@index([classId])
   @@index([academicOwnerId])
   @@index([salesOwnerId])
+  @@index([idNumber])
   @@index([studyStatus])
 }
 

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ClipboardCheck, FilePlus2, Flag, ListChecks, NotebookPen, PencilLine, ShieldCheck } from "lucide-react";
 import { sopCategoryOptions, sopStatusOptions, sopTaskStatusOptions } from "@/lib/sop";
+import { RequiredLabel } from "@/components/ui/required-label";
 
 type Option = { id: string; name: string };
 
@@ -318,7 +319,7 @@ function Field({
 }) {
   return (
     <label className="mt-3 block">
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <RequiredLabel required={required}>{label}</RequiredLabel>
       <input
         name={name}
         type={type}
@@ -344,7 +345,7 @@ function Select({
 }) {
   return (
     <label className="mt-3 block">
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <RequiredLabel required={false}>{label}</RequiredLabel>
       <select name={name} defaultValue={defaultValue} className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
         {options.map((item) => (
           <option key={`${name}-${item.value}`} value={item.value}>{item.label}</option>
@@ -371,7 +372,7 @@ function TextArea({
 }) {
   return (
     <label className="mt-3 block">
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <RequiredLabel required={required}>{label}</RequiredLabel>
       <textarea
         name={name}
         rows={rows}

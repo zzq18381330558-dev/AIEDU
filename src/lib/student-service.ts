@@ -8,6 +8,7 @@ import type {
   StudentStudyStatus,
   UserRole
 } from "@prisma/client";
+import { maskIdNumber, normalizeOptionalIdNumber } from "@/lib/id-number";
 
 export const studyStatusOptions: Array<{ value: StudentStudyStatus; label: string }> = [
   { value: "NOT_STARTED", label: "未开学" },
@@ -81,6 +82,7 @@ export const studentServiceLabels = {
 export const studentImportHeaders = [
   "姓名",
   "手机号",
+  "身份证号",
   "学校",
   "年级",
   "专业",
@@ -189,6 +191,7 @@ export function normalizeStudentInput(input: Record<string, unknown>, defaults: 
     salesOwnerId: nullableText(input.salesOwnerId),
     name,
     phone,
+    idNumber: normalizeOptionalIdNumber(input.idNumber),
     school: nullableText(input.school),
     grade: nullableText(input.grade),
     major: nullableText(input.major),
@@ -206,6 +209,7 @@ export function normalizeStudentInput(input: Record<string, unknown>, defaults: 
 const studentImportHeaderMap: Record<(typeof studentImportHeaders)[number], string> = {
   姓名: "name",
   手机号: "phone",
+  身份证号: "idNumber",
   学校: "school",
   年级: "grade",
   专业: "major",
@@ -241,6 +245,10 @@ export function normalizeStudentImportRow(row: Record<string, unknown>) {
     input[key] = typeof value === "string" && studentImportValueAliases[value] ? studentImportValueAliases[value] : value;
   }
   return input;
+}
+
+export function getStudentMaskedIdNumber(input: { idNumber?: string | null }) {
+  return maskIdNumber(input.idNumber);
 }
 
 export function normalizeClassInput(input: Record<string, unknown>, defaults: { campusId: string }) {

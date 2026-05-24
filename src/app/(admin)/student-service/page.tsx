@@ -3,7 +3,7 @@ import { BrainCircuit } from "lucide-react";
 import { AiStudentActions } from "@/components/student-service/ai-actions";
 import { ServiceTabs } from "@/components/student-service/service-tabs";
 import { StudentCreateForm } from "@/components/student-service/simple-create-form";
-import { studentServiceLabels } from "@/lib/student-service";
+import { getStudentMaskedIdNumber, studentServiceLabels } from "@/lib/student-service";
 import { buildAccessibleCampusWhere, buildClassScopeWhere, buildScopedUserWhere, buildStudentScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -76,6 +76,7 @@ export default async function StudentServicePage() {
               <thead className="bg-[#F8FAFB] text-muted">
                 <tr>
                   <Th>姓名</Th>
+                  <Th>身份证号</Th>
                   <Th>学校/专业</Th>
                   <Th>报名班型</Th>
                   <Th>教资方向</Th>
@@ -93,6 +94,7 @@ export default async function StudentServicePage() {
                       <Link href={`/student-service/${student.id}`} className="font-semibold text-brand-700">{student.name}</Link>
                       <div className="text-xs text-muted">{student.phone}</div>
                     </Td>
+                    <Td>{getStudentMaskedIdNumber(student) || "-"}</Td>
                     <Td>
                       {student.school || "-"}
                       <div className="text-xs text-muted">{student.grade || ""} {student.major || ""}</div>
@@ -108,7 +110,7 @@ export default async function StudentServicePage() {
                 ))}
                 {students.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-12 text-center text-muted">暂无学员。可从成交线索转入，或由教务在右侧新建学员档案。</td>
+                    <td colSpan={10} className="px-4 py-12 text-center text-muted">暂无学员。可从成交线索转入，或由教务在右侧新建学员档案。</td>
                   </tr>
                 ) : null}
               </tbody>

@@ -17,6 +17,7 @@ test("normalizeStudentInput validates and normalizes student profile", () => {
     {
       name: " 王同学 ",
       phone: " 139 0000 0000 ",
+      idNumber: " 51112419920314621x ",
       school: "复旦大学",
       examTrack: "MIDDLE",
       studyStatus: "STUDYING"
@@ -26,9 +27,18 @@ test("normalizeStudentInput validates and normalizes student profile", () => {
 
   assert.equal(result.name, "王同学");
   assert.equal(result.phone, "13900000000");
+  assert.equal(result.idNumber, "51112419920314621X");
   assert.equal(result.campusId, "campus-1");
   assert.equal(result.examTrack, "MIDDLE");
   assert.equal(result.studyStatus, "STUDYING");
+});
+
+test("normalizeStudentInput allows empty ID number and rejects invalid format", () => {
+  assert.equal(normalizeStudentInput({ name: "王同学", phone: "13900000000", idNumber: "" }, { campusId: "campus-1" }).idNumber, null);
+  assert.throws(
+    () => normalizeStudentInput({ name: "王同学", phone: "13900000000", idNumber: "中文123" }, { campusId: "campus-1" }),
+    /身份证号格式不正确/
+  );
 });
 
 test("studentScopeWhere restricts admissions counselor to owned students", () => {
@@ -134,6 +144,7 @@ test("normalizeStudentImportRow maps Chinese headers and labels", () => {
   const result = normalizeStudentImportRow({
     姓名: " 陈同学 ",
     手机号: " 138 0000 0001 ",
+    身份证号: "51112419920314621X",
     校区: "总部校区",
     班级: "周末班",
     教务老师: "王老师",
@@ -145,6 +156,7 @@ test("normalizeStudentImportRow maps Chinese headers and labels", () => {
 
   assert.equal(result.name, "陈同学");
   assert.equal(result.phone, "138 0000 0001");
+  assert.equal(result.idNumber, "51112419920314621X");
   assert.equal(result.campusName, "总部校区");
   assert.equal(result.className, "周末班");
   assert.equal(result.academicOwnerName, "王老师");

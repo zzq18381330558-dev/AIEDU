@@ -1,4 +1,5 @@
 import type { CampusBusinessType, CampusStatus, DictionaryCategory, Prisma, UserRole, UserStatus } from "@prisma/client";
+import { maskIdNumber as maskSensitiveIdNumber } from "@/lib/id-number";
 import { roleLabels } from "@/lib/roles";
 
 export const settingsRoleOptions: Array<{ value: UserRole; label: string; description: string }> = [
@@ -106,10 +107,7 @@ export function getInitialUserPassword(input: { idNumber?: string | null }) {
 }
 
 export function maskIdNumber(idNumber?: string | null) {
-  const normalized = nullableText(idNumber);
-  if (!normalized) return null;
-  if (normalized.length <= 8) return `${normalized.slice(0, 2)}****${normalized.slice(-2)}`;
-  return `${normalized.slice(0, 4)}**********${normalized.slice(-4)}`;
+  return maskSensitiveIdNumber(idNumber);
 }
 
 export type ResetPasswordMode = "CUSTOM" | "ID_NUMBER_SUFFIX" | "DEFAULT_123456";

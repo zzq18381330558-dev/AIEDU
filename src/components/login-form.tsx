@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { LogIn } from "lucide-react";
 import { loginAction, type LoginState } from "@/app/actions/auth";
+import { RequiredLabel } from "@/components/ui/required-label";
 
 const initialState: LoginState = {};
 
@@ -15,7 +16,7 @@ export function LoginForm() {
       <p className="mt-2 text-sm text-muted">使用数据库中的员工手机号或完整身份证号登录。</p>
 
       <label className="mt-7 block text-sm font-medium text-ink" htmlFor="identifier">
-        手机号 / 身份证号
+        <RequiredLabel>手机号 / 身份证号</RequiredLabel>
       </label>
       <input
         id="identifier"
@@ -27,7 +28,7 @@ export function LoginForm() {
       />
 
       <label className="mt-5 block text-sm font-medium text-ink" htmlFor="password">
-        密码
+        <RequiredLabel>密码</RequiredLabel>
       </label>
       <input
         id="password"

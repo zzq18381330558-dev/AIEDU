@@ -14,6 +14,7 @@ import {
 import { permissionModules } from "@/lib/permission-modules";
 import { modulePermissions, roleHome } from "@/lib/roles";
 import { getUserDisplayName } from "@/lib/user-display";
+import { RequiredLabel } from "@/components/ui/required-label";
 
 type Option = { id: string; name?: string | null; phone?: string | null; role?: string | null };
 
@@ -849,12 +850,12 @@ function UserModal({
         )}
         {!value ? <Field label="初始密码" name="password" type="password" /> : null}
         {value && isAdmin ? (
-          <Select label="用户角色" name="role" options={roleOptions} defaultValue={value.role || "ADMISSIONS_COUNSELOR"} />
+          <Select label="用户角色" name="role" required options={roleOptions} defaultValue={value.role || "ADMISSIONS_COUNSELOR"} />
         ) : (
           <ReadonlyField label="用户角色" name="role" value={readonlyRole} displayValue={readonlyRoleLabel} />
         )}
-        <Select label="所属校区" name="campusId" options={[...(isAdmin ? [{ value: "", label: "总部/不绑定校区" }] : []), ...campusOptions]} defaultValue={value?.campusId || campusOptions[0]?.value || ""} />
-        <Select label="用户状态" name="status" options={userStatusOptions} defaultValue={value?.status || "ACTIVE"} />
+        <Select label="所属校区" name="campusId" required options={[...(isAdmin ? [{ value: "", label: "总部/不绑定校区" }] : []), ...campusOptions]} defaultValue={value?.campusId || campusOptions[0]?.value || ""} />
+        <Select label="用户状态" name="status" required options={userStatusOptions} defaultValue={value?.status || "ACTIVE"} />
       </EntityForm>
     </BaseModal>
   );
@@ -1327,10 +1328,10 @@ function CampusModal({
             displayValue={value?.assistants?.length ? value.assistants.map((item) => getUserDisplayName(item.user)).join("、") : "未配置"}
           />
         )}
-        <Select label="校区类型" name="businessType" options={campusBusinessTypeOptions} defaultValue={value?.businessType || "DIRECT"} />
+        <Select label="校区类型" name="businessType" required options={campusBusinessTypeOptions} defaultValue={value?.businessType || "DIRECT"} />
         <Field label="联系方式" name="contactPhone" defaultValue={value?.contactPhone} />
         {isAdmin ? (
-          <Select label="校区状态" name="status" options={campusStatusOptions} defaultValue={value?.status || "ACTIVE"} />
+          <Select label="校区状态" name="status" required options={campusStatusOptions} defaultValue={value?.status || "ACTIVE"} />
         ) : (
           <ReadonlyField label="校区状态" name="status" value={value?.status || "ACTIVE"} displayValue={settingsLabels.campusStatus[value?.status as keyof typeof settingsLabels.campusStatus] || "启用"} />
         )}
@@ -1362,7 +1363,7 @@ function DictionaryModal({
     <BaseModal open={open} title={value ? "编辑字典项" : "新建字典项"} onClose={onClose}>
       <EntityForm endpoint={value ? `/api/settings/dictionaries/${value.id}` : "/api/settings/dictionaries"} method={value ? "PUT" : "POST"} onClose={onClose} onSaved={onSaved}>
         <CategoryField options={categories} defaultValue={value?.category || defaultCategory} />
-        <Field label="名称" name="name" defaultValue={value?.name} autoFocus />
+        <Field label="名称" name="name" required defaultValue={value?.name} autoFocus />
         <Field label="值" name="value" defaultValue={value?.value} />
         <Field label="排序" name="sortOrder" type="number" defaultValue={String(value?.sortOrder ?? 0)} />
         <Select label="状态" name="enabled" options={[{ value: "true", label: "启用" }, { value: "false", label: "停用" }]} defaultValue={String(value?.enabled ?? true)} />
@@ -1377,7 +1378,7 @@ function CategoryField({ options, defaultValue }: { options: Array<{ value: stri
 
   return (
     <label>
-      <span className="text-sm font-medium text-ink">分类</span>
+      <RequiredLabel>分类</RequiredLabel>
       <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_180px]">
         <input
           name="category"
@@ -1453,17 +1454,17 @@ function EntityForm({ endpoint, method, children, onClose, onSaved }: { endpoint
 function Field({ label, name, defaultValue, type = "text", required, autoFocus }: { label: string; name: string; defaultValue?: string | null; type?: string; required?: boolean; autoFocus?: boolean }) {
   return (
     <label>
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <RequiredLabel required={required}>{label}</RequiredLabel>
       <input name={name} type={type} required={required} autoFocus={autoFocus} defaultValue={defaultValue || ""} className="mt-2 h-10 w-full rounded-md border border-line px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
     </label>
   );
 }
 
-function Select({ label, name, options, defaultValue }: { label: string; name: string; options: Array<{ value: string; label: string }>; defaultValue?: string }) {
+function Select({ label, name, options, defaultValue, required }: { label: string; name: string; options: Array<{ value: string; label: string }>; defaultValue?: string; required?: boolean }) {
   return (
     <label>
-      <span className="text-sm font-medium text-ink">{label}</span>
-      <select name={name} defaultValue={defaultValue} className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+      <RequiredLabel required={required}>{label}</RequiredLabel>
+      <select name={name} required={required} defaultValue={defaultValue} className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
         {options.map((option) => (
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}

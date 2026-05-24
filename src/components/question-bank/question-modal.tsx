@@ -6,6 +6,7 @@ import {
   questionTypeOptions,
   subjectOptions
 } from "@/lib/question-bank";
+import { RequiredLabel } from "@/components/ui/required-label";
 
 export type QuestionValue = {
   id?: string;
@@ -112,7 +113,7 @@ export function QuestionModal({
 function Field({ label, name, defaultValue, type = "text", required }: { label: string; name: string; defaultValue?: string; type?: string; required?: boolean }) {
   return (
     <label>
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <RequiredLabel required={required}>{label}</RequiredLabel>
       <input name={name} type={type} required={required} defaultValue={defaultValue || ""} className="mt-2 h-10 w-full rounded-md border border-line px-3 text-sm outline-none focus:border-brand-500" />
     </label>
   );
@@ -121,7 +122,7 @@ function Field({ label, name, defaultValue, type = "text", required }: { label: 
 function Select({ label, name, options, defaultValue }: { label: string; name: string; options: Array<{ value: string; label: string }>; defaultValue: string }) {
   return (
     <label>
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <RequiredLabel required={false}>{label}</RequiredLabel>
       <select name={name} defaultValue={defaultValue} className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
         {options.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
       </select>
@@ -132,7 +133,7 @@ function Select({ label, name, options, defaultValue }: { label: string; name: s
 function TextArea({ label, name, defaultValue, required }: { label: string; name: string; defaultValue?: string; required?: boolean }) {
   return (
     <label className="md:col-span-2">
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <RequiredLabel required={required}>{label}</RequiredLabel>
       <textarea name={name} required={required} defaultValue={defaultValue || ""} rows={4} className="mt-2 w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-brand-500" />
     </label>
   );

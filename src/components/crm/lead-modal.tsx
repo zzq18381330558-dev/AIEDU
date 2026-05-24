@@ -9,6 +9,7 @@ import {
   sourceChannelOptions
 } from "@/lib/crm";
 import { getUserDisplayName } from "@/lib/user-display";
+import { RequiredLabel } from "@/components/ui/required-label";
 
 type Option = { id: string; name?: string | null; phone?: string | null };
 
@@ -156,7 +157,7 @@ function Field({
 }) {
   return (
     <label>
-      <span className="text-sm font-medium text-ink">{label}</span>
+      <RequiredLabel required={required}>{label}</RequiredLabel>
       <input
         name={name}
         type={type}

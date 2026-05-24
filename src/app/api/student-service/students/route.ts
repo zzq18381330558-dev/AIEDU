@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { jsonError, requireApiUser } from "@/lib/api";
-import { normalizeStudentInput } from "@/lib/student-service";
+import { getStudentMaskedIdNumber, normalizeStudentInput } from "@/lib/student-service";
 import { buildAccessibleCampusWhere, buildClassScopeWhere, buildScopedUserWhere, buildStudentScopeWhere, canAccessCampusId } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 
@@ -42,7 +42,12 @@ export async function GET(request: NextRequest) {
     take: 100
   });
 
-  return NextResponse.json({ items });
+  return NextResponse.json({
+    items: items.map((item) => {
+      const { idNumber, ...rest } = item;
+      return { ...rest, hasIdNumber: Boolean(idNumber), maskedIdNumber: getStudentMaskedIdNumber(item) };
+    })
+  });
 }
 
 export async function POST(request: NextRequest) {

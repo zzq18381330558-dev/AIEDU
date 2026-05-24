@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { crmLabels, intentLevelOptions, leadStatusOptions } from "@/lib/crm";
 import { getUserDisplayName } from "@/lib/user-display";
+import { RequiredLabel } from "@/components/ui/required-label";
 
 type FollowUp = {
   id: string;
@@ -66,7 +67,7 @@ export function FollowUpPanel({
           新建跟进记录
         </div>
         <label className="mt-4 block">
-          <span className="text-sm font-medium text-ink">跟进内容</span>
+          <RequiredLabel>跟进内容</RequiredLabel>
           <textarea name="content" rows={5} required className="mt-2 w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-brand-500" />
         </label>
         <label className="mt-4 block">

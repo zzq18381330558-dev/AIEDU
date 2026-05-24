@@ -5,11 +5,12 @@ import { AiStudentActions } from "@/components/student-service/ai-actions";
 import {
   ServiceRecordForm,
   StudentAttendanceForm,
+  StudentProfileForm,
   StudentStatusForm
 } from "@/components/student-service/student-detail-actions";
 import { crmLabels } from "@/lib/crm";
 import { studentServiceLabels } from "@/lib/student-service";
-import { buildCourseSessionScopeWhere, buildStudentScopeWhere } from "@/lib/data-scope";
+import { buildAccessibleCampusWhere, buildClassScopeWhere, buildCourseSessionScopeWhere, buildScopedUserWhere, buildStudentScopeWhere } from "@/lib/data-scope";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { getUserDisplayName } from "@/lib/user-display";
@@ -37,14 +38,20 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
 
   if (!student) notFound();
 
-  const sessions = await prisma.courseSession.findMany({
-    where: {
-      AND: [await buildCourseSessionScopeWhere(user), { classId: student.classId || "__none__" }]
-    },
-    select: { id: true, title: true, startsAt: true },
-    orderBy: { startsAt: "desc" },
-    take: 50
-  });
+  const [sessions, campuses, classes, academicUsers, salesUsers] = await Promise.all([
+    prisma.courseSession.findMany({
+      where: {
+        AND: [await buildCourseSessionScopeWhere(user), { classId: student.classId || "__none__" }]
+      },
+      select: { id: true, title: true, startsAt: true },
+      orderBy: { startsAt: "desc" },
+      take: 50
+    }),
+    prisma.campus.findMany({ where: await buildAccessibleCampusWhere(user, { activeOnly: true }), select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.studentClass.findMany({ where: await buildClassScopeWhere(user), select: { id: true, name: true }, orderBy: { startAt: "desc" } }),
+    prisma.user.findMany({ where: await buildScopedUserWhere(user, "ACADEMIC_TEACHER"), select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: await buildScopedUserWhere(user, "ADMISSIONS_COUNSELOR"), select: { id: true, name: true }, orderBy: { name: "asc" } })
+  ]);
   const canManage = user.role !== "ADMISSIONS_COUNSELOR";
   const absences = student.attendanceRecords.filter((item) => item.status === "ABSENT");
   const timeline = [
@@ -109,6 +116,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
           </div>
           <div className="grid gap-2 text-sm text-muted sm:grid-cols-2 lg:text-right">
             <div>手机：{student.phone}</div>
+            <div>身份证号：{student.idNumber || "-"}</div>
             <div>校区：{student.campus.name}</div>
             <div>学校：{student.school || "-"}</div>
             <div>专业：{student.grade || ""} {student.major || ""}</div>
@@ -182,6 +190,30 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         </div>
 
         <div className="space-y-4">
+          <StudentProfileForm
+            student={{
+              id: student.id,
+              name: student.name,
+              phone: student.phone,
+              idNumber: student.idNumber,
+              school: student.school,
+              grade: student.grade,
+              major: student.major,
+              classType: student.classType,
+              campusId: student.campusId,
+              classId: student.classId,
+              academicOwnerId: student.academicOwnerId,
+              salesOwnerId: student.salesOwnerId,
+              examTrack: student.examTrack,
+              studyStatus: student.studyStatus,
+              serviceNote: student.serviceNote
+            }}
+            campuses={campuses}
+            classes={classes}
+            academicUsers={academicUsers}
+            salesUsers={salesUsers}
+            canManage={canManage}
+          />
           <StudentStatusForm studentId={student.id} defaultStatus={student.studyStatus} defaultNote={student.serviceNote} canManage={canManage} />
           <AiStudentActions studentId={student.id} />
           <ServiceRecordForm studentId={student.id} canManage={canManage} />

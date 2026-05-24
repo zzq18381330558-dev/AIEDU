@@ -10,7 +10,9 @@ import {
   studyStatusOptions
 } from "@/lib/student-service";
 import { examTrackOptions } from "@/lib/crm";
+import { isValidIdNumberFormat } from "@/lib/id-number";
 import { getUserDisplayName } from "@/lib/user-display";
+import { RequiredLabel } from "@/components/ui/required-label";
 
 type Option = { id: string; name?: string | null; phone?: string | null };
 
@@ -27,6 +29,7 @@ export function StudentCreateForm({
 }) {
   const router = useRouter();
   async function submit(formData: FormData) {
+    if (!validateOptionalIdNumber(formData.get("idNumber"))) return;
     const response = await fetch("/api/student-service/students", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -42,19 +45,23 @@ export function StudentCreateForm({
     <div className="space-y-4">
       <FormShell title="新建学员">
         <form action={submit} className="grid gap-3">
-          <Input name="name" placeholder="姓名" required />
-          <Input name="phone" placeholder="手机号" required />
-          <Input name="school" placeholder="学校" />
-          <Input name="grade" placeholder="年级" />
-          <Input name="major" placeholder="专业" />
-          <Input name="classType" placeholder="报名班型" />
-          <Select name="campusId" options={campuses} />
-          <Select name="classId" options={[{ id: "", name: "暂不分班" }, ...classes]} />
-          <Select name="academicOwnerId" options={[{ id: "", name: "暂不分配教务" }, ...academicUsers]} />
-          <Select name="salesOwnerId" options={[{ id: "", name: "无招生老师" }, ...salesUsers]} />
-          <NativeSelect name="examTrack" options={examTrackOptions} />
-          <NativeSelect name="studyStatus" options={studyStatusOptions} />
-          <textarea name="serviceNote" placeholder="服务备注" className="rounded-md border border-line px-3 py-2 text-sm" />
+          <Input name="name" label="姓名" required />
+          <Input name="phone" label="手机号" required />
+          <Input name="idNumber" label="身份证号" />
+          <Input name="school" label="学校" />
+          <Input name="grade" label="年级" />
+          <Input name="major" label="专业" />
+          <Input name="classType" label="报名班型" />
+          <Select name="campusId" label="校区" required options={campuses} />
+          <Select name="classId" label="班级" options={[{ id: "", name: "暂不分班" }, ...classes]} />
+          <Select name="academicOwnerId" label="教务老师" options={[{ id: "", name: "暂不分配教务" }, ...academicUsers]} />
+          <Select name="salesOwnerId" label="招生老师" options={[{ id: "", name: "无招生老师" }, ...salesUsers]} />
+          <NativeSelect name="examTrack" label="教资方向" options={examTrackOptions} />
+          <NativeSelect name="studyStatus" label="学习状态" options={studyStatusOptions} />
+          <label>
+            <RequiredLabel required={false}>服务备注</RequiredLabel>
+            <textarea name="serviceNote" className="mt-2 w-full rounded-md border border-line px-3 py-2 text-sm" />
+          </label>
           <Submit />
         </form>
       </FormShell>
@@ -139,13 +146,13 @@ export function ClassCreateForm({
   return (
     <FormShell title="新建班级">
       <form action={submit} className="grid gap-3">
-        <Input name="name" placeholder="班级名称" required />
-        <Input name="startAt" type="datetime-local" required />
-        <Input name="classType" placeholder="班型" />
-        <Select name="campusId" options={campuses} />
-        <Select name="academicOwnerId" options={[{ id: "", name: "暂不分配教务" }, ...academicUsers]} />
-        <Select name="lecturerId" options={[{ id: "", name: "暂不分配授课老师" }, ...lecturers]} />
-        <NativeSelect name="examTrack" options={examTrackOptions} />
+        <Input name="name" label="班级名称" required />
+        <Input name="startAt" label="开课时间" type="datetime-local" required />
+        <Input name="classType" label="班型" />
+        <Select name="campusId" label="校区" required options={campuses} />
+        <Select name="academicOwnerId" label="教务老师" options={[{ id: "", name: "暂不分配教务" }, ...academicUsers]} />
+        <Select name="lecturerId" label="授课老师" options={[{ id: "", name: "暂不分配授课老师" }, ...lecturers]} />
+        <NativeSelect name="examTrack" label="教资方向" options={examTrackOptions} />
         <Submit />
       </form>
     </FormShell>
@@ -177,15 +184,18 @@ export function SessionCreateForm({
   return (
     <FormShell title="新建课程">
       <form action={submit} className="grid gap-3">
-        <Input name="title" placeholder="课程标题" required />
-        <Select name="campusId" options={campuses} />
-        <Select name="classId" options={classes} />
-        <Select name="lecturerId" options={[{ id: "", name: "暂不分配老师" }, ...lecturers]} />
-        <NativeSelect name="type" options={sessionTypeOptions} />
-        <Input name="startsAt" type="datetime-local" required />
-        <Input name="endsAt" type="datetime-local" required />
-        <Input name="room" placeholder="教室/会议链接" />
-        <textarea name="homework" placeholder="作业提醒内容" className="rounded-md border border-line px-3 py-2 text-sm" />
+        <Input name="title" label="课程标题" required />
+        <Select name="campusId" label="校区" required options={campuses} />
+        <Select name="classId" label="班级" required options={classes} />
+        <Select name="lecturerId" label="授课老师" options={[{ id: "", name: "暂不分配老师" }, ...lecturers]} />
+        <NativeSelect name="type" label="课程类型" options={sessionTypeOptions} />
+        <Input name="startsAt" label="开始时间" type="datetime-local" required />
+        <Input name="endsAt" label="结束时间" type="datetime-local" required />
+        <Input name="room" label="教室/会议链接" />
+        <label>
+          <RequiredLabel required={false}>作业提醒内容</RequiredLabel>
+          <textarea name="homework" className="mt-2 w-full rounded-md border border-line px-3 py-2 text-sm" />
+        </label>
         <Submit />
       </form>
     </FormShell>
@@ -215,11 +225,14 @@ export function AttendanceCreateForm({
   return (
     <FormShell title="登记打卡">
       <form action={submit} className="grid gap-3">
-        <Select name="studentId" options={students} />
-        <Select name="courseSessionId" options={sessions} />
-        <NativeSelect name="status" options={attendanceStatusOptions} />
-        <Input name="checkInAt" type="datetime-local" />
-        <textarea name="note" placeholder="备注" className="rounded-md border border-line px-3 py-2 text-sm" />
+        <Select name="studentId" label="学员" required options={students} />
+        <Select name="courseSessionId" label="课程" required options={sessions} />
+        <NativeSelect name="status" label="打卡状态" options={attendanceStatusOptions} />
+        <Input name="checkInAt" label="打卡时间" type="datetime-local" />
+        <label>
+          <RequiredLabel required={false}>备注</RequiredLabel>
+          <textarea name="note" className="mt-2 w-full rounded-md border border-line px-3 py-2 text-sm" />
+        </label>
         <Submit label="保存记录" />
       </form>
     </FormShell>
@@ -237,47 +250,55 @@ function FormShell({ title, children }: { title: string; children: React.ReactNo
 
 function Input({
   name,
-  placeholder,
+  label,
   type = "text",
   required
 }: {
   name: string;
-  placeholder?: string;
+  label: string;
   type?: string;
   required?: boolean;
 }) {
   return (
-    <input
-      name={name}
-      type={type}
-      required={required}
-      placeholder={placeholder}
-      className="h-10 rounded-md border border-line px-3 text-sm outline-none focus:border-brand-500"
-    />
+    <label>
+      <RequiredLabel required={required}>{label}</RequiredLabel>
+      <input
+        name={name}
+        type={type}
+        required={required}
+        className="mt-2 h-10 w-full rounded-md border border-line px-3 text-sm outline-none focus:border-brand-500"
+      />
+    </label>
   );
 }
 
-function Select({ name, options }: { name: string; options: Option[] }) {
+function Select({ name, label, required, options }: { name: string; label: string; required?: boolean; options: Option[] }) {
   return (
-    <select name={name} className="h-10 rounded-md border border-line bg-white px-3 text-sm">
-      {options.map((option) => (
-        <option key={option.id || "empty"} value={option.id}>
-          {getUserDisplayName(option, option.name || "-")}
-        </option>
-      ))}
-    </select>
+    <label>
+      <RequiredLabel required={required}>{label}</RequiredLabel>
+      <select name={name} required={required} className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
+        {options.map((option) => (
+          <option key={option.id || "empty"} value={option.id}>
+            {getUserDisplayName(option, option.name || "-")}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
-function NativeSelect({ name, options }: { name: string; options: Array<{ value: string; label: string }> }) {
+function NativeSelect({ name, label, options }: { name: string; label: string; options: Array<{ value: string; label: string }> }) {
   return (
-    <select name={name} className="h-10 rounded-md border border-line bg-white px-3 text-sm">
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
+    <label>
+      <RequiredLabel required={false}>{label}</RequiredLabel>
+      <select name={name} className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm">
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -296,4 +317,13 @@ async function readImportHeaders(file: File) {
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = xlsx.utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: false });
   return (rows[0] || []).map((item) => String(item).trim()).filter(Boolean);
+}
+
+function validateOptionalIdNumber(value: FormDataEntryValue | null) {
+  const idNumber = typeof value === "string" ? value.trim().toUpperCase() : "";
+  if (idNumber && !isValidIdNumberFormat(idNumber)) {
+    alert("身份证号格式不正确");
+    return false;
+  }
+  return true;
 }
