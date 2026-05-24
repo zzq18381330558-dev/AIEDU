@@ -53,6 +53,13 @@ type DictionaryItem = {
   sortOrder: number;
 };
 
+type DictionaryCategoryItem = {
+  id: string;
+  code: string;
+  name: string;
+  isSystem: boolean;
+};
+
 const preferredDictionaryCategories = [
   { value: "LEAD_SOURCE", label: "线索来源" },
   { value: "EXAM_TRACK", label: "教资方向" },
@@ -82,6 +89,7 @@ export function SettingsDashboard({
   initialUsers,
   initialCampuses,
   initialDictionaries,
+  initialDictionaryCategories,
   managers,
   assistantUsers,
   currentUserRole
@@ -89,6 +97,7 @@ export function SettingsDashboard({
   initialUsers: UserItem[];
   initialCampuses: CampusItem[];
   initialDictionaries: DictionaryItem[];
+  initialDictionaryCategories: DictionaryCategoryItem[];
   managers: Option[];
   assistantUsers: Option[];
   currentUserRole: string;
@@ -97,6 +106,7 @@ export function SettingsDashboard({
   const [users, setUsers] = useState(initialUsers);
   const [campuses, setCampuses] = useState(initialCampuses);
   const [dictionaries, setDictionaries] = useState(initialDictionaries);
+  const [dictionaryCategories, setDictionaryCategories] = useState(initialDictionaryCategories);
   const [userModal, setUserModal] = useState<UserItem | "new" | null>(null);
   const [resetPasswordUser, setResetPasswordUser] = useState<UserItem | null>(null);
   const [newUserRole, setNewUserRole] = useState("");
@@ -107,8 +117,9 @@ export function SettingsDashboard({
     | { type: "user"; id: string; title: string }
     | null
   >(null);
+  const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
   const [campusModal, setCampusModal] = useState<CampusItem | "new" | null>(null);
-  const [dictionaryModal, setDictionaryModal] = useState<DictionaryItem | "new" | null>(null);
+  const [dictionaryModal, setDictionaryModal] = useState<DictionaryItem | "new" | { category: string } | null>(null);
   const [openUserGroups, setOpenUserGroups] = useState<Record<string, boolean>>({});
   const [openDictionaryGroups, setOpenDictionaryGroups] = useState<Record<string, boolean>>({});
 
@@ -118,9 +129,10 @@ export function SettingsDashboard({
     for (const item of dictionaryCategoryOptions) {
       if (!options.has(item.value)) options.set(item.value, getDictionaryCategoryLabel(item.value));
     }
+    for (const item of dictionaryCategories) options.set(item.code, item.name);
     for (const item of dictionaries) options.set(item.category, getDictionaryCategoryLabel(item.category));
     return Array.from(options, ([value, label]) => ({ value, label }));
-  }, [dictionaries]);
+  }, [dictionaries, dictionaryCategories]);
   const dictionaryGroups = useMemo(() => {
     const groups = new Map<string, DictionaryItem[]>();
     for (const item of dictionaries) {
@@ -128,12 +140,17 @@ export function SettingsDashboard({
       current.push(item);
       groups.set(item.category, current);
     }
-    return Array.from(groups, ([categoryName, items]) => ({
-      category: categoryName,
-      label: getDictionaryCategoryLabel(categoryName),
-      items
-    })).sort((a, b) => a.label.localeCompare(b.label, "zh-CN"));
-  }, [dictionaries]);
+    const categoryRows = new Map<string, { category: string; label: string; isSystem: boolean; items: DictionaryItem[] }>();
+    for (const item of dictionaryCategories) {
+      categoryRows.set(item.code, { category: item.code, label: item.name, isSystem: item.isSystem, items: groups.get(item.code) || [] });
+    }
+    for (const [categoryName, items] of groups) {
+      if (!categoryRows.has(categoryName)) {
+        categoryRows.set(categoryName, { category: categoryName, label: getDictionaryCategoryLabel(categoryName), isSystem: false, items });
+      }
+    }
+    return Array.from(categoryRows.values()).sort((a, b) => a.label.localeCompare(b.label, "zh-CN"));
+  }, [dictionaries, dictionaryCategories]);
   const userRoleGroups = useMemo(
     () =>
       (["ADMIN", "CAMPUS_MANAGER", "ADMISSIONS_COUNSELOR", "ACADEMIC_TEACHER", "LECTURER"] as const).map(
@@ -161,7 +178,17 @@ export function SettingsDashboard({
     ]);
     if (userResponse.ok) setUsers(userData.items || []);
     if (campusResponse.ok) setCampuses(campusData.items || []);
-    if (dictionaryResponse.ok) setDictionaries(dictionaryData.items || []);
+    if (dictionaryResponse.ok) {
+      setDictionaries(dictionaryData.items || []);
+      setDictionaryCategories(dictionaryData.categories || []);
+    }
+  }
+
+  function showToast(message: string, tone: "success" | "error" = "success") {
+    setToast({ message, tone });
+    window.setTimeout(() => {
+      setToast(null);
+    }, 2600);
   }
 
   async function saveEntity(endpoint: string, payload: Record<string, unknown>) {
@@ -241,10 +268,22 @@ export function SettingsDashboard({
     const response = await fetch(`/api/settings/dictionaries/${item.id}`, { method: "DELETE" });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      alert(data.message || data.error || "删除失败");
+      showToast(data.message || data.error || "删除失败", "error");
       return;
     }
-    alert(data.message || "字典项已删除");
+    showToast(data.message || "字典项已删除");
+    await reload();
+  }
+
+  async function deleteDictionaryCategory(category: string) {
+    if (!window.confirm("删除后不可恢复，是否确认删除该分类？")) return;
+    const response = await fetch(`/api/settings/dictionaries/categories/${encodeURIComponent(category)}`, { method: "DELETE" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      showToast(data.message || data.error || "删除失败", "error");
+      return;
+    }
+    showToast(data.message || "分类已删除");
     await reload();
   }
 
@@ -263,6 +302,11 @@ export function SettingsDashboard({
 
   return (
     <div className="space-y-6">
+      {toast ? (
+        <div className={`fixed right-5 top-5 z-[60] rounded-md border px-4 py-3 text-sm shadow-soft ${toast.tone === "success" ? "border-brand-100 bg-brand-50 text-brand-700" : "border-red-200 bg-red-50 text-red-700"}`}>
+          {toast.message}
+        </div>
+      ) : null}
       <section className="rounded-lg border border-line bg-white p-5 shadow-soft">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex gap-4">
@@ -370,7 +414,7 @@ export function SettingsDashboard({
         <PanelHeader
           icon={LibraryBig}
           title="业务字典"
-          action="新建字典"
+          action="新建分类"
           onAction={() => setDictionaryModal("new")}
         />
         <div className="overflow-x-auto">
@@ -383,6 +427,8 @@ export function SettingsDashboard({
                   items={group.items}
                   open={Boolean(openDictionaryGroups[group.category])}
                     onToggleOpen={() => toggleDictionaryGroup(group.category)}
+                    onAddDictionary={() => setDictionaryModal({ category: group.label })}
+                    onDeleteCategory={() => deleteDictionaryCategory(group.category)}
                     onEdit={setDictionaryModal}
                     onToggle={toggleDictionary}
                     onDelete={deleteDictionary}
@@ -415,7 +461,8 @@ export function SettingsDashboard({
       <CampusModal open={Boolean(campusModal)} value={campusModal === "new" ? null : campusModal} managers={managers} assistantUsers={assistantUsers} isAdmin={isAdmin} onClose={() => setCampusModal(null)} onSaved={reload} />
       <DictionaryModal
         open={Boolean(dictionaryModal)}
-        value={dictionaryModal === "new" ? null : dictionaryModal}
+        value={dictionaryModal === "new" || (dictionaryModal && "category" in dictionaryModal) ? null : dictionaryModal}
+        defaultCategory={dictionaryModal && typeof dictionaryModal === "object" && "category" in dictionaryModal ? dictionaryModal.category : ""}
         categories={dictionaryCategoryChoices}
         onClose={() => setDictionaryModal(null)}
         onSaved={reload}
@@ -668,6 +715,8 @@ function DictionaryRows({
   items,
   open,
   onToggleOpen,
+  onAddDictionary,
+  onDeleteCategory,
   onEdit,
   onToggle,
   onDelete
@@ -676,6 +725,8 @@ function DictionaryRows({
   items: DictionaryItem[];
   open: boolean;
   onToggleOpen: () => void;
+  onAddDictionary: () => void;
+  onDeleteCategory: () => void;
   onEdit: (item: DictionaryItem) => void;
   onToggle: (item: DictionaryItem) => void;
   onDelete: (item: DictionaryItem) => void;
@@ -685,13 +736,23 @@ function DictionaryRows({
     <>
       <tr className="bg-[#F8FAFB]">
         <td colSpan={5} className="p-0">
-          <button type="button" onClick={onToggleOpen} className="flex w-full items-center justify-between px-4 py-3 text-left">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
-              <ToggleIcon className="h-4 w-4 text-muted" />
-              {label}
-            </span>
-            <span className="rounded-md bg-white px-2 py-1 text-xs text-muted">{items.length} 项</span>
-          </button>
+          <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <button type="button" onClick={onToggleOpen} className="inline-flex items-center gap-2 text-left text-sm font-semibold text-ink">
+                <ToggleIcon className="h-4 w-4 text-muted" />
+                {label}
+                <span className="rounded-md bg-white px-2 py-1 text-xs font-normal text-muted">{items.length} 项</span>
+            </button>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={onAddDictionary} className="inline-flex h-8 items-center gap-1 rounded-md border border-line bg-white px-2 text-xs text-ink">
+                <Plus className="h-3.5 w-3.5" />
+                新建字典
+              </button>
+              <button type="button" onClick={onDeleteCategory} className="inline-flex h-8 items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 text-xs font-medium text-red-700 hover:bg-red-100">
+                <Minus className="h-3.5 w-3.5" />
+                删除分类
+              </button>
+            </div>
+          </div>
         </td>
       </tr>
       {open ? (
@@ -1285,12 +1346,14 @@ function CampusModal({
 function DictionaryModal({
   open,
   value,
+  defaultCategory,
   categories,
   onClose,
   onSaved
 }: {
   open: boolean;
   value: DictionaryItem | null;
+  defaultCategory?: string;
   categories: Array<{ value: string; label: string }>;
   onClose: () => void;
   onSaved: () => Promise<void>;
@@ -1298,8 +1361,8 @@ function DictionaryModal({
   return (
     <BaseModal open={open} title={value ? "编辑字典项" : "新建字典项"} onClose={onClose}>
       <EntityForm endpoint={value ? `/api/settings/dictionaries/${value.id}` : "/api/settings/dictionaries"} method={value ? "PUT" : "POST"} onClose={onClose} onSaved={onSaved}>
-        <CategoryField options={categories} defaultValue={value?.category} />
-        <Field label="名称" name="name" defaultValue={value?.name} />
+        <CategoryField options={categories} defaultValue={value?.category || defaultCategory} />
+        <Field label="名称" name="name" defaultValue={value?.name} autoFocus />
         <Field label="值" name="value" defaultValue={value?.value} />
         <Field label="排序" name="sortOrder" type="number" defaultValue={String(value?.sortOrder ?? 0)} />
         <Select label="状态" name="enabled" options={[{ value: "true", label: "启用" }, { value: "false", label: "停用" }]} defaultValue={String(value?.enabled ?? true)} />
@@ -1387,11 +1450,11 @@ function EntityForm({ endpoint, method, children, onClose, onSaved }: { endpoint
   );
 }
 
-function Field({ label, name, defaultValue, type = "text", required }: { label: string; name: string; defaultValue?: string | null; type?: string; required?: boolean }) {
+function Field({ label, name, defaultValue, type = "text", required, autoFocus }: { label: string; name: string; defaultValue?: string | null; type?: string; required?: boolean; autoFocus?: boolean }) {
   return (
     <label>
       <span className="text-sm font-medium text-ink">{label}</span>
-      <input name={name} type={type} required={required} defaultValue={defaultValue || ""} className="mt-2 h-10 w-full rounded-md border border-line px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+      <input name={name} type={type} required={required} autoFocus={autoFocus} defaultValue={defaultValue || ""} className="mt-2 h-10 w-full rounded-md border border-line px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
     </label>
   );
 }

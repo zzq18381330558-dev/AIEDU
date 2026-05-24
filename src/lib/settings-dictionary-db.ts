@@ -13,6 +13,15 @@ export type BusinessDictionaryRow = {
   updatedAt: Date;
 };
 
+export type BusinessDictionaryCategoryRow = {
+  id: string;
+  code: string;
+  name: string;
+  isSystem: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type DictionaryData = {
   organizationId: string;
   category: string;
@@ -31,6 +40,11 @@ async function ensureDictionaryCategory(category: string) {
     throw new Error("字典分类不能超过 63 字节");
   }
   await prisma.$executeRawUnsafe(`ALTER TYPE "DictionaryCategory" ADD VALUE IF NOT EXISTS ${quotePgLiteral(category)}`);
+  await prisma.businessDictionaryCategory.upsert({
+    where: { code: category },
+    update: { name: category },
+    create: { code: category, name: category, isSystem: false }
+  });
 }
 
 export async function listBusinessDictionaries(organizationId: string) {
@@ -49,6 +63,12 @@ export async function listBusinessDictionaries(organizationId: string) {
     WHERE "organizationId" = ${organizationId}
     ORDER BY category::text ASC, "sortOrder" ASC, "createdAt" DESC
   `;
+}
+
+export async function listBusinessDictionaryCategories() {
+  return prisma.businessDictionaryCategory.findMany({
+    orderBy: [{ isSystem: "desc" }, { createdAt: "asc" }, { name: "asc" }]
+  });
 }
 
 export async function findBusinessDictionaryDuplicate(data: Pick<DictionaryData, "organizationId" | "category" | "name">, ignoredId?: string) {

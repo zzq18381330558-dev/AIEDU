@@ -3,7 +3,7 @@ import { buildAccessibleCampusWhere, buildCampusScopeWhere, isGlobalDataRole } f
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { maskIdNumber } from "@/lib/settings";
-import { listBusinessDictionaries } from "@/lib/settings-dictionary-db";
+import { listBusinessDictionaries, listBusinessDictionaryCategories } from "@/lib/settings-dictionary-db";
 
 function toSafeUserDto<T extends { idNumber?: string | null }>(item: T) {
   const { idNumber, ...rest } = item;
@@ -20,7 +20,7 @@ export default async function SettingsPage() {
   const userCampusScope = await buildCampusScopeWhere(user);
   const isAdmin = isGlobalDataRole(user.role);
 
-  const [users, campuses, dictionaries, managers, assistantUsers] = await Promise.all([
+  const [users, campuses, dictionaries, dictionaryCategories, managers, assistantUsers] = await Promise.all([
     prisma.user.findMany({
       where: isAdmin
         ? { organizationId: user.organizationId }
@@ -50,6 +50,7 @@ export default async function SettingsPage() {
       orderBy: [{ status: "asc" }, { name: "asc" }]
     }),
     isAdmin ? listBusinessDictionaries(user.organizationId) : Promise.resolve([]),
+    isAdmin ? listBusinessDictionaryCategories() : Promise.resolve([]),
     prisma.user.findMany({
       where: isAdmin
         ? {
@@ -79,6 +80,7 @@ export default async function SettingsPage() {
       initialUsers={JSON.parse(JSON.stringify(users.map(toSafeUserDto)))}
       initialCampuses={JSON.parse(JSON.stringify(campuses))}
       initialDictionaries={JSON.parse(JSON.stringify(dictionaries))}
+      initialDictionaryCategories={JSON.parse(JSON.stringify(dictionaryCategories))}
       managers={managers}
       assistantUsers={assistantUsers}
       currentUserRole={user.role}

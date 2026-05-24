@@ -355,6 +355,17 @@ model BusinessDictionary {
   @@index([enabled])
 }
 
+model BusinessDictionaryCategory {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isSystem])
+}
+
 model Lead {
   id              String            @id @default(cuid())
   campusId        String

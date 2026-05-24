@@ -3,6 +3,7 @@ import { jsonError, requireApiUser } from "@/lib/api";
 import {
   createBusinessDictionary,
   findBusinessDictionaryDuplicate,
+  listBusinessDictionaryCategories,
   listBusinessDictionaries
 } from "@/lib/settings-dictionary-db";
 import { normalizeDictionaryInput } from "@/lib/settings";
@@ -12,9 +13,12 @@ export async function GET() {
   if ("response" in auth) return auth.response;
   if (auth.user.role !== "ADMIN") return NextResponse.json({ error: "仅管理员可以管理字典" }, { status: 403 });
 
-  const items = await listBusinessDictionaries(auth.user.organizationId);
+  const [items, categories] = await Promise.all([
+    listBusinessDictionaries(auth.user.organizationId),
+    listBusinessDictionaryCategories()
+  ]);
 
-  return NextResponse.json({ items });
+  return NextResponse.json({ items, categories });
 }
 
 export async function POST(request: NextRequest) {
