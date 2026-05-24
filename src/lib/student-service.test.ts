@@ -10,8 +10,10 @@ import {
   normalizeServiceRecordInput,
   normalizeStudentInput,
   normalizeStudentStatusInput,
+  validateClassCourse,
   studentScopeWhere
 } from "./student-service";
+import { prisma } from "./prisma";
 
 test("normalizeStudentInput validates and normalizes student profile", () => {
   const result = normalizeStudentInput(
@@ -45,6 +47,68 @@ test("normalizeClassInput requires courseId for class editing", () => {
     { campusId: "" }
   );
   assert.equal(result.courseId, "course-1");
+});
+
+test("validateClassCourse returns Chinese errors for missing, inactive, and mismatched courses", async () => {
+  await assert.rejects(
+    () =>
+      validateClassCourse(
+        { id: "admin", role: "ADMIN", campusId: null, organizationId: "org-1" },
+        "campus-1",
+        ""
+      ),
+    /请选择课程/
+  );
+
+  const originalFindFirst = prisma.course.findFirst;
+  const originalCampusFindMany = prisma.campus.findMany;
+  try {
+    prisma.course.findFirst = (() => Promise.resolve(null)) as typeof prisma.course.findFirst;
+    await assert.rejects(
+      () =>
+        validateClassCourse(
+          { id: "admin", role: "ADMIN", campusId: null, organizationId: "org-1" },
+          "campus-1",
+          "course-1"
+        ),
+      /课程不存在或已停用/
+    );
+
+    prisma.course.findFirst = (() => Promise.resolve({ id: "course-2", campusId: "campus-2" })) as typeof prisma.course.findFirst;
+    await assert.rejects(
+      () =>
+        validateClassCourse(
+          { id: "admin", role: "ADMIN", campusId: null, organizationId: "org-1" },
+          "campus-1",
+          "course-2"
+        ),
+      /班级课程必须属于所选校区，或选择总部课程/
+    );
+
+    prisma.course.findFirst = (() => Promise.resolve({ id: "course-hq", campusId: null })) as typeof prisma.course.findFirst;
+    await assert.doesNotReject(() =>
+      validateClassCourse(
+        { id: "manager", role: "CAMPUS_MANAGER", campusId: "campus-1", organizationId: "org-1" },
+        "campus-1",
+        "course-hq"
+      )
+    );
+
+    prisma.course.findFirst = (() => Promise.resolve({ id: "course-1", campusId: "campus-1" })) as typeof prisma.course.findFirst;
+    prisma.campus.findMany = (() => Promise.resolve([{ id: "campus-2" }])) as typeof prisma.campus.findMany;
+    await assert.rejects(
+      () =>
+        validateClassCourse(
+          { id: "manager", role: "CAMPUS_MANAGER", campusId: "campus-2", organizationId: "org-1" },
+          "campus-1",
+          "course-1"
+        ),
+      /无权限使用该课程/
+    );
+  } finally {
+    prisma.course.findFirst = originalFindFirst;
+    prisma.campus.findMany = originalCampusFindMany;
+  }
 });
 
 test("normalizeStudentInput allows empty ID number and rejects invalid format", () => {
